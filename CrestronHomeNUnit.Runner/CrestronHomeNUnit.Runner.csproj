@@ -3,6 +3,7 @@ Copyright (c) 2026 Neil Colvin.
 Licensed under the MIT License. See LICENSE in the repository root.
 -->
 <Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="CrestronHomeNUnit.Runner.Local.targets" Condition="Exists('CrestronHomeNUnit.Runner.Local.targets')" />
   <PropertyGroup>
     <TargetFramework>net10.0-windows</TargetFramework>
     <OutputType>WinExe</OutputType>

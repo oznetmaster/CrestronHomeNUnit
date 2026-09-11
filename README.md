@@ -41,7 +41,7 @@ Copyright (c) 2026 Neil Colvin. Project-owned code is licensed under the [MIT Li
 
 Several test packages can be installed on one processor. One Windows runner can select among packages on several processors, maintaining one active package connection at a time. Each package gets an available TCP port automatically; there is no reserved port range to assign manually.
 
-The official Windows runner uses the licensed GlyphLab **Code – Play** application icon. The public source includes an MIT-licensed fallback icon so it can be built without the stock-icon license; see [Third-party notices](THIRD-PARTY-NOTICES.md).
+The official Windows runner uses the licensed GlyphLab **Code – Play** application icon. The public source includes an MIT-licensed fallback icon so it can be built without the stock-icon license. Licensed local builds can set the `RunnerIconPath` MSBuild property in `CrestronHomeNUnit.Runner.Local.targets`, excluded through `.git/info/exclude`; see [Third-party notices](THIRD-PARTY-NOTICES.md).
 
 The Windows runner is optional for ordinary suite runs from a Home tile. It is required for individual test selection, detailed interactive results, transferring configuration files, and explicitly starting suites marked as manual/live.
 

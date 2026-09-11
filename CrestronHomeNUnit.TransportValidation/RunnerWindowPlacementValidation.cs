@@ -38,7 +38,8 @@ internal static class RunnerWindowPlacementValidation
 				expected = form.Bounds;
 				Require (File.Exists (path), "Moving/resizing did not persist before close.");
 				string initial = File.ReadAllText (path);
-				form.Left += 1;
+				// Move inward so the window stays inside even a narrow CI working area.
+				form.Left -= 1;
 				Require (File.ReadAllText (path) != initial, "Moving the window did not persist immediately.");
 				expected = form.Bounds;
 				string beforeMinimize = File.ReadAllText (path);
@@ -51,7 +52,7 @@ internal static class RunnerWindowPlacementValidation
 			Require (File.Exists (path) && !File.Exists (preferences), "Window placement depended on opting into test selections.");
 			using (var form = Open ())
 				{
-				Require (form.Bounds == expected && form.WindowState == FormWindowState.Normal, "Normal window bounds were not restored.");
+				Require (form.Bounds == expected && form.WindowState == FormWindowState.Normal, "Normal window bounds were not restored. Expected " + expected + ", actual " + form.Bounds + ".");
 				form.WindowState = FormWindowState.Maximized;
 				Application.DoEvents ();
 				form.Close ();
