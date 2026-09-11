@@ -1,0 +1,16 @@
+{
+  "Common.Logging-LICENSE.txt": "https://raw.githubusercontent.com/net-commons/common-logging/master/license.txt",
+  "Makaretu.Dns-LICENSE.txt": "https://raw.githubusercontent.com/richardschneider/net-dns/701463d2091e6d98d4cc4490abb0e0ead8ae2985/LICENSE",
+  "Makaretu.Dns.Multicast-LICENSE.txt": "https://raw.githubusercontent.com/richardschneider/net-mdns/master/LICENSE",
+  "IPNetwork2-LICENSE.txt": "https://raw.githubusercontent.com/lduchosal/ipnetwork/master/LICENSE",
+  "SSH.NET-LICENSE.txt": "https://raw.githubusercontent.com/sshnet/SSH.NET/7b2fd3dbf2c86a80a7b06cea020aa5f821c9902e/LICENSE",
+  "Hafner.Compatibility-LICENSE.txt": "https://raw.githubusercontent.com/HugoRoss/Hafner.Compatibility.MetaPackage/e08289a2da4abfaac9b739a7987a74f6daf0622f/LICENSE",
+  "IsExternalInit-LICENSE.txt": "https://raw.githubusercontent.com/manuelroemer/IsExternalInit/master/LICENSE",
+  "SimpleBase-LICENSE.txt": "https://raw.githubusercontent.com/ssg/SimpleBase/1.7.0/LICENSE.txt",
+  "DotNet-LICENSE.txt": "https://raw.githubusercontent.com/dotnet/runtime/v10.0.0/LICENSE.TXT",
+  "BouncyCastle-LICENSE.md": "NuGet BouncyCastle.Cryptography 2.7.0: LICENSE.md",
+  "NUnit-4.6.1-LICENSE.txt": "vendor/nunit/LICENSE.txt; NUnit v4.6.1",
+  "NUnit-Shims-LICENSE.txt": "CrestronHomeNUnit.CompatibilityLibrary/Shims/NUnit-LICENSE.txt",
+  "Tmds.LibC-LICENSE.txt": "https://raw.githubusercontent.com/tmds/Tmds.LibC/master/LICENSE; NuGet 0.2.0 declares MIT",
+  "GlyphLab-LICENSE.txt": "Glyphlab Stock Icons 2015 v1_4 Documentation and License.pdf, page 3, supplied by licensed project owner; 15 May 2015"
+}

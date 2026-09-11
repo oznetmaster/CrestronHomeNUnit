@@ -1,0 +1,13 @@
+<!--
+Copyright (c) 2026 Neil Colvin.
+Licensed under the MIT License. See LICENSE in the repository root.
+-->
+<Project>
+  <PropertyGroup>
+    <CrestronDriverSdkRoot>C:\Applications (x86)\Crestron\Driver SDK</CrestronDriverSdkRoot>
+    <ManifestUtilExe>$(CrestronDriverSdkRoot)\ManifestUtil\ManifestUtil.exe</ManifestUtilExe>
+    <LocalCrestronSdkLibDir>$(CrestronDriverSdkRoot)\Libraries</LocalCrestronSdkLibDir>
+    <LocalNet472ReferenceAssemblies>C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.7.2</LocalNet472ReferenceAssemblies>
+    <LocalNetFxRuntimeDir>C:\Windows\Microsoft.NET\Framework64\v4.0.30319</LocalNetFxRuntimeDir>
+  </PropertyGroup>
+</Project>

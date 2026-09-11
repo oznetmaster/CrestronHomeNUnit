@@ -1,0 +1,67 @@
+<!--
+Copyright (c) 2026 Neil Colvin.
+Licensed under the MIT License. See LICENSE in the repository root.
+-->
+<Project>
+  <PropertyGroup>
+    <DriverBuildToolsDirectory Condition="'$(DriverBuildToolsDirectory)' == ''">$(MSBuildThisFileDirectory)..</DriverBuildToolsDirectory>
+    <DriverManifestPath Condition="'$(DriverManifestPath)' == ''">$(MSBuildProjectDirectory)\$(AssemblyName).json</DriverManifestPath>
+    <CrestronDriverSdkRoot Condition="'$(CrestronDriverSdkRoot)' == ''">C:\Applications (x86)\Crestron\Driver SDK</CrestronDriverSdkRoot>
+    <ManifestUtilExe Condition="'$(ManifestUtilExe)' == ''">$(CrestronDriverSdkRoot)\ManifestUtil\ManifestUtil.exe</ManifestUtilExe>
+    <LocalCrestronSdkLibDir Condition="'$(LocalCrestronSdkLibDir)' == ''">$(CrestronDriverSdkRoot)\Libraries</LocalCrestronSdkLibDir>
+    <LocalNet472ReferenceAssemblies Condition="'$(LocalNet472ReferenceAssemblies)' == ''">C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.7.2</LocalNet472ReferenceAssemblies>
+    <LocalNetFxRuntimeDir Condition="'$(LocalNetFxRuntimeDir)' == ''">$(SystemRoot)\Microsoft.NET\Framework64\v4.0.30319</LocalNetFxRuntimeDir>
+    <IlRepackToolDirectory Condition="'$(IlRepackToolDirectory)' == ''">$(UserProfile)\.dotnet\tools\.store\dotnet-ilrepack\2.0.45\dotnet-ilrepack\2.0.45\tools\net8.0\any</IlRepackToolDirectory>
+    <CreateDriverPackage Condition="'$(CreateDriverPackage)' == ''">true</CreateDriverPackage>
+    <DeployAfterBuild Condition="'$(DeployAfterBuild)' == ''">false</DeployAfterBuild>
+    <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
+  </PropertyGroup>
+
+  <Target Name="BumpDriverVersion" BeforeTargets="BeforeBuild" Condition="'$(DesignTimeBuild)' != 'true' And '$(CreateDriverPackage)' == 'true'">
+    <Exec Command="pwsh -NoProfile -NonInteractive -File &quot;$(DriverBuildToolsDirectory)\BumpDriverVersion.ps1&quot; -ManifestPath &quot;$(DriverManifestPath)&quot; -Configuration &quot;$(Configuration)&quot; -ReleaseVersion &quot;$(ReleaseVersion)&quot;" />
+  </Target>
+
+  <Target Name="MergeDependencies" AfterTargets="Build" Condition="'$(DesignTimeBuild)' != 'true' And '$(CreateDriverPackage)' == 'true'">
+    <Error Condition="!Exists('$(ManifestUtilExe)')" Text="ManifestUtil was not found at $(ManifestUtilExe). Set CrestronDriverSdkRoot in the project's Local.targets." />
+    <Error Condition="!Exists('$(IlRepackToolDirectory)\ILRepackTool.dll')" Text="Install dotnet-ilrepack 2.0.45, or set IlRepackToolDirectory in Local.targets." />
+    <PropertyGroup>
+      <MergedDriverPath>$(TargetDir)merged\$(AssemblyName).dll</MergedDriverPath>
+      <PatchedDriverPath>$(TargetDir)patched\$(AssemblyName).dll</PatchedDriverPath>
+    </PropertyGroup>
+    <ItemGroup>
+      <MergeInputs Include="$(TargetPath)" />
+      <!-- Crestron SDK DLLs remain platform dependencies. Merge the resolved application dependency closure. -->
+      <MergeInputs Include="@(ReferenceCopyLocalPaths)" Condition="'%(Extension)' == '.dll' And !$([System.String]::Copy('%(ReferenceCopyLocalPaths.NuGetPackageId)').ToLowerInvariant().StartsWith('crestron.'))" />
+    </ItemGroup>
+    <WriteLinesToFile File="$(TargetDir)merge_inputs.txt" Lines="@(MergeInputs->'%(FullPath)')" Overwrite="true" />
+    <Exec Command="pwsh -NoProfile -NonInteractive -File &quot;$(DriverBuildToolsDirectory)\ILRepackMerge.ps1&quot; -TargetPath &quot;$(TargetPath)&quot; -OutputPath &quot;$(MergedDriverPath)&quot; -InputListFile &quot;$(TargetDir)merge_inputs.txt&quot; -LibDir &quot;$(TargetDir.TrimEnd('\'))&quot; -SdkLibDir &quot;$(LocalCrestronSdkLibDir)&quot; -FxRefDir &quot;$(LocalNet472ReferenceAssemblies)&quot; -FxRuntimeDir &quot;$(LocalNetFxRuntimeDir)&quot; -ToolDirectory &quot;$(IlRepackToolDirectory)&quot;" />
+    <Exec Command="pwsh -NoProfile -NonInteractive -File &quot;$(DriverBuildToolsDirectory)\PatchMergedAssembly.ps1&quot; -AssemblyPath &quot;$(MergedDriverPath)&quot; -OutputPath &quot;$(PatchedDriverPath)&quot; -CecilPath &quot;$(IlRepackToolDirectory)\Mono.Cecil.dll&quot; -InputListFile &quot;$(TargetDir)merge_inputs.txt&quot; -ManifestPath &quot;$(DriverManifestPath)&quot;" />
+  </Target>
+
+  <Target Name="StagePackageFiles" AfterTargets="MergeDependencies" Condition="'$(DesignTimeBuild)' != 'true' And '$(CreateDriverPackage)' == 'true'">
+    <RemoveDir Directories="$(TargetDir)patched\IncludeInPkg" />
+    <ItemGroup>
+      <IncludeInPkgFiles Include="$(MSBuildProjectDirectory)\IncludeInPkg\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(IncludeInPkgFiles)" DestinationFiles="@(IncludeInPkgFiles->'$(TargetDir)patched\IncludeInPkg\%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Copy SourceFiles="@(ProcessorTestData)" DestinationFiles="@(ProcessorTestData->'$(TargetDir)patched\IncludeInPkg\%(TargetPath)')" />
+    <ItemGroup>
+      <HostLicenseRootFiles Include="$(DriverBuildToolsDirectory)\..\LICENSE;$(DriverBuildToolsDirectory)\..\THIRD-PARTY-NOTICES.md" />
+      <HostDependencyLicenseFiles Include="$(DriverBuildToolsDirectory)\..\licenses\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(HostLicenseRootFiles)" DestinationFiles="@(HostLicenseRootFiles->'$(TargetDir)patched\IncludeInPkg\Licenses\CrestronHomeNUnit\%(Filename)%(Extension)')" />
+    <Copy SourceFiles="@(HostDependencyLicenseFiles)" DestinationFiles="@(HostDependencyLicenseFiles->'$(TargetDir)patched\IncludeInPkg\Licenses\CrestronHomeNUnit\licenses\%(RecursiveDir)%(Filename)%(Extension)')" />
+  </Target>
+  <Target Name="PackageDriver" AfterTargets="StagePackageFiles" Condition="'$(DesignTimeBuild)' != 'true' And '$(CreateDriverPackage)' == 'true'">
+    <Delete Files="$(TargetDir)$(AssemblyName).pkg" />
+    <Exec Command="&quot;$(ManifestUtilExe)&quot; --file &quot;$(PatchedDriverPath)&quot; --lib &quot;$(TargetDir.TrimEnd('\'))&quot; --output &quot;$(TargetDir.TrimEnd('\'))&quot;" />
+    <Error Condition="!Exists('$(TargetDir)$(AssemblyName).pkg')" Text="ManifestUtil did not create the driver package. Deployment has been stopped." />
+    <Exec Command="pwsh -NoProfile -NonInteractive -File &quot;$(DriverBuildToolsDirectory)\VerifyPackageManifest.ps1&quot; -ManifestPath &quot;$(DriverManifestPath)&quot; -MetadataPath &quot;$(TargetDir)patched\$(AssemblyName).dat&quot;" />
+    <Exec Command="pwsh -NoProfile -NonInteractive -File &quot;$(DriverBuildToolsDirectory)\FixPkgPathSeparators.ps1&quot; -PkgPath &quot;$(TargetDir)$(AssemblyName).pkg&quot;" />
+  </Target>
+
+  <Target Name="DeployDriver" AfterTargets="PackageDriver" Condition="'$(DeployAfterBuild)' == 'true' And '$(Configuration)' == 'Debug' And '$(BuildingInsideVisualStudio)' == 'true' And '$(DesignTimeBuild)' != 'true' And '$(CreateDriverPackage)' == 'true'">
+    <Error Condition="'$(CrestronHomeIP)' == ''" Text="Set CrestronHomeIP in the project .csproj.user file before enabling deployment." />
+    <Exec Command="pwsh -NoProfile -NonInteractive -File &quot;$(DriverBuildToolsDirectory)\Deploy.ps1&quot; -PkgFile &quot;$(TargetDir)$(AssemblyName).pkg&quot; -ProjectUserFile &quot;$(MSBuildProjectFullPath).user&quot;" />
+  </Target>
+</Project>

@@ -1,0 +1,16 @@
+{
+  "Port": 0,
+  "Suites": [
+    {
+      "Id": "self-tests",
+      "Name": "NUnit framework self-tests",
+      "FilterXml": "<filter><namespace re='1'>^NUnit[.]Framework[.]Tests[.](Assertions|Constraints|Syntax)($|[.])</namespace></filter>"
+    },
+    {
+      "Id": "compatibility",
+      "Name": "C# compatibility",
+      "FilterXml": "<filter><or><class>LanguageTests</class><class>AsyncLifecycleTests</class></or></filter>"
+    }
+  ],
+  "Name": "NUnit Test Host"
+}

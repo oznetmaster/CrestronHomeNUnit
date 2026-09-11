@@ -1,0 +1,13 @@
+<!--
+Copyright (c) 2026 Neil Colvin.
+Licensed under the MIT License. See LICENSE in the repository root.
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Crestron.DeviceDrivers.DevKit" Version="27.0.24" />
+    <ProjectReference Include="..\CrestronHomeNUnit.Runtime\CrestronHomeNUnit.Runtime.csproj" />
+    <ProjectReference Include="..\CrestronHomeNUnit.Tests\CrestronHomeNUnit.Tests.csproj" />
+    <ProjectReference Include="..\CrestronHomeNUnit.SelfTests\CrestronHomeNUnit.SelfTests.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,10 @@
+{
+  "Title": "NUnit Test Host",
+  "Status": "Test Host",
+  "Suite": "NUnit Framework Self-Tests",
+  "Compatibility": "C# 13 Compatibility",
+  "Run": "Run Tests",
+  "Discovery": "Test Discovery",
+  "Discover": "Discover Tests",
+  "DesktopConnection": "Desktop Runner"
+}

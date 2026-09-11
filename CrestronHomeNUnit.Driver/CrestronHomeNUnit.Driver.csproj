@@ -1,0 +1,22 @@
+<!--
+Copyright (c) 2026 Neil Colvin.
+Licensed under the MIT License. See LICENSE in the repository root.
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>CrestronHomeNUnit.Driver</AssemblyName>
+    <RootNamespace>CrestronHomeNUnit.Driver</RootNamespace>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Crestron.DeviceDrivers.DevKit" Version="27.0.24" />
+    <PackageReference Include="Hafner.Compatibility.MetaPackage" Version="1.9.0" />
+    <ProjectReference Include="..\CrestronHomeNUnit.Runtime\CrestronHomeNUnit.Runtime.csproj" />
+    <ProjectReference Include="..\CrestronHomeNUnit.Tests\CrestronHomeNUnit.Tests.csproj" />
+    <ProjectReference Include="..\CrestronHomeNUnit.SelfTests\CrestronHomeNUnit.SelfTests.csproj" />
+    <EmbeddedResource Include="CrestronHomeNUnit.Driver.json" />
+    <EmbeddedResource Include="ProcessorTests.json" LogicalName="ProcessorTests.json" />
+  </ItemGroup>
+  <Import Project="Build\CrestronHomeDriver.targets" />
+  <Import Project="CrestronHomeNUnit.Driver.Local.targets" Condition="Exists('CrestronHomeNUnit.Driver.Local.targets')" />
+</Project>

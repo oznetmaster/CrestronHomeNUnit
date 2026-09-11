@@ -1,0 +1,16 @@
+{
+  "SchemaVersion": "2.0",
+  "GeneralInformation": {
+    "MinSdkVersion": "27.0000.0000",
+    "Guid": "a6c5b57c-dbae-4d87-88c8-890b56536893",
+    "DeviceType": "Utility",
+    "Manufacturer": "Neil Colvin",
+    "BaseModel": "NUnit Test Host",
+    "OtherSupportedModels": [],
+    "SupportedSeries": [],
+    "DependencyGroup": "",
+    "Developer": { "Company": "Neil Colvin", "Contact": "Neil Colvin", "Email": "", "Website": "", "PhoneNumber": "" },
+    "DriverVersion": "0.1.000.0027",
+    "VersionDate": "2026-09-11 07:16:40.827"
+  }
+}

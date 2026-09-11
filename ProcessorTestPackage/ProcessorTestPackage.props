@@ -1,0 +1,24 @@
+<!--
+Copyright (c) 2026 Neil Colvin.
+Licensed under the MIT License. See LICENSE in the repository root.
+-->
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <IsPackable>false</IsPackable>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <Deterministic>true</Deterministic>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <ProcessorExpectedTestCount Condition="'$(ProcessorExpectedTestCount)' == ''">0</ProcessorExpectedTestCount>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System.Runtime.Serialization" />
+    <PackageReference Include="Makaretu.Dns.Multicast" Version="0.27.0" />
+    <PackageReference Include="NUnit" Version="4.6.1" />
+    <PackageReference Include="Crestron.DeviceDrivers.DevKit" Version="27.0.24" />
+    <PackageReference Include="Hafner.Compatibility.MetaPackage" Version="1.9.0" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,11 @@
+<!-- Copyright (c) 2026 Neil Colvin. MIT License; see LICENSE in the repository root. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <rect width="256" height="256" rx="48" fill="#15324F"/>
+  <g fill="#83C5F4">
+    <rect x="40" y="40" width="76" height="76" rx="16"/>
+    <rect x="140" y="40" width="76" height="76" rx="16"/>
+    <rect x="40" y="140" width="76" height="76" rx="16"/>
+  </g>
+  <rect x="140" y="140" width="76" height="76" rx="16" fill="#239B70"/>
+  <path d="M154 177 L170 193 L202 161" fill="none" stroke="white" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

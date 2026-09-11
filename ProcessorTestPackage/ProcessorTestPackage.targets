@@ -1,0 +1,26 @@
+<!--
+Copyright (c) 2026 Neil Colvin.
+Licensed under the MIT License. See LICENSE in the repository root.
+-->
+<Project>
+  <PropertyGroup>
+    <DriverBuildToolsDirectory>$(ProcessorTestSdkRoot)\CrestronHomeNUnit.Driver</DriverBuildToolsDirectory>
+    <ProcessorPackageValidator>$(ProcessorTestSdkRoot)\ProcessorTestPackage.Validation\bin\$(Configuration)\net472\ProcessorTestPackage.Validation.exe</ProcessorPackageValidator>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(ProcessorTestSdkRoot)\CrestronHomeNUnit.Runtime\*.cs" Link="Host\Runtime\%(Filename)%(Extension)" />
+    <Compile Include="$(ProcessorTestSdkRoot)\CrestronHomeNUnit.Transport\*.cs" Link="Host\Transport\%(Filename)%(Extension)" />
+    <Compile Include="$(DriverBuildToolsDirectory)\DriverEntryPoint.cs" Link="Host\DriverEntryPoint.cs" />
+    <Compile Include="$(DriverBuildToolsDirectory)\TestHostEntity.cs" Link="Host\TestHostEntity.cs" />
+    <Compile Include="$(DriverBuildToolsDirectory)\PackageConfiguration.cs" Link="Host\PackageConfiguration.cs" />
+    <EmbeddedResource Include="$(AssemblyName).json" />
+    <EmbeddedResource Include="ProcessorTests.json" LogicalName="ProcessorTests.json" />
+  </ItemGroup>
+  <Import Project="$(DriverBuildToolsDirectory)\Build\CrestronHomeDriver.targets" />
+  <Target Name="BuildProcessorPackageValidator">
+    <MSBuild Projects="$(ProcessorTestSdkRoot)\ProcessorTestPackage.Validation\ProcessorTestPackage.Validation.csproj" Targets="Restore;Build" Properties="Configuration=$(Configuration);BuildProjectReferences=true;DeployAfterBuild=false" />
+  </Target>
+  <Target Name="ValidateProcessorPackage" DependsOnTargets="BuildProcessorPackageValidator" AfterTargets="StagePackageFiles" BeforeTargets="PackageDriver" Condition="'$(DesignTimeBuild)' != 'true' And '$(CreateDriverPackage)' == 'true'">
+    <Exec Command="&quot;$(ProcessorPackageValidator)&quot; &quot;$(PatchedDriverPath)&quot; &quot;$(TargetDir)validation&quot; $(ProcessorExpectedTestCount)" />
+  </Target>
+</Project>

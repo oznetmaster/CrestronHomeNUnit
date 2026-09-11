@@ -1,0 +1,23 @@
+<!--
+Copyright (c) 2026 Neil Colvin.
+Licensed under the MIT License. See LICENSE in the repository root.
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RunnerIconPath Condition="'$(RunnerIconPath)' == ''">Assets\Runner.ico</RunnerIconPath>
+    <ApplicationIcon>$(RunnerIconPath)</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="$(RunnerIconPath)" LogicalName="CrestronHomeNUnit.Runner.Runner.ico" />
+    <PackageReference Include="SSH.NET" Version="2026.0.0" />
+    <ProjectReference Include="..\CrestronHomeNUnit.Transport\CrestronHomeNUnit.Transport.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\LICENSE" Link="LICENSE" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\THIRD-PARTY-NOTICES.md" Link="THIRD-PARTY-NOTICES.md" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\licenses\**\*" Link="licenses\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

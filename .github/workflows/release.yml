@@ -1,0 +1,92 @@
+# Copyright (c) 2026 Neil Colvin.
+# Licensed under the MIT License. See LICENSE in the repository root.
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version (major.minor.patch, without v)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.401
+      - uses: NuGet/setup-nuget@v2
+      - name: Prepare version and release commit
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF -ne 'refs/heads/main') { throw 'Run releases from main.' }
+          if ($env:RELEASE_VERSION -notmatch '^\d+\.\d+\.\d+$') { throw 'Version must be major.minor.patch.' }
+          $tag = 'v' + $env:RELEASE_VERSION
+          git show-ref --verify --quiet "refs/tags/$tag"
+          if ($LASTEXITCODE -eq 0) { throw "Tag $tag already exists." }
+          ./CrestronHomeNUnit.Driver/BumpDriverVersion.ps1 -ManifestPath ./CrestronHomeNUnit.Driver/CrestronHomeNUnit.Driver.json -Configuration Release -ReleaseVersion $env:RELEASE_VERSION
+          if ($LASTEXITCODE -ne 0) { throw 'Version preparation failed.' }
+          $path = Join-Path $env:GITHUB_WORKSPACE 'Version.props'
+          $text = [IO.File]::ReadAllText($path)
+          $text = [regex]::Replace($text, '<Version>[^<]+</Version>', '<Version>' + $env:RELEASE_VERSION + '</Version>')
+          [IO.File]::WriteAllText($path, $text)
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- Version.props CrestronHomeNUnit.Driver/CrestronHomeNUnit.Driver.json
+          git commit -m "Release $tag"
+          if ($LASTEXITCODE -ne 0) { throw 'Release version commit failed.' }
+      - name: Install packaging tools
+        shell: pwsh
+        run: ./tools/InstallCiTools.ps1
+      - name: Prepare optional licensed application icon
+        shell: pwsh
+        env:
+          ICON_DATA: ${{ secrets.RUNNER_ICON_BASE64 }}
+        run: |
+          if ($env:ICON_DATA) {
+            $path = Join-Path $env:RUNNER_TEMP 'Runner.ico'
+            [IO.File]::WriteAllBytes($path, [Convert]::FromBase64String($env:ICON_DATA))
+            "RunnerIconPath=$path" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          }
+      - name: Build and validate release
+        shell: pwsh
+        run: ./tools/BuildRelease.ps1 -Version $env:RELEASE_VERSION -ManifestUtilExe $env:MANIFEST_UTIL_EXE
+      - name: Retain validated release files
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ inputs.version }}
+          path: artifacts/release/*
+          if-no-files-found: error
+      - name: Push release commit and annotated tag
+        shell: pwsh
+        run: |
+          $tag = 'v' + $env:RELEASE_VERSION
+          git diff --exit-code
+          if ($LASTEXITCODE -ne 0) { throw 'Build unexpectedly modified tracked source.' }
+          git tag -a $tag -m "Crestron Home NUnit $tag"
+          if ($LASTEXITCODE -ne 0) { throw 'Tag creation failed.' }
+          git push --atomic origin HEAD:refs/heads/main "refs/tags/$tag"
+          if ($LASTEXITCODE -ne 0) { throw 'Release push failed; main may have advanced.' }
+      - name: Publish GitHub release
+        shell: pwsh
+        run: |
+          $assets = @(Get-ChildItem artifacts/release -File | Select-Object -ExpandProperty FullName)
+          gh release create "v$env:RELEASE_VERSION" @assets --verify-tag --title "Crestron Home NUnit v$env:RELEASE_VERSION" --notes-file RELEASE-NOTES.md
+          if ($LASTEXITCODE -ne 0) { throw 'GitHub release creation failed.' }
