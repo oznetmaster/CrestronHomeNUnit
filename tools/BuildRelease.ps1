@@ -42,6 +42,13 @@ try {
     foreach ($file in @('README.md','LICENSE','THIRD-PARTY-NOTICES.md','RELEASE-NOTES.md')) { Copy-Item -LiteralPath (Join-Path $root $file) -Destination $notices }
     Copy-Item -LiteralPath (Join-Path $root 'licenses') -Destination $notices -Recurse
     Copy-Item -LiteralPath (Join-Path $root 'docs') -Destination $notices -Recurse
+    # Preserve the source attributions and small reproductions linked from the guides.
+    $linkedSources = @(git ls-files vendor/nunit/LICENSE.txt vendor/nunit/PROVENANCE.md tools/ILRepackIndexerRepro tools/NUnitRepeatRunReports)
+    foreach ($file in $linkedSources) {
+        $destination = Join-Path $notices $file
+        [IO.Directory]::CreateDirectory((Split-Path $destination -Parent)) | Out-Null
+        Copy-Item -LiteralPath (Join-Path $root $file) -Destination $destination
+    }
     [IO.Compression.ZipFile]::CreateFromDirectory($notices, (Join-Path $release 'CrestronHomeNUnit-Documentation.zip'))
     # Check release archives and the package before any upload.
     foreach ($archive in Get-ChildItem $release -File) {

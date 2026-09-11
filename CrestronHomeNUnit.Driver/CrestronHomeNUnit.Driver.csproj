@@ -6,6 +6,8 @@ Licensed under the MIT License. See LICENSE in the repository root.
   <PropertyGroup>
     <AssemblyName>CrestronHomeNUnit.Driver</AssemblyName>
     <RootNamespace>CrestronHomeNUnit.Driver</RootNamespace>
+    <!-- The merged assembly must preserve stack frames asserted by NUnit self-tests. -->
+    <Optimize>false</Optimize>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
   <ItemGroup>
