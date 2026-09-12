@@ -1,32 +1,22 @@
-# Crestron Home NUnit v1.0.1
+# Crestron Home NUnit v1.0.2
 
-Patch release correcting reconnection after a processor test package restarts or changes port, and preserving dependency types when building processor packages.
+Patch release fixing test-input selections disappearing when switching suites in the same processor package.
 
 ## Windows runner
 
-- Rediscover a selected package's current IP address and TCP port before connecting, matching processor identity and package name.
-- Automatically attempt rediscovery and reconnection up to three times after a dropped connection. **Find packages** also updates an existing connection when the advertised endpoint changes.
-- Preserve previous results during recovery and never rerun an interrupted test automatically. Explicit Disconnect stays disconnected; manually entered endpoints retain their address and port.
-- Report missing or ambiguous package identities instead of using a stale discovered endpoint.
-
-## Processor packaging
-
-- Keep each dependency's private `System.SR` resource helper separate, preserving its resource manager and JSON error messages.
-- Keep compiler-generated anonymous types separate by assembly, and verify their property names after merging. This prevents unrelated JSON request and response fields from being combined.
-- Apply corrections only to temporary merge inputs; original source assemblies and NuGet packages are preserved. The project continues to use official NUnit 4.6.1.
+- Choose **Test inputs…** once for a processor package. All of its suites retain that selection, including unit, read-only live and control suites.
+- Keep different processors and packages separate, and preserve inputs when a package reconnects on a new port.
+- Migrate existing suite selections when they agree. If old suites have conflicting file selections, choose the intended files once for the package.
+- Preserve **Clear inputs** across suite changes and restarts. Current input contents are transferred on each discovery or run; on supported hosts an empty selection clears the selected suite's old processor copy.
 
 ## Updating
 
-Close the Windows runner, extract the complete **CrestronHomeNUnit.Runner-win-x64.zip**, and launch the new copy. The ZIP includes the .NET 10 Windows runtime. Existing settings and credentials remain in the user profile, and the licensed GlyphLab icon is retained in the official build.
+Close the runner, extract the complete **CrestronHomeNUnit.Runner-win-x64.zip**, and start the new executable. The ZIP includes the .NET 10 Windows runtime. Existing user-profile settings and protected processor credentials are retained. The licensed GlyphLab icon remains embedded in the official application build; its source icon is not published.
 
-The runner reconnection fix works with existing processor packages; it does not require redeployment. To incorporate the merge corrections into your own test packages, update the shared package SDK checkout or pinned revision, rebuild those packages, and redeploy them.
-
-The supplied **CrestronHomeNUnit.Driver.pkg** is the NUnit Test Host in Configure's **Utility** category, version **1.0.001.0000**. Documentation and SHA-256 checksums are supplied as separate assets. The OverkizClient test package belongs to the library-test collection and is not an asset of this release. No NuGet package is published by this release workflow.
+Existing processor packages work with this runner update; **no processor redeployment is required**. The included NUnit Test Host package is rebuilt as **1.0.002.0000** for release consistency and has no host behavior changes. NUnit remains the official 4.6.1 package.
 
 ## Validation
 
-- Runner and transport regression coverage includes changed ports and addresses, dropped connections, discovery refresh, missing/ambiguous identities, explicit disconnect, preserved results, saved selections, window placement, authentication and protected test inputs.
-- The corrected OverkizClient package passed all 233 offline tests twice locally; processor build 1.0.000.0005 passed all 233 offline tests and six live gateway checks, with zero failures or skips, on 2026-09-12.
-- Release CI builds the solution, runs the runner/transport checks, and executes the packaged NUnit self-test and language-compatibility suites before publication.
+The full runner and transport regression suite passed, including suite switching, processor/package isolation, existing-input migration, conflicting selections, clearing, reconnect, restart preferences and secure input transfer. Build completed with zero warnings or errors. Release CI also validates the included merged self-test and compatibility suites.
 
-The existing NUnit 4.6.1 repeated self-test stream-comparison limitation remains documented in the user guide.
+Documentation and SHA-256 checksums are included. No private settings, credentials or local test results are distributed. The existing NUnit repeated self-test limitation remains documented.

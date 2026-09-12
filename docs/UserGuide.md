@@ -161,9 +161,9 @@ A public suite can include integration tests without embedding anyone's network 
 
 The runner reads the files again before each discovery or run. Editing the local JSON therefore does not require rebuilding or redeploying the package. A fixture must reload its configuration for each operation; a static configuration object retained from the first discovery can hide later changes.
 
-Inputs are selected per processor and suite. Suite IDs should be unique across packages on the same processor so that unrelated packages do not share the runner's input-selection profile.
+Inputs are shared across all suites in the same processor package. Switching suites retains the selection; other packages and processors have separate profiles. Keep primary suite IDs stable and unique across packages on the same processor, because the runner uses the primary suite ID and processor identity to associate saved inputs. Compatible old suite selections migrate automatically; conflicting selections require choosing the intended files once for the package.
 
-The transport accepts up to 16 files, at most 1 MiB each and 4 MiB combined. Only plain filenames are allowed. Inputs are stored under the suite's private data directory on the processor, outside the `.pkg`, until replaced or cleared. An absent selection leaves previously stored inputs in place. **Clear inputs** takes effect on the processor when the next discovery or run sends the empty selection.
+The transport accepts up to 16 files, at most 1 MiB each and 4 MiB combined. Only plain filenames are allowed. Inputs are stored under the suite's private data directory on the processor, outside the `.pkg`, until replaced or cleared. Runner 1.0.2 sends an empty selection to supported hosts when no inputs are selected, clearing stale inputs for that suite. **Clear inputs** clears the package-wide selection; each suite's processor copy is removed when that suite is next discovered or run.
 
 ### Contract for fixture authors
 
@@ -414,7 +414,7 @@ The package validator's optional `--run-twice` mode executes non-manual suites i
 | Port changed after an update | Use Find packages again. Do not assume an automatically assigned port remains fixed. |
 | SFTP authentication fails | Check the credentials for this particular processor and access to the shared processor identity file. |
 | Host fingerprint changed | Verify the processor's identity before resetting saved trust; do not treat the warning as a test failure. |
-| Live tests say settings are missing | Select the expected files with Test inputs… for the correct suite. A library's local JSON is not automatically embedded in its processor package. |
+| Live tests say settings are missing | Select the expected files with Test inputs… for the correct processor package. A library's local JSON is not automatically embedded in its processor package. |
 | Settings edits appear ineffective | Run a new discovery/run to resend files and check that fixtures reload configuration between operations. |
 | Test passes on Windows but fails on the processor | Inspect processor-side network discovery, SDK/runtime behavior, paths, permissions and timing. Compare complete captured output. |
 | Operation appears hung | Inspect Live output and the active test. Cancel is cooperative. If the host exits, collect the incomplete-run capture and processor logs. |

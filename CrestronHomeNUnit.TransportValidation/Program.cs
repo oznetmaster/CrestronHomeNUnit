@@ -82,6 +82,7 @@ internal static class Program
 
 			Console.WriteLine ("Windows runner constructs successfully.");
 			RunnerStorageValidation.Run ();
+			RunnerPackageInputsValidation.Run ();
 			RunnerWindowPlacementValidation.Run ();
 			RunnerRecoveryValidation.Run ();
 			RunnerEndpointValidation.Run ();

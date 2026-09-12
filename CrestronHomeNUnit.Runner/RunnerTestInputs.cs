@@ -15,32 +15,57 @@ namespace CrestronHomeNUnit.Runner;
 internal static class RunnerTestInputs
 	{
 	private static string ProfilePath => RunnerSettingsStorage.GetPath ("Runner.inputs.local.json");
-	public static void Choose (IWin32Window owner, string suite)
+	public static void Choose (IWin32Window owner, string scope)
 		{
-		using var dialog = new OpenFileDialog { Title = "Choose configuration files for this suite", Multiselect = true, Filter = "All files (*.*)|*.*", CheckFileExists = true };
+		using var dialog = new OpenFileDialog { Title = "Choose configuration files for this processor package", Multiselect = true, Filter = "All files (*.*)|*.*", CheckFileExists = true };
 		if (dialog.ShowDialog (owner) != DialogResult.OK)
 			return;
 		// Validate names and sizes before persisting the selection. Only paths are saved.
 		LoadFiles (dialog.FileNames);
 		Dictionary<string, string[]> profiles = ReadProfiles ();
-		profiles[suite] = dialog.FileNames;
+		profiles[scope] = dialog.FileNames;
 		SaveProfiles (profiles);
 		}
-	public static void Clear (string suite)
+	public static void Clear (string scope)
 		{
 		Dictionary<string, string[]> profiles = ReadProfiles ();
-		profiles[suite] = [];
+		profiles[scope] = [];
 		SaveProfiles (profiles);
 		}
-	public static List<TestInputFile>? Files (string suite)
+	public static List<TestInputFile>? Files (string scope)
 		{
 		Dictionary<string, string[]> profiles = ReadProfiles ();
-		return profiles.TryGetValue (suite, out string[]? paths) ? LoadFiles (paths) : null;
+		return profiles.TryGetValue (scope, out string[]? paths) ? LoadFiles (paths) : null;
 		}
-	public static string Describe (string suite)
+	public static string Describe (string scope)
 		{
 		Dictionary<string, string[]> profiles = ReadProfiles ();
-		return profiles.TryGetValue (suite, out string[]? paths) && paths.Length > 0 ? string.Join (", ", paths.Select (Path.GetFileName)) : "No test inputs";
+		return profiles.TryGetValue (scope, out string[]? paths) && paths.Length > 0 ? string.Join (", ", paths.Select (Path.GetFileName)) : "No test inputs";
+		}
+	public static void MigratePackage (string scope, string[] legacyScopes)
+		{
+		Dictionary<string, string[]> profiles = ReadProfiles ();
+		if (TryMigratePackage (profiles, scope, legacyScopes))
+			SaveProfiles (profiles);
+		}
+	internal static bool TryMigratePackage (Dictionary<string, string[]> profiles, string scope, string[] legacyScopes)
+		{
+		// A saved empty selection is intentional; never restore inputs after Clear inputs.
+		if (profiles.ContainsKey (scope))
+			return false;
+		string[]? candidate = null;
+		foreach (string legacy in legacyScopes)
+			{
+			if (!profiles.TryGetValue (legacy, out string[]? paths) || paths.Length == 0)
+				continue;
+			if (candidate != null && !candidate.OrderBy (path => path, StringComparer.OrdinalIgnoreCase).SequenceEqual (paths.OrderBy (path => path, StringComparer.OrdinalIgnoreCase), StringComparer.OrdinalIgnoreCase))
+				return false; // Conflicting old selections require an explicit new choice.
+			candidate = paths;
+			}
+		if (candidate == null)
+			return false;
+		profiles[scope] = candidate.ToArray ();
+		return true;
 		}
 	private static List<TestInputFile> LoadFiles (string[] paths)
 		{

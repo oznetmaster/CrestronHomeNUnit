@@ -259,7 +259,14 @@ public sealed partial class RunnerForm : Form
 		AutoSize = true,
 		Padding = new Padding (0, 5, 0, 0)
 		};
-	private string InputScope (string suite) => _processorId.Length == 0 ? suite : _processorId + "/" + suite;
+	private string InputScope ()
+		{
+		// The primary suite identifies the package even when its address or port changes.
+		string scope = "package/" + Uri.EscapeDataString (_processorId) + "/" + Uri.EscapeDataString (_suite.Items.Cast<TestSuiteInfo> ().First ().Id);
+		string[] legacyScopes = _suite.Items.Cast<TestSuiteInfo> ().Select (suite => _processorId.Length == 0 ? suite.Id : _processorId + "/" + suite.Id).ToArray ();
+		RunnerTestInputs.MigratePackage (scope, legacyScopes);
+		return scope;
+		}
 
 	private void ConfigureTestInputs (bool clear)
 		{
@@ -268,13 +275,13 @@ public sealed partial class RunnerForm : Form
 		try
 			{
 			if (clear)
-				RunnerTestInputs.Clear (InputScope (suite.Id));
+				RunnerTestInputs.Clear (InputScope ());
 			else
-				RunnerTestInputs.Choose (this, InputScope (suite.Id));
+				RunnerTestInputs.Choose (this, InputScope ());
 			RefreshInputStatus ();
 			_tree.Nodes.Clear ();
 			UpdateControls ();
-			_status.Text = "Inputs will be sent on the next discovery or run. Clear inputs also clears the processor copy on that next operation.";
+			_status.Text = "Inputs are shared by all suites in this package and sent on each discovery or run. Clearing inputs removes each suite's processor copy when that suite is next used.";
 			}
 		catch (Exception exception) { MessageBox.Show (this, exception.Message, "Test inputs", MessageBoxButtons.OK, MessageBoxIcon.Error); }
 		}
@@ -282,7 +289,7 @@ public sealed partial class RunnerForm : Form
 		{
 		try
 			{
-			_inputStatus.Text = _suite.SelectedItem is TestSuiteInfo suite ? RunnerTestInputs.Describe (InputScope (suite.Id)) : "Connect to load test suites";
+			_inputStatus.Text = _suite.SelectedItem is TestSuiteInfo suite ? RunnerTestInputs.Describe (InputScope ()) : "Connect to load test suites";
 			}
 		catch (Exception) { _inputStatus.Text = "Cannot read input settings"; }
 		}
@@ -575,7 +582,7 @@ public sealed partial class RunnerForm : Form
 		UpdateControls ();
 		try
 			{
-			request.TestInputs = RunnerTestInputs.Files (InputScope (request.Suite));
+			request.TestInputs = RunnerTestInputs.Files (InputScope ()) ?? (_client.SupportsTestInputs ? [] : null);
 			WireMessage reply = await _client.SendAsync (request);
 			DrainProgress ();
 			if (reply.Kind == "error" || string.IsNullOrEmpty (reply.Xml))

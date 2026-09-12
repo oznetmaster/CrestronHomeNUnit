@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.2] — 2026-09-12
+
+### Fixed
+
+- Share runner test inputs across suites in the same processor package, preserving the selection when switching between unit, read-only live and control tests. Keep other processors and packages isolated, migrate compatible saved selections, and preserve explicit clearing.
+
 ## [1.0.1] — 2026-09-12
 
 ### Fixed
@@ -22,3 +28,5 @@
 
 [1.0.1]: https://github.com/oznetmaster/CrestronHomeNUnit/releases/tag/v1.0.1
 [1.0.0]: https://github.com/oznetmaster/CrestronHomeNUnit/releases/tag/v1.0.0
+
+[1.0.2]: https://github.com/oznetmaster/CrestronHomeNUnit/releases/tag/v1.0.2
