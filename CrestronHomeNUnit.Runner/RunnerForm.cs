@@ -119,6 +119,7 @@ public sealed partial class RunnerForm : Form
 	private string? _activeRequest;
 	private string? _resultDirectory;
 	private bool _connecting;
+	private bool _recovering;
 	private bool _incomplete;
 	private readonly ConcurrentQueue<WireMessage> _progress = new ();
 	public RunnerForm (Func<string, string, string, string, Task<ProcessorConnection>>? authenticate = null, string? preferencesPath = null, Func<Task<IReadOnlyList<DiscoveredPackage>>>? discoverPackages = null, string? windowPlacementPath = null)
@@ -209,8 +210,11 @@ public sealed partial class RunnerForm : Form
 		{
 			_tree.Nodes.Clear ();
 			RefreshInputStatus ();
-			_results.Items.Clear ();
-			_rows.Clear ();
+			if (!_recovering)
+				{
+				_results.Items.Clear ();
+				_rows.Clear ();
+				}
 			UpdateControls ();
 			SaveSelections ();
 		};
@@ -317,7 +321,9 @@ public sealed partial class RunnerForm : Form
 		{
 		if (_activeRequest != null || _connecting || _finding)
 			return;
-		DiscoveredPackage? connectedPackage = _client != null ? _packages.SelectedItem as DiscoveredPackage : null;
+		DiscoveredPackage? connectedPackage = _client != null && _packages.SelectedItem is DiscoveredPackage activePackage &&
+			activePackage.Host == _host.Text.Trim () && activePackage.Port == (int)_port.Value ? activePackage : null;
+		bool endpointChanged = false;
 		_finding = true;
 		UpdateControls ();
 		_status.Text = "Finding test packages on the local network…";
@@ -337,7 +343,9 @@ public sealed partial class RunnerForm : Form
 			_packages.SelectedIndex = -1;
 			if (connectedPackage != null)
 				{
-				DiscoveredPackage? current = packages.FirstOrDefault (package => package.ProcessorId == connectedPackage.ProcessorId && package.Name == connectedPackage.Name && package.Host == connectedPackage.Host && package.Port == connectedPackage.Port);
+				DiscoveredPackage[] matches = packages.Where (package => SamePackage (package, connectedPackage)).ToArray ();
+				DiscoveredPackage? current = matches.Length == 1 ? matches[0] : null;
+				endpointChanged = current != null && (current.Host != connectedPackage.Host || current.Port != connectedPackage.Port);
 				// A discovery timeout must not remove the package with the active connection.
 				if (current == null)
 					_packages.Items.Add (connectedPackage);
@@ -352,6 +360,13 @@ public sealed partial class RunnerForm : Form
 			_finding = false;
 			if (!IsDisposed)
 				UpdateControls ();
+			}
+		if (endpointChanged && !IsDisposed)
+			{
+			RemoteTestClient? previous = _client;
+			_client = null;
+			previous?.Dispose ();
+			await RecoverPackageAsync ();
 			}
 		}
 
@@ -423,8 +438,9 @@ public sealed partial class RunnerForm : Form
 		{
 		if (_client != null)
 			{
-			_client.Dispose ();
+			RemoteTestClient previous = _client;
 			_client = null;
+			previous.Dispose ();
 			UpdateControls ();
 			return;
 			}
@@ -437,11 +453,15 @@ public sealed partial class RunnerForm : Form
 			_user.Text = credentials.User;
 			_key.Text = credentials.Password;
 			}
+		string? previousSuite = (_suite.SelectedItem as TestSuiteInfo)?.Id;
 		ClearSuiteCatalog ();
 		_connecting = true;
 		UpdateControls ();
 		try
 			{
+			await RefreshSelectedEndpointAsync ();
+			if (IsDisposed)
+				return;
 			_status.Text = "Signing in to the processor…";
 			ProcessorConnection processor = await _authenticate (_host.Text.Trim (), _user.Text.Trim (), _key.Text,
 				_packages.SelectedItem is DiscoveredPackage selectedPackage && selectedPackage.Host == _host.Text.Trim () ? selectedPackage.ProcessorId : "");
@@ -475,12 +495,14 @@ public sealed partial class RunnerForm : Form
 				}
 			_suite.Items.Clear ();
 			_suite.Items.AddRange (client.Suites.Cast<object> ().ToArray ());
-			_suite.SelectedIndex = 0;
+			_suite.SelectedItem = client.Suites.FirstOrDefault (suite => suite.Id == previousSuite) ?? client.Suites[0];
 			client.Progress += message =>
 			{
 				_progress.Enqueue (message);
 				OnUi (DrainProgress);
 			};
+			DiscoveredPackage? connectionPackage = _packages.SelectedItem is DiscoveredPackage endpoint &&
+				endpoint.Host == _host.Text.Trim () && endpoint.Port == (int)_port.Value ? endpoint : null;
 			client.Disconnected += reason => OnUi (() =>
 			{
 				if (_client == client)
@@ -492,6 +514,8 @@ public sealed partial class RunnerForm : Form
 						}
 
 					UpdateControls ();
+					if (connectionPackage != null && _packages.SelectedItem is DiscoveredPackage selection && SamePackage (connectionPackage, selection))
+						_ = RecoverPackageAsync ();
 					}
 			});
 			_status.Text = "Connected. Select a suite and discover its tests.";
@@ -805,10 +829,10 @@ public sealed partial class RunnerForm : Form
 		bool connected = _client != null;
 		bool idle = _activeRequest == null;
 		_connect.Text = connected ? "Disconnect" : "Connect";
-		_connect.Enabled = !_connecting && !_finding && !_restoringSelections;
-		_findPackages.Enabled = _packages.Enabled = idle && !_connecting && !_finding && !_restoringSelections;
-		_host.Enabled = _port.Enabled = _user.Enabled = _key.Enabled = !connected && !_connecting && !_finding && !_restoringSelections;
-		bool suiteReady = connected && idle && !_connecting && !_finding && !_restoringSelections && _suite.SelectedItem is TestSuiteInfo;
+		_connect.Enabled = !_connecting && !_finding && !_restoringSelections && !_recovering;
+		_findPackages.Enabled = _packages.Enabled = idle && !_connecting && !_finding && !_restoringSelections && !_recovering;
+		_host.Enabled = _port.Enabled = _user.Enabled = _key.Enabled = !connected && !_connecting && !_finding && !_restoringSelections && !_recovering;
+		bool suiteReady = connected && idle && !_connecting && !_finding && !_restoringSelections && !_recovering && _suite.SelectedItem is TestSuiteInfo;
 		_suite.Enabled = suiteReady;
 		_testInputs.Enabled = _clearTestInputs.Enabled = suiteReady;
 		_discover.Enabled = _runAll.Enabled = suiteReady;

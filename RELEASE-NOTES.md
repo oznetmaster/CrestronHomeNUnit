@@ -1,30 +1,32 @@
-# Crestron Home NUnit v1.0.0
+# Crestron Home NUnit v1.0.1
 
-Initial public release of the Windows runner, NUnit self-test processor package, and reusable tools for creating processor test packages.
+Patch release correcting reconnection after a processor test package restarts or changes port, and preserving dependency types when building processor packages.
 
-## Downloads
+## Windows runner
 
-- **CrestronHomeNUnit.Runner-win-x64.zip**: extract the complete ZIP and launch `CrestronHomeNUnit.Runner.exe`. Includes the .NET 10.0.12 Windows Desktop runtime; no separate runtime installation is required.
-- **CrestronHomeNUnit.Driver.pkg**: install through Crestron Home Configure/Setup. Appears as **NUnit Test Host** under **Utility**, version **1.0.000.0000**. Contains selected NUnit framework self-tests and 34 language/runtime compatibility tests.
-- **CrestronHomeNUnit-Documentation.zip**: README, package/protocol guides, MIT license and dependency attributions. Additional runtime notices are included inside the runner ZIP.
-- **SHA256SUMS.txt**: SHA-256 checksums for the three downloadable archives/packages.
+- Rediscover a selected package's current IP address and TCP port before connecting, matching processor identity and package name.
+- Automatically attempt rediscovery and reconnection up to three times after a dropped connection. **Find packages** also updates an existing connection when the advertised endpoint changes.
+- Preserve previous results during recovery and never rerun an interrupted test automatically. Explicit Disconnect stays disconnected; manually entered endpoints retain their address and port.
+- Report missing or ambiguous package identities instead of using a stale discovered endpoint.
 
-## Features
+## Processor packaging
 
-- Discover installed test packages using mDNS, with dynamically assigned TCP ports and processor names.
-- Authenticate with existing processor SFTP credentials; remember credentials using Windows protection.
-- Select packages, suites, fixtures and individual tests; display live progress and save NUnit XML and diagnostics.
-- Run ordinary suites from standalone Home tiles. Each processor test package includes its own host and NUnit dependency.
-- Transfer private test inputs and explicitly opt into manual/live suites from the desktop runner.
-- Restore package/test selections when requested. Save window position, size and maximized state immediately; ignore minimization and recover placement when a monitor is unavailable.
-- Build and deploy custom net472 processor packages from Visual Studio using the shared SDK and generator.
+- Keep each dependency's private `System.SR` resource helper separate, preserving its resource manager and JSON error messages.
+- Keep compiler-generated anonymous types separate by assembly, and verify their property names after merging. This prevents unrelated JSON request and response fields from being combined.
+- Apply corrections only to temporary merge inputs; original source assemblies and NuGet packages are preserved. The project continues to use official NUnit 4.6.1.
 
-## Compatibility and known limitations
+## Updating
 
-The Windows runner targets .NET 10; processor packages target net472 for Crestron Home's Mono-based environment and Entity Model V2 SDK 27.0.24. The host uses official NUnit 4.6.1 NuGet binaries through the NUnit framework API, with the documented packaging adaptations. It does not depend on NUnitLite or a maintained framework fork.
+Close the Windows runner, extract the complete **CrestronHomeNUnit.Runner-win-x64.zip**, and launch the new copy. The ZIP includes the .NET 10 Windows runtime. Existing settings and credentials remain in the user profile, and the licensed GlyphLab icon is retained in the official build.
 
-The included framework tests are a selected subset of NUnit's own test suite. Upstream NUnit 4.6.1 has a known repeated-run stream-comparison issue; a second framework self-test run in the same process can fail even when the first succeeds. This is documented and has not been hidden by suppressing assertions. Platform-specific skips and timing warnings can occur. Cancellation is cooperative; a fatal host-process failure cannot preserve its TCP connection.
+The runner reconnection fix works with existing processor packages; it does not require redeployment. To incorporate the merge corrections into your own test packages, update the shared package SDK checkout or pinned revision, rebuild those packages, and redeploy them.
 
-Release CI validates the runner regressions and one execution of each packaged suite on Windows. Earlier development versions were validated on a Crestron Home processor, including all 34 compatibility tests. The final versioned release package is built in CI and is not automatically deployed to any processor.
+The supplied **CrestronHomeNUnit.Driver.pkg** is the NUnit Test Host in Configure's **Utility** category, version **1.0.001.0000**. Documentation and SHA-256 checksums are supplied as separate assets. The OverkizClient test package belongs to the library-test collection and is not an asset of this release. No NuGet package is published by this release workflow.
 
-Private processor credentials, input settings, local paths and result captures are not included. Project-owned material is Copyright (c) 2026 Neil Colvin, MIT licensed. NUnit and other dependencies retain their own notices. This is an independent project, not an official or endorsed Crestron or NUnit product.
+## Validation
+
+- Runner and transport regression coverage includes changed ports and addresses, dropped connections, discovery refresh, missing/ambiguous identities, explicit disconnect, preserved results, saved selections, window placement, authentication and protected test inputs.
+- The corrected OverkizClient package passed all 233 offline tests twice locally; processor build 1.0.000.0005 passed all 233 offline tests and six live gateway checks, with zero failures or skips, on 2026-09-12.
+- Release CI builds the solution, runs the runner/transport checks, and executes the packaged NUnit self-test and language-compatibility suites before publication.
+
+The existing NUnit 4.6.1 repeated self-test stream-comparison limitation remains documented in the user guide.

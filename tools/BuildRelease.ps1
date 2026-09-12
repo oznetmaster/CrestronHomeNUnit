@@ -39,7 +39,7 @@ try {
     Copy-Item -LiteralPath (Join-Path $root 'artifacts/runner/CrestronHomeNUnit.Runner-win-x64.zip') -Destination $release
     $notices = Join-Path $root 'artifacts/release-notices'
     [IO.Directory]::CreateDirectory($notices) | Out-Null
-    foreach ($file in @('README.md','LICENSE','THIRD-PARTY-NOTICES.md','RELEASE-NOTES.md')) { Copy-Item -LiteralPath (Join-Path $root $file) -Destination $notices }
+    foreach ($file in @('README.md','LICENSE','THIRD-PARTY-NOTICES.md','RELEASE-NOTES.md','CHANGELOG.md','Validation.md')) { Copy-Item -LiteralPath (Join-Path $root $file) -Destination $notices }
     Copy-Item -LiteralPath (Join-Path $root 'licenses') -Destination $notices -Recurse
     Copy-Item -LiteralPath (Join-Path $root 'docs') -Destination $notices -Recurse
     # Preserve the source attributions and small reproductions linked from the guides.

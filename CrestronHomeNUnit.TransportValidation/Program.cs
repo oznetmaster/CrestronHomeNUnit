@@ -29,6 +29,12 @@ internal static class Program
 				Task.Run (() => ProcessorSmokeValidation.RunAsync (args[1], args[2], args[3])).GetAwaiter ().GetResult ();
 				return 0;
 				}
+			if (args.Length == 1 && args[0] == "--runner-endpoints")
+				{
+				InitializeUiValidation ();
+				RunnerEndpointValidation.Run ();
+				return 0;
+				}
 			if (args.Length == 1 && args[0] == "--runner-preferences")
 				{
 				InitializeUiValidation ();
@@ -78,6 +84,7 @@ internal static class Program
 			RunnerStorageValidation.Run ();
 			RunnerWindowPlacementValidation.Run ();
 			RunnerRecoveryValidation.Run ();
+			RunnerEndpointValidation.Run ();
 			RunnerPreferencesValidation.Run ();
 			CheckFraming ();
 			Task.Run (TestInputsValidation.RunAsync).GetAwaiter ().GetResult ();

@@ -121,7 +121,9 @@ internal static class RunnerRecoveryValidation
 							});
 						messages.Read ();
 					});
-				using (var form = new RunnerForm ((_, _, _, _) => Task.FromResult (new ProcessorConnection ("catalog-validation", "synthetic-key"))))
+				using (var form = new RunnerForm ((_, _, _, _) => Task.FromResult (new ProcessorConnection ("catalog-validation", "synthetic-key")),
+					discoverPackages: () => Task.FromResult<System.Collections.Generic.IReadOnlyList<DiscoveredPackage>> (
+						[new DiscoveredPackage { Host = "127.0.0.1", Port = ((IPEndPoint)listener.LocalEndpoint).Port, ProcessorId = "catalog-validation", Name = "Library tests" }])))
 					{
 					_ = form.Handle;
 					ComboBox suites = Field<ComboBox> (form, "_suite");

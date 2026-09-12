@@ -39,6 +39,8 @@ Copyright (c) 2026 Neil Colvin. Project-owned code is licensed under the [MIT Li
 
 **Every processor test package is self-contained.** You do not install the NUnit self-test package as a prerequisite for running another test package. Each package includes its own NUnit framework dependency and host. You also do not install NUnit or NUnitLite separately on the processor.
 
+For a discovered package, the runner refreshes its current address and port before connecting. If the connection drops during a package restart or redeployment, it makes up to three rediscovery/reconnect attempts using the known credentials. Previous results remain visible; interrupted tests are not rerun automatically. If the package is still unavailable, use Connect when its tile is ready. Find packages also updates a connected package when its advertised endpoint changes. Manually entered endpoints retain their explicit address and port.
+
 Several test packages can be installed on one processor. One Windows runner can select among packages on several processors, maintaining one active package connection at a time. Each package gets an available TCP port automatically; there is no reserved port range to assign manually.
 
 The official Windows runner uses the licensed GlyphLab **Code – Play** application icon. The public source includes an MIT-licensed fallback icon so it can be built without the stock-icon license. Licensed local builds can set the `RunnerIconPath` MSBuild property in `CrestronHomeNUnit.Runner.Local.targets`, excluded through `.git/info/exclude`; see [Third-party notices](../THIRD-PARTY-NOTICES.md).

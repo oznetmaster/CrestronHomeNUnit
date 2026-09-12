@@ -2,7 +2,7 @@
 
 Run NUnit tests **on a Crestron Home processor**, using a Windows runner or a standalone test tile in Crestron Home. This checks your code in the processor's Mono-based environment, where SDK, filesystem and networking behavior can differ from Windows.
 
-[Download the latest release](https://github.com/oznetmaster/CrestronHomeNUnit/releases/latest) · [Full user and developer guide](docs/UserGuide.md) · [Create your own test package](docs/ProcessorTestPackages.md)
+[Download the latest release](https://github.com/oznetmaster/CrestronHomeNUnit/releases/latest) · [Changelog](CHANGELOG.md) · [Full user and developer guide](docs/UserGuide.md) · [Create your own test package](docs/ProcessorTestPackages.md)
 
 Copyright (c) 2026 Neil Colvin. Project-owned code is [MIT licensed](LICENSE). NUnit and other dependencies retain their own licenses and notices.
 
@@ -40,7 +40,8 @@ You need a Windows x64 computer supported by .NET 10, a compatible Crestron Home
 ## Using the Windows runner
 
 - **Discover** populates the test tree. **Run all** does not require discovery first; **Run selection** requires a selected fixture or test.
-- Select a different package while idle to switch connections. Package discovery supports multiple processors and dynamically assigned ports.
+- Select a different package while idle to switch connections. The runner refreshes a discovered package's current address and port before connecting. **Find packages** also updates changed endpoints.
+- After a dropped connection, the runner makes up to three rediscovery/reconnect attempts. Previous results remain visible, and interrupted tests are never rerun automatically. If the package is still restarting, use **Connect** once its Home tile is ready.
 - **Test inputs…** selects configuration files for a processor/suite. The runner transfers their current contents when discovering or running tests. Private device settings are not part of a published package.
 - Live/manual suites run only when explicitly selected in the runner. Their fixtures may operate physical equipment; review their requirements and choose the intended devices.
 - **Use at next restart** remembers the package, suite and test selection. Restart restoration rediscovers the package's current endpoint and never starts tests automatically.
@@ -65,19 +66,21 @@ See [the package creation guide](docs/ProcessorTestPackages.md) and [repository 
 
 ## Build and release
 
+**Updating to v1.0.1:** close the runner and extract the complete new Windows ZIP. Saved preferences and credentials remain in the user profile. The reconnection fix works with existing processor packages. Package authors should update their shared SDK checkout or pin, rebuild and redeploy to receive the fixes for dependency resource helpers and anonymous JSON payload types.
+
 Open **CrestronHomeNUnit.sln** in Visual Studio with .NET 10 SDK support and .NET Framework 4.7.2 targeting tools. Install the Crestron Driver SDK and ILRepack **2.0.45** as described in the [build guide](docs/UserGuide.md#build-and-deploy-with-visual-studio).
 
 Build **CrestronHomeNUnit.Runner** for Windows, or **CrestronHomeNUnit.Driver** for the supplied processor package. The runner targets `net10.0-windows`; processor packages remain `net472`. Configure private deployment settings locally. Automatic deployment is limited to configured Debug builds inside Visual Studio.
 
 `PublishRunner.ps1` creates a self-contained Windows x64 ZIP. Licensed local builds can set `RunnerIconPath` in the excluded `CrestronHomeNUnit.Runner.Local.targets`. The public source has an MIT icon fallback; official releases use the privately supplied GlyphLab icon.
 
-For a GitHub release, update `RELEASE-NOTES.md`, then run the **Release** workflow on `main` with a new version such as `1.0.0`. CI sets the version, builds and validates the packages, pushes the release commit and annotated tag, then publishes the runner, processor package, documentation and checksums. Release version changes occur in CI; local Release builds preserve the manifest version. CI does not deploy to processors or publish to NuGet.
+For a GitHub release, update `CHANGELOG.md` and `RELEASE-NOTES.md`, then run the **Release** workflow on `main` with a new version such as `1.0.1`. CI sets the version, builds and validates the packages, pushes the release commit and annotated tag, then publishes the runner, processor package, documentation and checksums. Release version changes occur in CI; local Release builds preserve the manifest version. CI does not deploy to processors or publish to NuGet.
 
 ## Documentation and known limitations
 
 - [Complete user and developer guide](docs/UserGuide.md): discovery, authentication, inputs, package structure, compatibility, results, troubleshooting and release details.
 - [Processor package guide](docs/ProcessorTestPackages.md) and [TCP protocol](docs/TcpProtocol.md).
-- [Validation history](Validation.md) and [release notes](RELEASE-NOTES.md).
+- [Validation history](Validation.md), [changelog](CHANGELOG.md) and [release notes](RELEASE-NOTES.md).
 
 The host uses official **NUnit 4.6.1 NuGet binaries**, with documented packaging adaptations. It uses the NUnit framework API; **NUnitLite and a maintained framework fork are not dependencies**.
 
