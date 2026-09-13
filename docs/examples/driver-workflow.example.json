@@ -1,0 +1,27 @@
+{
+  "allowProcessorReboot": false,
+  "host": "processor.example.invalid",
+  "certificateSha256": "REPLACE_WITH_VERIFIED_HTTPS_CERTIFICATE_SHA256",
+  "sshFingerprint": "REPLACE_WITH_VERIFIED_SSH_SHA256_FINGERPRINT",
+  "sourceRoots": ["C:/CI/Source/ExampleDriver", "C:/CI/Source/CrestronHomeNUnit"],
+  "localTests": [{ "project": "C:/CI/Source/ExampleDriver/ExampleDriver.Tests/ExampleDriver.Tests.csproj", "minimumPassed": 1, "filter": "TestCategory!=Processor&TestCategory!=Live" }],
+  "testPackage": {
+    "project": "C:/CI/Source/ExampleDriver/ExampleDriver.ProcessorTests/ExampleDriver.ProcessorTests.csproj",
+    "packagePath": "C:/CI/Source/ExampleDriver/ExampleDriver.ProcessorTests/bin/Debug/net472/ExampleDriver.ProcessorTests.pkg",
+    "instanceName": "Example Driver Tests",
+    "locationId": 1,
+    "expectedDeviceId": null
+  },
+  "processorSuites": [{ "id": "unit", "minimumPassed": 1, "inputs": [] }, { "id": "lifecycle", "minimumPassed": 1, "inputs": [] }],
+  "liveSuites": [{ "id": "live", "minimumPassed": 1, "inputs": ["C:/CI/Private/ExampleDriver/LiveTestSettings.json"] }],
+  "actualDriver": {
+    "project": "C:/CI/Source/ExampleDriver/ExampleDriver/ExampleDriver.csproj",
+    "packagePath": "C:/CI/Source/ExampleDriver/ExampleDriver/bin/Debug/net472/ExampleDriver.pkg",
+    "instanceName": "Example Driver",
+    "locationId": 1,
+    "expectedDeviceId": 100
+  },
+  "deployedChecks": [{ "name": "Updated driver is online", "deviceId": 100, "model": "Example Driver Model", "property": "onlineIndicator:isOnline", "expected": true }],
+  "removeTestInstanceAfterRun": true,
+  "stageTimeoutSeconds": 600
+}

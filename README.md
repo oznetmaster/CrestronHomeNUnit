@@ -1,6 +1,8 @@
 # Crestron Home NUnit
 
-Run NUnit tests **on a Crestron Home processor**, using a Windows runner or a standalone test tile in Crestron Home. This checks your code in the processor's Mono-based environment, where SDK, filesystem and networking behavior can differ from Windows.
+For the complete local-to-processor development cycle, see the [continuous integration guide](docs/ContinuousIntegration.md), including private settings, gated actual-driver deployment, evidence and optional test-instance removal.
+
+Run NUnit tests **on a Crestron Home processor**, using a Windows runner, automation CLI or a standalone test tile in Crestron Home. This checks your code in the processor's Mono-based environment, where SDK, filesystem and networking behavior can differ from Windows.
 
 [Download the latest release](https://github.com/oznetmaster/CrestronHomeNUnit/releases/latest) · [Changelog](CHANGELOG.md) · [Full user and developer guide](docs/UserGuide.md) · [Create your own test package](docs/ProcessorTestPackages.md)
 
@@ -22,10 +24,13 @@ Copyright (c) 2026 Neil Colvin. Project-owned code is [MIT licensed](LICENSE). N
 | Component | Purpose |
 | --- | --- |
 | **Windows runner** | Finds packages, authenticates, selects and runs tests, transfers inputs and displays results. The Windows x64 ZIP includes .NET 10; no separate runtime installation is needed. |
+| **Automation CLI** | Self-contained Windows x64 console for unattended test runs and the complete gated development workflow. Uses CrestronHomeDevTools 1.0.0 from NuGet. |
 | **NUnit Test Host** | An optional processor package containing selected NUnit framework self-tests and 34 language/runtime compatibility tests. Appears under **Utility** in Configure/Setup. |
 | **Your processor test package** | Contains your NUnit tests, their dependencies, a test host and its own Home tile. |
 
 **Each processor test package is self-contained.** You do not need to install NUnit Test Host before installing another test package. Multiple packages can coexist on a processor, each advertising an automatically assigned TCP port.
+
+For automation, download **CrestronHomeNUnit.Cli-win-x64.zip**, extract it completely and run `CrestronHomeNUnit.Cli.exe --help`. See the [CLI guide](docs/CommandLineRunner.md) and [CI workflow guide](docs/ContinuousIntegration.md).
 
 ## Quick start
 
@@ -95,3 +100,9 @@ The NUnit framework and imported self-tests are **Copyright (c) Charlie Poole, R
 **Crestron notice:** Crestron and Crestron Home are trademarks or registered trademarks of Crestron Electronics, Inc. This project is not affiliated with, endorsed by, or sponsored by Crestron Electronics, Inc. It is an independent, unofficial development and testing tool. Use of the NUnit name identifies the test framework and included upstream tests; this is not an official NUnit distribution or an NUnit-endorsed Crestron product.
 
 The Crestron SDK is obtained separately under Crestron's terms. Its proprietary components are platform/build dependencies and are not relicensed under MIT.
+## Command-line automation (development)
+
+A standalone .NET 10 CLI now shares the Windows runner's TCP and authentication code. It supports package discovery, suite selection, private input transfer, NUnit XML results and CI exit codes. See [Command-line processor tests](docs/CommandLineRunner.md). This is not a Visual Studio Test Explorer adapter.
+
+
+The released CLI also runs the [gated development workflow](docs/ProcessorTestWorkflow.md): local tests, processor package installation, processor/live tests, actual-driver update and checks, then test-instance cleanup. Complete KasaTapo and Apple TV V1 runs have been validated on hardware, including the explicitly authorized V1 reboot. The Visual Studio Test Explorer adapter is still pending.

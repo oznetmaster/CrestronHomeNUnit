@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Net.Sockets;
+using System.Security.Authentication;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -76,7 +77,7 @@ public sealed class RemoteTestClient : IDisposable
 					{
 					byte[] sessionKey = SecureTestData.Key (key, clientNonce, reply.Text);
 					if (!SecureTestData.Verify (sessionKey, "server", reply.Xml))
-						throw new IOException ("Pairing key was not accepted, or the host could not be authenticated.");
+						throw new AuthenticationException ("Pairing key was not accepted, or the host could not be authenticated.");
 					Task<WireMessage> authentication = client.SendAsync (new WireMessage { Kind = "hello-auth", Version = 2, Text = SecureTestData.Proof (sessionKey, "client") });
 					if (await Task.WhenAny (authentication, Task.Delay (10000)).ConfigureAwait (false) != authentication)
 						throw new TimeoutException ("The processor did not complete authentication.");
@@ -86,7 +87,7 @@ public sealed class RemoteTestClient : IDisposable
 					}
 				if (reply.Kind != "hello-ok")
 					{
-					throw new IOException (reply.Text);
+					throw new AuthenticationException ("The processor rejected the connection handshake.");
 					}
 
 				client.Suites = reply.Suites ?? [];

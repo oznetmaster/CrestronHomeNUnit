@@ -39,40 +39,10 @@ public sealed class ProcessorConnection
 
 public static class ProcessorAuthentication
 	{
-	public static Task<ProcessorConnection> AuthenticateAsync (string host, string user, string password, string expectedProcessorId) => Task.Run (() =>
+	public static async Task<ProcessorConnection> AuthenticateAsync (string host, string user, string password, string expectedProcessorId)
 		{
-			if (string.IsNullOrWhiteSpace (user) || string.IsNullOrEmpty (password))
-				throw new InvalidOperationException ("Enter the processor's SFTP username and password.");
-			string known = ProcessorKeys.Get ("fingerprint:" + host.ToLowerInvariant ());
-			if (known.Length == 0 && expectedProcessorId.Length != 0)
-				known = ProcessorKeys.Get ("fingerprint-id:" + expectedProcessorId);
-			string fingerprint = "";
-			using var client = new SftpClient (host, user, password);
-			client.ConnectionInfo.Timeout = TimeSpan.FromSeconds (10);
-			client.OperationTimeout = TimeSpan.FromSeconds (10);
-			client.HostKeyReceived += (_, args) =>
-				{
-					fingerprint = args.FingerPrintSHA256;
-					args.CanTrust = known.Length == 0 || known == fingerprint;
-				};
-			client.Connect ();
-			using Stream input = client.OpenRead (ProcessorIdentity.SHARED_DIRECTORY + "/ProcessorIdentity.txt");
-			var buffer = new byte[513];
-			int count = 0;
-			while (count < buffer.Length)
-				{
-				int read = input.Read (buffer, count, buffer.Length - count);
-				if (read == 0)
-					break;
-				count += read;
-				}
-			if (count > 512)
-				throw new InvalidDataException ("The processor test identity is too large.");
-			ProcessorConnection identity = ProcessorConnection.Parse (Encoding.UTF8.GetString (buffer, 0, count));
-			if (expectedProcessorId.Length != 0 && expectedProcessorId != identity.Id)
-				throw new InvalidOperationException ("The discovered processor identity has changed. Find packages again.");
-			ProcessorKeys.Set ("fingerprint:" + host.ToLowerInvariant (), fingerprint);
-			ProcessorKeys.Set ("fingerprint-id:" + identity.Id, fingerprint);
-			return identity;
-		});
+		Client.ProcessorConnection identity = await Client.ProcessorAuthentication.AuthenticateAsync (host, user, password, expectedProcessorId,
+			 ProcessorKeys.Get, ProcessorKeys.Set, trustUnknownHost: true).ConfigureAwait (false);
+		return new ProcessorConnection (identity.Id, identity.Token);
+		}
 	}

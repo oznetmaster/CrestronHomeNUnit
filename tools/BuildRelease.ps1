@@ -16,6 +16,10 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Processor package build failed.' }
     & ./CrestronHomeNUnit.TransportValidation/bin/Release/net10.0-windows/CrestronHomeNUnit.TransportValidation.exe
     if ($LASTEXITCODE -ne 0) { throw 'Runner regression validation failed.' }
+    dotnet test CrestronHomeNUnit.Client.Tests/CrestronHomeNUnit.Client.Tests.csproj -c Release --no-build
+    if ($LASTEXITCODE -ne 0) { throw 'CLI client regression tests failed.' }
+    dotnet test CrestronHomeNUnit.Workflow.Tests/CrestronHomeNUnit.Workflow.Tests.csproj -c Release --no-build
+    if ($LASTEXITCODE -ne 0) { throw 'Workflow regression tests failed.' }
     $package = Join-Path $root 'CrestronHomeNUnit.Driver/bin/Release/net472/CrestronHomeNUnit.Driver.pkg'
     $validation = Join-Path $root 'artifacts/release-validation'
     $extracted = Join-Path $validation ([Guid]::NewGuid().ToString('N'))
@@ -32,11 +36,14 @@ try {
     # Release validation executes each included suite once; Verify.ps1 retains the repeated-run check.
     ./PublishRunner.ps1 -OutputDirectory (Join-Path $root 'artifacts/runner')
     if ($LASTEXITCODE -ne 0) { throw 'Runner publish failed.' }
+    ./PublishCli.ps1 -OutputDirectory (Join-Path $root 'artifacts/cli')
+    if ($LASTEXITCODE -ne 0) { throw 'CLI publish failed.' }
     $release = Join-Path $root 'artifacts/release'
     if (Test-Path $release) { throw 'Release staging directory must be new.' }
     [IO.Directory]::CreateDirectory($release) | Out-Null
     Copy-Item -LiteralPath $package -Destination $release
     Copy-Item -LiteralPath (Join-Path $root 'artifacts/runner/CrestronHomeNUnit.Runner-win-x64.zip') -Destination $release
+    Copy-Item -LiteralPath (Join-Path $root 'artifacts/cli/CrestronHomeNUnit.Cli-win-x64.zip') -Destination $release
     $notices = Join-Path $root 'artifacts/release-notices'
     [IO.Directory]::CreateDirectory($notices) | Out-Null
     foreach ($file in @('README.md','LICENSE','THIRD-PARTY-NOTICES.md','RELEASE-NOTES.md','CHANGELOG.md','Validation.md')) { Copy-Item -LiteralPath (Join-Path $root $file) -Destination $notices }

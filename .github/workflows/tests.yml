@@ -1,0 +1,27 @@
+# Copyright (c) 2026 Neil Colvin. Licensed under the MIT License; see LICENSE.
+name: Tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  desktop:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.401
+      - name: Build solution without deployment
+        run: dotnet build CrestronHomeNUnit.sln -c Release -p:CreateDriverPackage=false -p:DeployAfterBuild=false
+      - name: Runner and transport regressions
+        run: ./CrestronHomeNUnit.TransportValidation/bin/Release/net10.0-windows/CrestronHomeNUnit.TransportValidation.exe
+      - name: CLI client regressions
+        run: dotnet test CrestronHomeNUnit.Client.Tests/CrestronHomeNUnit.Client.Tests.csproj -c Release --no-build
+      - name: Workflow regressions
+        run: dotnet test CrestronHomeNUnit.Workflow.Tests/CrestronHomeNUnit.Workflow.Tests.csproj -c Release --no-build
+      - name: CLI help
+        run: dotnet CrestronHomeNUnit.Cli/bin/Release/net10.0/CrestronHomeNUnit.Cli.dll --help

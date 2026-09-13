@@ -1,0 +1,12 @@
+<!-- Copyright (c) 2026 Neil Colvin. Licensed under the MIT License. See LICENSE. -->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings>
+    <DevToolsVersion>1.0.0</DevToolsVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../CrestronHomeNUnit.Client/CrestronHomeNUnit.Client.csproj" />
+    <ProjectReference Include="$(DevToolsProject)" Condition="'$(DevToolsProject)' != ''" />
+    <PackageReference Include="CrestronHomeDevTools" Version="$(DevToolsVersion)" Condition="'$(DevToolsProject)' == ''" />
+  </ItemGroup>
+</Project>

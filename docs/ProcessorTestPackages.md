@@ -1,5 +1,7 @@
 # Processor test packages
 
+For the complete local-to-processor development cycle, see the [continuous integration guide](ContinuousIntegration.md), including private settings, gated actual-driver deployment, evidence and optional test-instance removal.
+
 `New-ProcessorTestProject.ps1` creates an Entity V2 package project referencing an existing NUnit test project. The original fixtures remain the single source for desktop and processor builds. Package projects import the shared host, runtime, packaging and deployment tools; they do not maintain copies of those components.
 
 ## Repository ownership

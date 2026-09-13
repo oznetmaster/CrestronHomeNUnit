@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Reflection;
+using System.Security.Authentication;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
@@ -171,7 +172,7 @@ internal static class Program
 			using var wrongKey = await RemoteTestClient.ConnectAsync ("127.0.0.1", server.Port, "wrong-key");
 			throw new Exception ("Wrong pairing key was accepted.");
 			}
-		catch (IOException)
+		catch (AuthenticationException)
 			{
 			}
 

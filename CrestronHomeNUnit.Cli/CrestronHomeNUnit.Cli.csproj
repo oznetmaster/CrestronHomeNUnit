@@ -1,0 +1,16 @@
+<!-- Copyright (c) 2026 Neil Colvin. Licensed under the MIT License. See LICENSE. -->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings>
+    <EnableProcessorWorkflow Condition="'$(EnableProcessorWorkflow)' == '' ">true</EnableProcessorWorkflow>
+    <DefineConstants Condition="'$(EnableProcessorWorkflow)' == 'true'">$(DefineConstants);PROCESSOR_WORKFLOW</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup><ProjectReference Include="../CrestronHomeNUnit.Client/CrestronHomeNUnit.Client.csproj" /></ItemGroup>
+  <ItemGroup Condition="'$(EnableProcessorWorkflow)' == 'true'"><ProjectReference Include="../CrestronHomeNUnit.Workflow/CrestronHomeNUnit.Workflow.csproj" /></ItemGroup>
+  <ItemGroup Condition="'$(EnableProcessorWorkflow)' != 'true'"><Compile Remove="WorkflowCommand.cs" /></ItemGroup>
+  <ItemGroup>
+    <None Include="../LICENSE;../README.md;../CHANGELOG.md;../RELEASE-NOTES.md;../THIRD-PARTY-NOTICES.md" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../licenses/**/*" Link="licenses/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../docs/**/*" Link="docs/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

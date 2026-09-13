@@ -1,22 +1,15 @@
-# Crestron Home NUnit v1.0.2
+# Crestron Home NUnit v1.1.0
 
-Patch release fixing test-input selections disappearing when switching suites in the same processor package.
+This minor release adds a processor-test CLI and an optional gated development workflow: local tests, retained Debug packages, SFTP deployment, install/update readiness, processor and live tests, actual-driver update after passing gates, read-only installed-driver checks, and optional test-instance removal. Uncertain operations retain evidence and a processor lease instead of silently proceeding.
 
-## Windows runner
+See the [continuous integration guide](docs/ContinuousIntegration.md) for setup, example plans, private SDK/settings handling and recovery. Workflow support is included in the self-contained CLI release and consumes CrestronHomeDevTools 1.0.0 from NuGet. No adjacent DevTools checkout is required. A Visual Studio Test Explorer adapter is still planned; it is not part of this implementation. Opt-in reboot-aware lifecycle handling now supports V1 development workflows; the Apple TV V1 update/reboot cycle has passed unattended hardware validation; initial-install/removal reboot paths remain hardware-unverified. Automatic rollback is not included.
 
-- Choose **Test inputs…** once for a processor package. All of its suites retain that selection, including unit, read-only live and control suites.
-- Keep different processors and packages separate, and preserve inputs when a package reconnects on a new port.
-- Migrate existing suite selections when they agree. If old suites have conflicting file selections, choose the intended files once for the package.
-- Preserve **Clear inputs** across suite changes and restarts. Current input contents are transferred on each discovery or run; on supported hosts an empty selection clears the selected suite's old processor copy.
+Validation includes a complete KasaTapo gated workflow and 400 distinct tests across six driver packages passing twice on the development processor. The initial full KasaTapo workflow used its then-current 57-test suite. These records demonstrate different validation stages, not one combined run.
 
-## Updating
+## Downloads and updating
 
-Close the runner, extract the complete **CrestronHomeNUnit.Runner-win-x64.zip**, and start the new executable. The ZIP includes the .NET 10 Windows runtime. Existing user-profile settings and protected processor credentials are retained. The licensed GlyphLab icon remains embedded in the official application build; its source icon is not published.
+Extract the complete Windows runner or CLI ZIP. Both include their .NET 10 runtime. Existing runner preferences and protected credentials are retained. The CLI ZIP provides `CrestronHomeNUnit.Cli.exe`; use `--help` for commands and the included CI guide for private workflow plans. The test-host package is version 1.1.000.0000; NUnit remains the official 4.6.1 package. The runner's licensed icon is embedded only; no licensed source icon is distributed.
 
-Existing processor packages work with this runner update; **no processor redeployment is required**. The included NUnit Test Host package is rebuilt as **1.0.002.0000** for release consistency and has no host behavior changes. NUnit remains the official 4.6.1 package.
+CP4-R validation also passed temporary Entity V2 installation/update/reload, configuration reboot/recovery, 116 tests before and after restart, and cleanup. V1 update evidence remains MC4-R only. See the DevTools compatibility matrix for the precise hardware scope.
 
-## Validation
-
-The full runner and transport regression suite passed, including suite switching, processor/package isolation, existing-input migration, conflicting selections, clearing, reconnect, restart preferences and secure input transfer. Build completed with zero warnings or errors. Release CI also validates the included merged self-test and compatibility suites.
-
-Documentation and SHA-256 checksums are included. No private settings, credentials or local test results are distributed. The existing NUnit repeated self-test limitation remains documented.
+Release validation covers the runner/transport, CLI client and workflow regressions, plus the packaged NUnit self-test and language-compatibility suites. Processor test packages remain GitHub-only assets. Private settings, local paths, credentials and results are excluded from releases.

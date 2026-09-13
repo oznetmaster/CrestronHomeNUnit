@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.1.0 — 2026-09-14
+
+- Use Home's configuration reboot operation after a confirmed V1 swap. An immediate SSH console reboot did not retain the staged driver version during validation; standalone SSH reboot remains a separate command.
+
+- Fix V1 update sequencing: wait for the exact driver-swap completion event, validate reboot/reconfiguration requirements, and request reboot once. A missing event or lost update response never implies permission to reboot. Found during hardware validation.
+
+### Development workflow
+
+- Add opt-in processor reboot authorization, durable reboot evidence, fresh authenticated connections, discovery refresh and lease revalidation for V1 development. Never replay updates or use reboot as a timeout fallback. Add explicit per-package installation/removal reboot policies and simulated regression coverage; the Apple TV V1 update/reboot cycle has now passed unattended hardware validation; initial-install/removal reboot paths remain hardware-unverified.
+
+- Document the complete CI development cycle, LAN agents, private configuration, retained artifacts, live-test gates, installation/update readiness and cleanup, with reusable example plans in [ContinuousIntegration.md](docs/ContinuousIntegration.md).
+
+- Added the optional CLI workflow backend: local tests, immutable Debug packages, SFTP import, install/update readiness, processor/live gates, actual-driver update and read-only installed-device checks.
+- Preserve per-stage evidence and retain uncertain executions, activations and requested cleanup under a processor workflow lease.
+- Close the deployment gate if stage evidence cannot be saved.
+- Validate a complete gated KasaTapo processor workflow, including automatic test-instance removal, without manual intervention.
+
+
+- CLI readiness waits for a newly installed/restarted test service and rediscovers changed ports before connecting, without replaying test runs.
+
+- Add a .NET 10 processor-test CLI and shared authentication client, with CI result files, explicit manual-suite selection and incomplete-run exit codes.
+
 ## [1.0.2] — 2026-09-12
 
 ### Fixed

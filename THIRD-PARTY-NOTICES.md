@@ -27,6 +27,10 @@ Post-merge modifications to the framework include compatibility namespace/type-r
 
 The separately copied `System.Threading.Lock` compatibility source retains its NUnit notice and the accompanying [NUnit shim license](licenses/NUnit-Shims-LICENSE.txt), whose attribution differs from the pinned v4.6.1 license. `OverloadResolutionPriorityAttribute.cs` retains the .NET Foundation's MIT notice; see [the .NET license](licenses/DotNet-LICENSE.txt).
 
+## Configuration workflow dependency
+
+The CLI workflow uses [CrestronHomeDevTools 1.0.0](https://github.com/oznetmaster/CrestronHomeDevTools), copyright (c) 2026 Neil Colvin, under the MIT license. It uses the same SSH.NET version listed below and adds no Crestron SDK runtime dependency to the desktop CLI.
+
 ## Runtime and source dependencies
 
 | Component and restored version | Attribution | License text |
