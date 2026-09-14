@@ -48,3 +48,7 @@ try {
     Write-Host 'Packaged adapter: clean restore, offline discovery, manifest copying and fail-closed execution passed.'
     Write-Host "Private acceptance evidence: $root"
 } finally { Pop-Location }
+
+# The negative test intentionally returns 1. Hosted PowerShell steps propagate
+# LASTEXITCODE, so clear that expected status only after every assertion passed.
+$global:LASTEXITCODE = 0
