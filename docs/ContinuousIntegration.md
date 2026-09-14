@@ -177,11 +177,32 @@ Before a public release, publish/review the shared tooling sources, pin known pu
 
 ## Validated behavior and remaining work
 
-A complete KasaTapo workflow on MC4-R / Home 4.11.322 passed its then-current 57 local tests, 57 processor tests, three read-only live tests and seven installed-driver checks, then removed the test instance and released the lease without manual intervention. Later, all six expanded driver suites passed 400 distinct tests twice on that processor. That later coverage run is not a claim that each driver's full production-update/live workflow has been run.
+The expanded suites passed on Windows in Debug and Release. On MC4-R / Crestron Home 4.11.322, all 400 distinct offline and SDK lifecycle tests passed twice in the same test-host process: 800 processor passes.
 
-An earlier cleanup stalled and required a separately approved manual reboot; the cause remains unknown. The automation retained the failed outcome. Reboot is never used as a generic timeout or cleanup-recovery fallback. See [workflow policy and evidence](ProcessorTestWorkflow.md) for the detailed history.
+| Driver | Distinct tests | Processor suite runs | Complete production-update workflow |
+| --- | ---: | --- | --- |
+| KasaTapo | 69 | Passed twice | Passed: earlier 57-test suite, 3 live checks, 7 installed-driver checks, test-host removal and lease release |
+| Overkiz | 47 | Passed twice | Not yet validated |
+| Tesla Powerwall | 73 | Passed twice | Not yet validated |
+| WeatherLink Live | 56 | Passed twice | Not yet validated |
+| Wiser Heat | 39 | Passed twice | Not yet validated |
+| Apple TV, including extension lifecycle | 116 | Passed twice | Passed: 116 local tests, 105 processor unit tests, 11 processor lifecycle tests, V1 update/reboot, 3 installed-driver health checks, test-host removal and lease release |
 
-Remaining work includes native Test Explorer integration, reusable driver-specific installed-state/control contracts beyond the current read-only checks, broader firmware validation, verified cross-run artifact reuse, and any future validated rollback/control-restoration support.
+The complete workflow column covers deploying/updating the actual production driver and checking that installed instance. Processor suites exercise the driver code inside a separate test package. Passing those suites does not establish that the complete production-update workflow has run for that driver. Installed-driver checks in the validated workflows are read-only.
+
+CP4-R / Home 4.11.322 validation additionally covered a temporary Entity V2 Apple TV test host: installation, update, current-instance reuse, targeted reload, authorized reboot, reconnection, lease verification and removal. Its 116 tests passed before and after reboot. All seven pre-existing driver instances retained their identities, room assignments and versions and were Loaded. This was test-host lifecycle validation; no existing production driver was updated on the CP4-R.
+
+Earlier failed cleanup/reboot attempts remain recorded separately from the later successful runs. An unresponsive cleanup once required an explicitly authorized manual reboot; the cause remains unknown. Reboot is never a generic timeout or cleanup-recovery fallback. See [workflow policy and evidence](ProcessorTestWorkflow.md) and [DevTools compatibility evidence](https://github.com/oznetmaster/CrestronHomeDevTools/blob/main/docs/Compatibility.md).
+
+Remaining work:
+
+- Validate complete production-update workflows for Overkiz, Tesla, WeatherLink and Wiser, with driver-specific live inputs and installed-driver checks.
+- Implement native Visual Studio Test Explorer integration.
+- Add a generic backend for controlling installed devices and restoring their state; processor fixtures currently implement their own device-control cleanup where applicable.
+- Validate V1 initial-install/removal reboot paths on hardware; current coverage is simulated.
+- Support cross-run artifact reuse with durable verification of the tested package's identity.
+- Design and validate automatic rollback before enabling it.
+- Extend the processor/firmware compatibility matrix beyond the two tested models and firmware version.
 
 ## V1 development and reboot policy
 
