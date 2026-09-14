@@ -2,7 +2,7 @@
 
 For the complete local-to-processor development cycle, see the [continuous integration guide](ContinuousIntegration.md), including private settings, gated actual-driver deployment, evidence and optional test-instance removal.
 
-This document records the agreed workflow. The shared execution-order/deployment-gate policy is implemented and unit-tested; the standalone NUnit CLI and configuration-management primitives have been validated on a processor. A preview build/deploy/test backend is now available through the CLI using the published CrestronHomeDevTools NuGet dependency. The Visual Studio Test Explorer adapter is not implemented yet.
+This document records the agreed workflow. The shared execution-order/deployment-gate policy is implemented and unit-tested; the standalone NUnit CLI and configuration-management primitives have been validated on a processor. The CLI includes a build/deploy/test backend using the published CrestronHomeDevTools NuGet dependency. The Visual Studio Test Explorer adapter is not implemented yet.
 
 ## Hardware validation
 

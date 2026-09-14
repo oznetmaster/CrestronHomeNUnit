@@ -2,7 +2,9 @@
 
 This guide explains the implemented CLI development workflow and how it connects local NUnit tests, CrestronHomeDevTools and processor test packages. It is the central integration guide for driver and library repositories.
 
-**Current status:** the CLI backend implements the gated workflow and has completed a real KasaTapo run. The released CLI includes workflow support and restores DevTools from NuGet when built from source. Direct Visual Studio Test Explorer integration is still pending. Reboot-aware lifecycle handling is explicitly opt-in; the Apple TV V1 update/reboot workflow has passed unattended hardware validation. No installed-device control/restoration backend or rollback is implemented.
+**Current status:** the CLI implements the gated workflow and restores CrestronHomeDevTools from NuGet when built from source. Complete KasaTapo and explicitly opted-in Apple TV V1 update/reboot workflows have passed unattended hardware validation. V1 initial-install/removal reboot paths have simulated coverage only. Direct Visual Studio Test Explorer integration is still pending.
+
+Post-deployment checks of the installed production driver currently read properties and validate expected values or ranges. Processor live-test fixtures can operate devices and implement their own state capture and restoration. The shared workflow does not yet provide a generic installed-device control/state-restoration backend or automatic rollback.
 
 ## Contents
 
