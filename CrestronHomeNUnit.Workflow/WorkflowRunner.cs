@@ -32,7 +32,7 @@ public static class WorkflowRunner
 			Host = plan.Host,
 			CertificateSha256 = plan.CertificateSha256
 			}, credential, token).ConfigureAwait (false);
-		using var lease = await ProcessorLease.AcquireAsync (plan.Host, credential, plan.SshFingerprint, runId, token).ConfigureAwait (false);
+		using var lease = await ProcessorLease.AcquireAsync (plan.Host, credential, plan.SshFingerprint, runId, TimeSpan.FromSeconds (plan.LeaseWaitSeconds), token).ConfigureAwait (false);
 		await File.WriteAllTextAsync (Path.Combine (results, "Lease.json"), JsonSerializer.Serialize (new
 			{
 			RunId = runId,
@@ -225,7 +225,7 @@ public static class WorkflowRunner
 				var outcome = await _remote.RunAsync (plan with
 					{
 					Host = _host
-					}, credential, _test!.Model, suites[index], live, Path.Combine (results, (live ? "live-" : "processor-") + index), deadline.Token).ConfigureAwait (false);
+					}, credential, _test!.Model, suites[index], live, Path.Combine (results, (live ? "live-" : "processor-") + index), deadline.Token, lease.Owner).ConfigureAwait (false);
 				passed += outcome.Passed;
 				failed += outcome.Failed;
 				skipped += outcome.Skipped;

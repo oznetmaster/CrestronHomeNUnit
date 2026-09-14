@@ -27,6 +27,9 @@ public sealed class WireMessage
 	public string Suite { get; set; } = "self-tests";
 
 	[DataMember (EmitDefaultValue = false)]
+	public string? LeaseOwner { get; set; }
+
+	[DataMember (EmitDefaultValue = false)]
 	public bool EnableLiveTests
 		{
 		get; set;

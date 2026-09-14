@@ -1,0 +1,42 @@
+<!-- Copyright (c) 2026 Neil Colvin. Licensed under the MIT License. See LICENSE. -->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <IsPackable>true</IsPackable>
+    <PackageId>CrestronHomeNUnit.TestAdapter</PackageId>
+    <Authors>Neil Colvin</Authors>
+    <Description>VSTest adapter for gated Crestron Home processor workflows in Visual Studio Test Explorer and dotnet test.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/oznetmaster/CrestronHomeNUnit</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/oznetmaster/CrestronHomeNUnit</PackageProjectUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>Crestron;NUnit;TestAdapter;VSTest;Testing</PackageTags>
+    <DevelopmentDependency>true</DevelopmentDependency>
+    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);IncludeWorkflowAssemblies</TargetsForTfmSpecificBuildOutput>
+    <DevToolsVersion Condition="'$(DevToolsVersion)' == ''">1.1.0</DevToolsVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.TestPlatform.ObjectModel" Version="18.9.0" PrivateAssets="all" />
+    <ProjectReference Include="../CrestronHomeNUnit.Workflow/CrestronHomeNUnit.Workflow.csproj" PrivateAssets="all" />
+    <!-- Public runtime dependencies stay NuGet dependencies; only this repository's
+         implementation assemblies are included in the adapter package. -->
+    <PackageReference Include="CrestronHomeDevTools" Version="$(DevToolsVersion)" Condition="'$(DevToolsProject)' == ''" />
+    <PackageReference Include="SSH.NET" Version="2026.0.0" />
+    <PackageReference Include="Makaretu.Dns.Multicast" Version="0.27.0" />
+    <InternalsVisibleTo Include="CrestronHomeNUnit.TestAdapter.Tests" />
+    <None Include="README.md" Pack="true" PackagePath="/" />
+    <None Include="../LICENSE" Pack="true" PackagePath="/" />
+    <None Include="build/CrestronHomeNUnit.TestAdapter.targets" Pack="true" PackagePath="build/net10.0/" />
+  </ItemGroup>
+  <Target Name="IncludeWorkflowAssemblies" DependsOnTargets="BuildOnlySettings;ResolveReferences">
+    <Error Condition="'$(DevToolsProject)' != ''" Text="Pack the adapter against a published DevTools package, not a private project override." />
+    <ItemGroup>
+      <BuildOutputInPackage Include="$(OutputPath)CrestronHomeNUnit.Workflow.dll" />
+      <BuildOutputInPackage Include="$(OutputPath)CrestronHomeNUnit.Client.dll" />
+      <BuildOutputInPackage Include="$(OutputPath)CrestronHomeNUnit.Transport.dll" />
+    </ItemGroup>
+  </Target>
+</Project>

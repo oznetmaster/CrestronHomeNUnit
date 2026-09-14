@@ -13,7 +13,7 @@ internal sealed class RemoteSuiteRun
 	{
 	public bool ExecutionConfirmedStopped { get; private set; } = true;
 	public async Task<WorkflowTestOutcome> RunAsync (WorkflowPlan plan, NetworkCredential credential, string packageName,
-		 SuitePlan suite, bool live, string directory, CancellationToken token)
+		 SuitePlan suite, bool live, string directory, CancellationToken token, string? leaseOwner = null)
 		{
 		Directory.CreateDirectory (directory);
 		var ready = await new PackageReadiness ().WaitAsync (plan.Host, packageName, async (selected, ct) =>
@@ -71,6 +71,7 @@ internal sealed class RemoteSuiteRun
 				Kind = "run",
 				Suite = suite.Id,
 				RequestId = id,
+				LeaseOwner = leaseOwner,
 				EnableLiveTests = live,
 				TestInputs = inputs.Count > 0 ? inputs : null
 				});

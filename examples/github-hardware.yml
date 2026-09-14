@@ -1,0 +1,55 @@
+# Copyright (c) 2026 Neil Colvin. Licensed under the MIT License; see LICENSE.
+# Copy to a PRIVATE orchestration repository after reviewing the setup guide.
+name: Processor hardware validation
+on:
+  workflow_dispatch:
+    inputs:
+      source_commit:
+        description: Reviewed full commit SHA of the driver repository
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: development-processor
+  cancel-in-progress: false
+jobs:
+  validate-request:
+    if: github.event.repository.private && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require an exact revision
+        env:
+          REQUESTED_SHA: ${{ inputs.source_commit }}
+        shell: bash
+        run: '[[ "$REQUESTED_SHA" =~ ^[0-9a-fA-F]{40}$ ]]'
+  hardware:
+    needs: validate-request
+    environment: processor-development
+    runs-on: [self-hosted, Windows, X64, crestron-home]
+    timeout-minutes: 90
+    steps:
+      - name: Check out the reviewed driver revision
+        uses: actions/checkout@v4
+        with:
+          repository: YOUR_ACCOUNT/YOUR_DRIVER
+          ref: ${{ inputs.source_commit }}
+          path: source
+          persist-credentials: false
+      - name: Run the processor workflow
+        shell: pwsh
+        env:
+          REQUESTED_SHA: ${{ inputs.source_commit }}
+          CI_SCRIPT: ${{ vars.CRESTRON_CI_SCRIPT }}
+          CLI_PATH: ${{ vars.CRESTRON_CLI_PATH }}
+          PLAN_TEMPLATE: ${{ vars.CRESTRON_PLAN_TEMPLATE }}
+          CREDENTIALS_PATH: ${{ vars.CRESTRON_CREDENTIALS_PATH }}
+          PRIVATE_ROOT: ${{ vars.CRESTRON_PRIVATE_ROOT }}
+          RESULTS_ROOT: ${{ vars.CRESTRON_RESULTS_ROOT }}
+        run: |
+          & $env:CI_SCRIPT -CliPath $env:CLI_PATH -PlanTemplate $env:PLAN_TEMPLATE `
+            -CredentialsPath $env:CREDENTIALS_PATH -CheckoutRoot $env:GITHUB_WORKSPACE `
+            -PrivateRoot $env:PRIVATE_ROOT -ResultsRoot $env:RESULTS_ROOT `
+            -SourceRevision $env:REQUESTED_SHA
+          exit $LASTEXITCODE
+      # Do not upload raw live-test results or logs without a reviewed redaction step.

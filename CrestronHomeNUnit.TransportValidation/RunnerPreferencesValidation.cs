@@ -47,7 +47,7 @@ internal static class RunnerPreferencesValidation
 				});
 				var package = new DiscoveredPackage { Host = "127.0.0.1", Port = port, Name = "Restore package", ProcessorId = "restore-processor" };
 				using (var form = new RunnerForm ((_, _, _, _) => Task.FromResult (new ProcessorConnection ("restore-processor", "synthetic-token")), path,
-					 () => Task.FromResult<IReadOnlyList<DiscoveredPackage>> ([package])))
+					 () => Task.FromResult<IReadOnlyList<DiscoveredPackage>> ([package]), acquireLease: () => Task.FromResult<CrestronHomeNUnit.Client.IProcessorLease> (new TestLease ())))
 					{
 					_ = form.Handle;
 					Field<TextBox> (form, "_host").Text = "127.0.0.1";

@@ -61,7 +61,7 @@ internal static class RunnerRecoveryValidation
 						messages.Read ();
 						}
 				});
-				using (var form = new RunnerForm ((_, _, _, _) => Task.FromResult (new ProcessorConnection (Guid.NewGuid ().ToString ("N"), "synthetic-validation-key"))))
+				using (var form = new RunnerForm ((_, _, _, _) => Task.FromResult (new ProcessorConnection (Guid.NewGuid ().ToString ("N"), "synthetic-validation-key")), acquireLease: () => Task.FromResult<CrestronHomeNUnit.Client.IProcessorLease> (new TestLease ())))
 					{
 					_ = form.Handle;
 					Field<TextBox> (form, "_host").Text = "127.0.0.1";

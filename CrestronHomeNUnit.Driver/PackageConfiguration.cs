@@ -47,7 +47,7 @@ public sealed class PackageConfiguration
 		return configuration;
 		}
 
-	public TestExecutionService CreateService (string workDirectory, string testDataDirectory) => new (workDirectory, _ => Assembly.GetExecutingAssembly (), Suites, testDataDirectory);
+	public TestExecutionService CreateService (string workDirectory, string testDataDirectory) => new (workDirectory, _ => Assembly.GetExecutingAssembly (), Suites, testDataDirectory, Transport.ProcessorExecutionLease.SharedPath);
 	}
 
 // Also used by the desktop package validator: it executes the exact merged assembly and filters.

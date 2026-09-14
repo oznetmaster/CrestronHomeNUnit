@@ -1,0 +1,14 @@
+<!-- Copyright (c) 2026 Neil Colvin. Licensed under the MIT License. See LICENSE. -->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.9.0" PrivateAssets="all" />
+    <PackageReference Include="CrestronHomeNUnit.TestAdapter" Version="1.2.0" PrivateAssets="all" Condition="'$(UseSourceAdapter)' != 'true'" />
+    <ProjectReference Include="../../CrestronHomeNUnit.TestAdapter/CrestronHomeNUnit.TestAdapter.csproj" Condition="'$(UseSourceAdapter)' == 'true'" />
+    <None Update="Workflows.xml" CopyToOutputDirectory="PreserveNewest" TargetPath="$(AssemblyName).dll.workflow-tests.xml" Condition="'$(UseSourceAdapter)' == 'true'" />
+  </ItemGroup>
+</Project>

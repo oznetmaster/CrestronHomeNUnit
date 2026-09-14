@@ -2,7 +2,7 @@
 
 This guide explains the implemented CLI development workflow and how it connects local NUnit tests, CrestronHomeDevTools and processor test packages. It is the central integration guide for driver and library repositories.
 
-**Current status:** the CLI implements the gated workflow and restores CrestronHomeDevTools from NuGet when built from source. Complete KasaTapo and explicitly opted-in Apple TV V1 update/reboot workflows have passed unattended hardware validation. V1 initial-install/removal reboot paths have simulated coverage only. Direct Visual Studio Test Explorer integration is still pending.
+**Current status:** the CLI implements the gated workflow and restores CrestronHomeDevTools from NuGet when built from source. Complete KasaTapo, Overkiz, WeatherLink and explicitly opted-in Apple TV V1 update/reboot workflows have passed unattended hardware validation. V1 initial-install/removal reboot paths have simulated coverage only. The stable .NET 10 Test Explorer adapter is available on NuGet as CrestronHomeNUnit.TestAdapter 1.2.0; see [its setup and validation](VisualStudioTestExplorer.md).
 
 Post-deployment checks of the installed production driver currently read properties and validate expected values or ranges. Processor live-test fixtures can operate devices and implement their own state capture and restoration. The shared workflow does not yet provide a generic installed-device control/state-restoration backend or automatic rollback.
 
@@ -32,6 +32,7 @@ Post-deployment checks of the installed production driver currently read propert
 | `CrestronHomeDevTools` | Processor discovery/authentication, SFTP import, installation/update/reload/removal and loaded-version checks. |
 | `CrestronHomeNUnit.Workflow` | Run order, source/artifact identity, required gates, processor lease, retained evidence and test-aware cleanup. |
 | `CrestronHomeNUnit.Cli` | Headless command entry point for development scripts and CI; no UI or AI agent required. |
+| `CrestronHomeNUnit.TestAdapter` | Native VSTest workflow entry, cooperative cancellation and individual result reporting in a .NET 10 test container. |
 | Windows runner | Interactive discovery, selection, test inputs and result inspection. |
 
 The two discovery mechanisms are separate. DevTools discovers processors using native Crestron discovery. Test packages advertise their dynamically assigned TCP ports using mDNS. Each package contains its own host; installing the NUnit self-test package is optional. Independent library packaging belongs in CrestronHomeLibraryTests or an equivalent separate repository; driver-specific packages can stay in the driver's solution.
@@ -51,7 +52,15 @@ The actual driver is a different instance from the driver code exercised inside 
 
 ## Prepare a development agent
 
+For a reusable GitHub Actions setup on your own computer, follow [GitHub hardware CI](GitHubHardwareCI.md), including the Windows agent, private plans, source-revision binding and workflow template.
+
 Use a machine with .NET 10, the net472 targeting/build requirements of the driver projects, their packaging tools, and LAN reachability to the development processor. A Windows agent is the validated build environment. Processor discovery, HTTPS/WebSocket management, SFTP, mDNS and the selected dynamic test port must be reachable.
+
+GitHub Actions can include these processor runs using a Windows self-hosted runner on that LAN. The Windows machine executes the CI job; the processor is its hardware target. Labels select the appropriate agent, and its private plan selects the processor. No inbound WAN exposure of the processor is necessary. The runner must be online for the job to execute. See [GitHub's self-hosted runner configuration](https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/add-runners) and [runner labels](https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/apply-labels).
+
+For public libraries and drivers, keep ordinary pull-request checks on GitHub-hosted runners. A separate private hardware-orchestration repository is the preferred home for a LAN runner: run reviewed, immutable source revisions and retain private plans, credentials and device logs locally. GitHub recommends private repositories for self-hosted runners because pull-request code can compromise the runner and its reachable devices. Environment approval is useful for the hardware job but is not isolation from arbitrary code. Never automatically run unreviewed fork code with processor credentials. Only sanitized test counts/status should be copied to public checks; raw live-test outputs can identify devices or contain configuration data.
+
+Hardware checks can gate a subsequent release or production update. Tie the check to the exact tested source revision and retained package hash, and distinguish a successful Debug workflow from certification of separately rebuilt Release bytes. Do not configure a required hardware check until the agent and its scheduling are ready; an offline agent leaves that check pending.
 
 Use the self-contained CLI release, or check out `CrestronHomeNUnit` and the relevant driver/library projects. Set supported project/SDK path overrides privately. To build the CLI:
 
@@ -59,7 +68,7 @@ Use the self-contained CLI release, or check out `CrestronHomeNUnit` and the rel
 dotnet build CrestronHomeNUnit.Cli/CrestronHomeNUnit.Cli.csproj -c Release -p:EnableProcessorWorkflow=true
 ```
 
-`DevToolsProject` optionally selects a local library project for joint development. Normal builds restore CrestronHomeDevTools 1.0.0 from NuGet and include workflow support. The additional `CrestronHomeNUnit.Workflow.Tests` project tests the backend.
+`DevToolsProject` optionally selects a local library project for joint development. Normal builds restore CrestronHomeDevTools 1.1.0 from NuGet and include workflow support. The additional `CrestronHomeNUnit.Workflow.Tests` project tests the backend.
 
 Some real Crestron SDK desktop lifecycle harnesses need `Newtonsoft.Json.Compact.dll` to read the production manifest. Supply the verified SDK/runtime copy via their `CompactJsonPath` property. This also applies to Entity V2 tests; it is not specific to V1 video servers. The processor already supplies it. It is not a dependency of DevTools or the NUnit transport. Maintainer CI can restore an authorized copy from encrypted secrets, verify its checksum and keep it in the agent's temporary directory. Never include that private runtime copy in source or processor packages. Fork jobs do not receive maintainer secrets.
 
@@ -159,7 +168,9 @@ Failures, skipped required tests, insufficient counts, cancellation, timeout, in
 
 `removeTestInstanceAfterRun` removes only the recorded test-instance ID/model/version after results are saved and all stages using it have finished. It also runs after completed test failures. It does not remove the actual driver or the catalogue package.
 
-If execution, activation or requested removal is uncertain, retain the test instance and processor lease for investigation. A missing tile or cleared room assignment is not enough. The lease at `/user/CrestronHomeNUnit-WorkflowLease` coordinates cooperating jobs across machines; it does not stop manual Configure or runner activity. It has no automatic expiry or lock stealing. Inspect the owned lease and remote state before clearing a stale lease manually. Do not replace an uncertain host with another one just to make the next run start.
+If execution, activation or requested removal is uncertain, retain the test instance and processor lease for investigation. A missing tile or cleared room assignment is not enough. The lease at `/user/CrestronHomeNUnit-WorkflowLease` coordinates cooperating jobs across machines. Current source also coordinates the Windows runner, standalone CLI, updated Home tiles and DevTools/build mutations; older releases and manual Configure/SFTP activity can bypass it. It has no automatic expiry or lock stealing. Inspect the owned lease and remote state before clearing a stale lease manually. Do not replace an uncertain host with another one just to make the next run start. See [hardware CI coordination](GitHubHardwareCI.md) for upgrade requirements and manual reservations.
+
+Instance cleanup leaves retained catalogue packages in storage. Current DevTools source has a read-only `stored-packages` inspection command; it does not purge packages. A package can remain relevant to an installed instance or staged update even when its filename looks old. See [storage and deletion limits](https://github.com/oznetmaster/CrestronHomeDevTools/blob/HEAD/docs/ProcessorCoordination.md#catalogue-and-storage-are-separate-from-installed-instances).
 
 Save live SSH logs when diagnosing an active problem; processor logs written to disk can lag. Log streaming is currently an external diagnostic aid, not a DevTools CLI command or automatic workflow evidence feature.
 
@@ -167,7 +178,7 @@ Save live SSH logs when diagnosing an active problem; processor logs written to 
 
 The existing NUnit adapter runs local projects in Test Explorer. Visual Studio can invoke the CLI through a terminal/external tool or a deliberately configured task now. That does not make remote stages appear as native Test Explorer cases.
 
-A dedicated adapter mapping Local, Processor, Processor Live and Installed Driver results into one VS test cycle is still future work. Discovery must remain non-mutating; it must not deploy or operate devices merely because Test Explorer discovers tests. No claim is made that the current NUnit/MSTest adapters perform this orchestration.
+The source tree now includes a dedicated .NET 10 workflow adapter and sample container. It exposes one complete workflow in Test Explorer and imports individual Local, Processor, Processor Live and Installed Driver outcomes as child results. Discovery reads only a public manifest and remains non-mutating. Execution uses the same backend as the CLI. See [setup, selection and cancellation](VisualStudioTestExplorer.md). The adapter is published with release 1.2.0; its hardware and test-platform validation are recorded separately.
 
 ## Publication boundaries
 
@@ -181,10 +192,10 @@ The expanded suites passed on Windows in Debug and Release. On MC4-R / Crestron 
 
 | Driver | Distinct tests | Processor suite runs | Complete production-update workflow |
 | --- | ---: | --- | --- |
-| KasaTapo | 69 | Passed twice | Passed: earlier 57-test suite, 3 live checks, 7 installed-driver checks, test-host removal and lease release |
-| Overkiz | 47 | Passed twice | Not yet validated |
+| KasaTapo | 69 | Passed twice | Passed through VSTest: 69 local tests, 69 processor tests, 3 live checks, 7 installed-driver checks, test-host removal and lease release |
+| Overkiz | 47 | Passed twice | Passed: 47 local tests, 47 processor tests, 3 live checks and 3 installed-driver checks; lease released |
 | Tesla Powerwall | 73 | Passed twice | Not yet validated |
-| WeatherLink Live | 56 | Passed twice | Not yet validated |
+| WeatherLink Live | 56 | Passed twice | Passed: 56 local tests, 56 processor tests, 3 live checks and 3 installed-driver checks; lease released |
 | Wiser Heat | 39 | Passed twice | Not yet validated |
 | Apple TV, including extension lifecycle | 116 | Passed twice | Passed: 116 local tests, 105 processor unit tests, 11 processor lifecycle tests, V1 update/reboot, 3 installed-driver health checks, test-host removal and lease release |
 
@@ -196,8 +207,7 @@ Earlier failed cleanup/reboot attempts remain recorded separately from the later
 
 Remaining work:
 
-- Validate complete production-update workflows for Overkiz, Tesla, WeatherLink and Wiser, with driver-specific live inputs and installed-driver checks.
-- Implement native Visual Studio Test Explorer integration.
+- Validate complete production-update workflows for Tesla and Wiser, with driver-specific live inputs and installed-driver checks.
 - Add a generic backend for controlling installed devices and restoring their state; processor fixtures currently implement their own device-control cleanup where applicable.
 - Validate V1 initial-install/removal reboot paths on hardware; current coverage is simulated.
 - Support cross-run artifact reuse with durable verification of the tested package's identity.

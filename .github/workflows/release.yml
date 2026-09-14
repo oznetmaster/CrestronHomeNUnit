@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 concurrency:
   group: release
@@ -20,6 +21,7 @@ concurrency:
 jobs:
   release:
     runs-on: windows-latest
+    environment: release
     timeout-minutes: 30
     env:
       RELEASE_VERSION: ${{ inputs.version }}
@@ -38,6 +40,7 @@ jobs:
         run: |
           if ($env:GITHUB_REF -ne 'refs/heads/main') { throw 'Run releases from main.' }
           if ($env:RELEASE_VERSION -notmatch '^\d+\.\d+\.\d+$') { throw 'Version must be major.minor.patch.' }
+          if (-not '${{ vars.NUGET_USER }}') { throw 'Configure NUGET_USER and the adapter NuGet Trusted Publishing policy first.' }
           $tag = 'v' + $env:RELEASE_VERSION
           git show-ref --verify --quiet "refs/tags/$tag"
           if ($LASTEXITCODE -eq 0) { throw "Tag $tag already exists." }
@@ -84,6 +87,18 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Tag creation failed.' }
           git push --atomic origin HEAD:refs/heads/main "refs/tags/$tag"
           if ($LASTEXITCODE -ne 0) { throw 'Release push failed; main may have advanced.' }
+      - name: Obtain short-lived NuGet credential
+        id: nuget-login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ vars.NUGET_USER }}
+      - name: Publish stable test adapter
+        shell: pwsh
+        env:
+          NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+        run: |
+          dotnet nuget push "artifacts/release/CrestronHomeNUnit.TestAdapter.$env:RELEASE_VERSION.nupkg" --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json
+          if ($LASTEXITCODE -ne 0) { throw 'Adapter NuGet publication failed.' }
       - name: Publish GitHub release
         shell: pwsh
         run: |

@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.2.0 — 2026-09-14
+
+- Publish the stable `CrestronHomeNUnit.TestAdapter` NuGet package, including automatic workflow-manifest copying and a package-based sample. Consume released CrestronHomeDevTools 1.1.0; no adjacent source checkout is required.
+- Verify clean package installation, offline discovery and failure without private settings in hosted CI and release builds. Publish the adapter through package-scoped NuGet Trusted Publishing; processor packages remain GitHub assets only.
+
+- Add a .NET 10 VSTest adapter for running the gated processor workflow from Visual Studio Test Explorer. Discovery reads a public manifest offline; execution uses private settings and the shared workflow backend, reports individual local/processor/live/installed-driver results, and requests cooperative cancellation.
+- Reject recursive workflow execution from a workflow's own local test stage.
+- Add a sample workflow container and [Test Explorer setup guide](docs/VisualStudioTestExplorer.md).
+- Validate the adapter through VSTest and a real MC4-R KasaTapo workflow: 148 individual tests passed, actual driver updated, test host removed and lease released.
+- Document self-hosted GitHub Actions hardware testing for other developers, with a private-repository example and checkout-relative private plan wrapper.
+- Share processor lease protection with standalone CLI test runs, the Windows runner, updated Home tile execution and DevTools mutations/build deployment. Add bounded workflow busy waits and explicit CLI reservation/release commands for manual Configure sessions; reject release during active tests.
+- Validate desktop/tile exclusion on MC4-R with 69 processor and 35 tile lifecycle test passes, temporary-instance removal, and a build deployment that refused a held reservation then verified import without changing installed instances.
+
 ## 1.1.0 — 2026-09-14
 
 - Use Home's configuration reboot operation after a confirmed V1 swap. An immediate SSH console reboot did not retain the staged driver version during validation; standalone SSH reboot remains a separate command.

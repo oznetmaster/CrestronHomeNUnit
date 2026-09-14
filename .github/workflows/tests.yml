@@ -23,5 +23,17 @@ jobs:
         run: dotnet test CrestronHomeNUnit.Client.Tests/CrestronHomeNUnit.Client.Tests.csproj -c Release --no-build
       - name: Workflow regressions
         run: dotnet test CrestronHomeNUnit.Workflow.Tests/CrestronHomeNUnit.Workflow.Tests.csproj -c Release --no-build
+      - name: Test Explorer adapter regressions
+        run: dotnet test CrestronHomeNUnit.TestAdapter.Tests/CrestronHomeNUnit.TestAdapter.Tests.csproj -c Release --no-build
+      - name: Offline workflow discovery
+        run: dotnet test samples/WorkflowTests/WorkflowTests.csproj -c Release -p:UseSourceAdapter=true --list-tests
+      - name: Pack and verify adapter installation
+        shell: pwsh
+        run: |
+          [xml]$props = Get-Content Version.props -Raw
+          $version = $props.Project.PropertyGroup.Version
+          dotnet pack CrestronHomeNUnit.TestAdapter/CrestronHomeNUnit.TestAdapter.csproj -c Release -o artifacts/adapter
+          if ($LASTEXITCODE -ne 0) { throw 'Adapter package build failed.' }
+          ./tools/Test-AdapterPackage.ps1 -PackageDirectory artifacts/adapter -Version $version
       - name: CLI help
         run: dotnet CrestronHomeNUnit.Cli/bin/Release/net10.0/CrestronHomeNUnit.Cli.dll --help

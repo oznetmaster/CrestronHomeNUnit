@@ -15,15 +15,25 @@ if (args.FirstOrDefault () == "workflow")
 	return 2;
 #endif
 	}
-return await RunAsync (args);
+try { return await RunAsync (args); }
+catch (IOException exception)
+	{
+	Console.Error.WriteLine (exception.Message);
+	return 3;
+	}
 
 static async Task<int> RunAsync (string[] arguments)
 	{
+	if (arguments.FirstOrDefault () is "reserve" or "release") return await ReservationCommand.RunAsync (arguments);
 	if (arguments.Length == 0 || arguments[0] is "help" or "--help")
 		{
 		Console.WriteLine ("""
             CrestronHomeNUnit CLI
               packages                      Find available processor test packages
+              reserve --settings private.json --receipt private-receipt.json
+                                            Reserve a processor for manual development
+              release --settings private.json --receipt private-receipt.json
+                                            Release that exact manual reservation
               workflow --plan private.json --results directory [--settings private.json]
                                             Test, deploy, activate and gate a Debug driver update
               suites --processor IP-or-name --package name
@@ -55,6 +65,9 @@ static async Task<int> RunAsync (string[] arguments)
 	ConsoleCancelEventHandler handler = (_, e) => { e.Cancel = true; cancellation.Cancel (); };
 	Console.CancelKeyPress += handler;
 	RemoteTestClient? client = null;
+	ProcessorLease? lease = null;
+	bool executionStopped = true;
+	string? connectedHost = null;
 	string? requestId = null;
 	string? resultDirectory = null;
 	try
@@ -122,6 +135,7 @@ static async Task<int> RunAsync (string[] arguments)
 				return await RemoteTestClient.ConnectAsync (selected.Host, selected.Port, identity.Token);
 			}, readiness.Token);
 			client = connected.Connection;
+			connectedHost = connected.Package.Host;
 			}
 		if (command == "suites")
 			{
@@ -165,16 +179,21 @@ static async Task<int> RunAsync (string[] arguments)
 			catch (Exception exception) { progressFailure = exception; }
 		};
 		requestId = Guid.NewGuid ().ToString ("N");
+		lease = await ProcessorLease.AcquireAsync (connectedHost!, new System.Net.NetworkCredential (user, password), fingerprint, requestId, deadline.Token);
+		await File.WriteAllTextAsync (Path.Combine (resultDirectory, "Lease.json"), JsonSerializer.Serialize (new { Host = connectedHost, Owner = lease.Owner, State = "Held" }), deadline.Token);
 		var request = new WireMessage
 			{
 			Kind = command == "discover" ? "discover" : "run",
 			Suite = suite.Id,
 			RequestId = requestId,
+			LeaseOwner = lease.Owner,
 			EnableLiveTests = suite.ManualOnly && allowManual,
 			TestNames = tests,
 			TestInputs = inputs.Count == 0 ? null : inputs
 			};
+		executionStopped = false;
 		var response = await client.SendAsync (request).WaitAsync (deadline.Token);
+		executionStopped = response.Kind == "complete";
 		if (progressFailure != null)
 			throw new IOException ("Could not preserve test progress.");
 		if (command == "discover")
@@ -219,10 +238,24 @@ static async Task<int> RunAsync (string[] arguments)
 				}
 			catch { }
 			}
-		Console.Error.WriteLine (exception is ArgumentException ? exception.Message : cancelled ? "Cancelled; processor cancellation is cooperative." : incomplete ? "Run incomplete. Inspect saved progress; do not count this as a test pass." : "Unable to connect or configure the run. Check discovery, credentials, SSH fingerprint and local files.");
+		Console.Error.WriteLine (exception is ArgumentException or ProcessorBusyException ? exception.Message : cancelled ? "Cancelled; processor cancellation is cooperative." : incomplete ? "Run incomplete. Inspect saved progress; do not count this as a test pass." : "Unable to connect or configure the run. Check discovery, credentials, SSH fingerprint and local files.");
 		return cancelled ? 130 : incomplete || exception is TimeoutException or OperationCanceledException ? 3 : 2;
 		}
-	finally { client?.Dispose (); Console.CancelKeyPress -= handler; }
+	finally
+		{
+		try
+			{
+			if (lease != null && executionStopped)
+				{
+				using var cleanup = new CancellationTokenSource (TimeSpan.FromSeconds (20));
+				await lease.ReleaseAsync (cleanup.Token);
+				if (resultDirectory != null) await File.WriteAllTextAsync (Path.Combine (resultDirectory, "Lease.json"), JsonSerializer.Serialize (new { Host = connectedHost, Owner = lease.Owner, State = "Released" }));
+				}
+			else if (lease != null) Console.Error.WriteLine ("Processor lease retained because execution has not been confirmed stopped. Inspect results before another run.");
+			}
+		catch { throw new IOException ("Processor lease release could not be confirmed. Inspect Lease.json before another run."); }
+		finally { lease?.Dispose (); client?.Dispose (); Console.CancelKeyPress -= handler; }
+		}
 	}
 
 internal sealed record CliSettings

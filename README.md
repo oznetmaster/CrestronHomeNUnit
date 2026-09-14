@@ -2,6 +2,12 @@
 
 For the complete local-to-processor development cycle, see the [continuous integration guide](docs/ContinuousIntegration.md), including private settings, gated actual-driver deployment, evidence and optional test-instance removal.
 
+Version 1.2.0 includes a [Visual Studio Test Explorer workflow adapter](docs/VisualStudioTestExplorer.md), available as the stable [CrestronHomeNUnit.TestAdapter NuGet package](https://www.nuget.org/packages/CrestronHomeNUnit.TestAdapter). Add it to a separate .NET 10 workflow test project to run the same gated development cycle from Visual Studio.
+
+Version 1.2.0 coordinates desktop tests, updated Home test tiles and DevTools/build operations through a shared processor reservation. Upgrade the participating tools and test packages together, using DevTools 1.1.0 or later; see [hardware CI setup and coordination](docs/GitHubHardwareCI.md). [Build deployment settings and retained package inspection](https://github.com/oznetmaster/CrestronHomeDevTools/blob/HEAD/docs/ProcessorCoordination.md) are documented in DevTools.
+
+To run hardware checks from GitHub Actions on your own Windows computer and processor, follow [GitHub hardware CI setup](docs/GitHubHardwareCI.md). It includes private configuration, a relocatable plan wrapper and an example workflow for a private orchestration repository.
+
 Run NUnit tests **on a Crestron Home processor**, using a Windows runner, automation CLI or a standalone test tile in Crestron Home. This checks your code in the processor's Mono-based environment, where SDK, filesystem and networking behavior can differ from Windows.
 
 [Download the latest release](https://github.com/oznetmaster/CrestronHomeNUnit/releases/latest) · [Changelog](CHANGELOG.md) · [Full user and developer guide](docs/UserGuide.md) · [Create your own test package](docs/ProcessorTestPackages.md)
@@ -24,7 +30,8 @@ Copyright (c) 2026 Neil Colvin. Project-owned code is [MIT licensed](LICENSE). N
 | Component | Purpose |
 | --- | --- |
 | **Windows runner** | Finds packages, authenticates, selects and runs tests, transfers inputs and displays results. The Windows x64 ZIP includes .NET 10; no separate runtime installation is needed. |
-| **Automation CLI** | Self-contained Windows x64 console for unattended test runs and the complete gated development workflow. Uses CrestronHomeDevTools 1.0.0 from NuGet. |
+| **Automation CLI** | Self-contained Windows x64 console for unattended test runs and the complete gated development workflow. Uses CrestronHomeDevTools 1.1.0 from NuGet. |
+| **Test Explorer adapter** | NuGet package for a separate .NET 10 workflow project. Runs the complete workflow and reports individual test outcomes in Visual Studio or VSTest. |
 | **NUnit Test Host** | An optional processor package containing selected NUnit framework self-tests and 34 language/runtime compatibility tests. Appears under **Utility** in Configure/Setup. |
 | **Your processor test package** | Contains your NUnit tests, their dependencies, a test host and its own Home tile. |
 
@@ -79,7 +86,7 @@ Build **CrestronHomeNUnit.Runner** for Windows, or **CrestronHomeNUnit.Driver** 
 
 `PublishRunner.ps1` creates a self-contained Windows x64 ZIP. Licensed local builds can set `RunnerIconPath` in the excluded `CrestronHomeNUnit.Runner.Local.targets`. The public source has an MIT icon fallback; official releases use the privately supplied GlyphLab icon.
 
-For a GitHub release, update `CHANGELOG.md` and `RELEASE-NOTES.md`, then run the **Release** workflow on `main` with a new version such as `1.0.1`. CI sets the version, builds and validates the packages, pushes the release commit and annotated tag, then publishes the runner, processor package, documentation and checksums. Release version changes occur in CI; local Release builds preserve the manifest version. CI does not deploy to processors or publish to NuGet.
+For a GitHub release, update `CHANGELOG.md` and `RELEASE-NOTES.md`, then run the **Release** workflow on `main` with a new three-part version. CI sets the version, builds and validates the packages, pushes the release commit and annotated tag, then publishes the runner, CLI, processor package, adapter, documentation and checksums. The adapter alone is also published to NuGet using the `release` environment and package-scoped Trusted Publishing policy; repository variable `NUGET_USER` identifies its owner. Release version changes occur in CI; local Release builds preserve the manifest version. Release CI does not deploy to processors.
 
 ## Documentation and known limitations
 
@@ -102,7 +109,7 @@ The NUnit framework and imported self-tests are **Copyright (c) Charlie Poole, R
 The Crestron SDK is obtained separately under Crestron's terms. Its proprietary components are platform/build dependencies and are not relicensed under MIT.
 ## Command-line automation (development)
 
-A standalone .NET 10 CLI now shares the Windows runner's TCP and authentication code. It supports package discovery, suite selection, private input transfer, NUnit XML results and CI exit codes. See [Command-line processor tests](docs/CommandLineRunner.md). This is not a Visual Studio Test Explorer adapter.
+A standalone .NET 10 CLI shares the Windows runner's TCP and authentication code. It supports package discovery, suite selection, private input transfer, NUnit XML results and CI exit codes. See [Command-line processor tests](docs/CommandLineRunner.md).
 
 
-The CLI also runs the [gated development workflow](docs/ProcessorTestWorkflow.md): local tests, processor package installation, processor/live tests, actual-driver update and checks, then test-instance cleanup. Complete KasaTapo and Apple TV V1 runs have been validated on hardware, including the explicitly authorized V1 reboot. The Visual Studio Test Explorer adapter is still pending.
+The CLI also runs the [gated development workflow](docs/ProcessorTestWorkflow.md): local tests, processor package installation, processor/live tests, actual-driver update and checks, then test-instance cleanup. Complete KasaTapo, Overkiz, WeatherLink and Apple TV V1 runs have been validated on hardware, including the explicitly authorized V1 reboot. The [Visual Studio adapter](docs/VisualStudioTestExplorer.md) uses the same backend.

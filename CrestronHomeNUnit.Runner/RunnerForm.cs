@@ -122,8 +122,10 @@ public sealed partial class RunnerForm : Form
 	private bool _recovering;
 	private bool _incomplete;
 	private readonly ConcurrentQueue<WireMessage> _progress = new ();
-	public RunnerForm (Func<string, string, string, string, Task<ProcessorConnection>>? authenticate = null, string? preferencesPath = null, Func<Task<IReadOnlyList<DiscoveredPackage>>>? discoverPackages = null, string? windowPlacementPath = null)
+	private readonly Func<Task<Client.IProcessorLease>> _acquireLease;
+	public RunnerForm (Func<string, string, string, string, Task<ProcessorConnection>>? authenticate = null, string? preferencesPath = null, Func<Task<IReadOnlyList<DiscoveredPackage>>>? discoverPackages = null, string? windowPlacementPath = null, Func<Task<Client.IProcessorLease>>? acquireLease = null)
 		{
+		_acquireLease = acquireLease ?? AcquireProcessorLeaseAsync;
 		_authenticate = authenticate ?? ProcessorAuthentication.AuthenticateAsync;
 		_discoverPackages = discoverPackages;
 		_rememberCredentials = authenticate == null;
@@ -575,6 +577,8 @@ public sealed partial class RunnerForm : Form
 		_incomplete = false;
 		_resultDirectory = Path.Combine (Environment.GetFolderPath (Environment.SpecialFolder.MyDocuments), "CrestronHomeNUnit", "Results", DateTime.Now.ToString ("yyyyMMdd-HHmmss") + "-" + request.Suite + "-" + request.RequestId.Substring (0, 8));
 		string diagnostic = "";
+		Client.IProcessorLease? lease = null;
+		bool executionStopped = true;
 		_results.Items.Clear ();
 		_rows.Clear ();
 		_output.Clear ();
@@ -583,7 +587,13 @@ public sealed partial class RunnerForm : Form
 		try
 			{
 			request.TestInputs = RunnerTestInputs.Files (InputScope ()) ?? (_client.SupportsTestInputs ? [] : null);
+			lease = await _acquireLease ();
+			request.LeaseOwner = lease.Owner;
+			Directory.CreateDirectory (_resultDirectory);
+			File.WriteAllText (Path.Combine (_resultDirectory, "Lease.json"), System.Text.Json.JsonSerializer.Serialize (new { Host = _host.Text, Owner = lease.Owner, State = "Held" }));
+			executionStopped = false;
 			WireMessage reply = await _client.SendAsync (request);
+			executionStopped = reply.Kind == "complete";
 			DrainProgress ();
 			if (reply.Kind == "error" || string.IsNullOrEmpty (reply.Xml))
 				{
@@ -637,9 +647,33 @@ public sealed partial class RunnerForm : Form
 				_status.Text += " Diagnostic files could not be saved: " + exception.Message;
 				}
 
+			if (lease != null)
+				{
+				try
+					{
+					if (executionStopped)
+						{
+						using var cleanup = new CancellationTokenSource (TimeSpan.FromSeconds (20));
+						await lease.ReleaseAsync (cleanup.Token);
+						File.WriteAllText (Path.Combine (_resultDirectory, "Lease.json"), System.Text.Json.JsonSerializer.Serialize (new { Host = _host.Text, Owner = lease.Owner, State = "Released" }));
+						}
+					else _status.Text += " Processor lease retained: execution has not been confirmed stopped.";
+					}
+				catch { MarkIncomplete ("Processor lease release could not be confirmed. Inspect Lease.json before another run."); }
+				finally { lease.Dispose (); }
+				}
 			_activeRequest = null;
 			UpdateControls ();
 			}
+		}
+
+	private async Task<Client.IProcessorLease> AcquireProcessorLeaseAsync ()
+		{
+		string host = _host.Text.Trim ();
+		string fingerprint = ProcessorKeys.Get ("fingerprint:" + host.ToLowerInvariant ());
+		if (fingerprint.Length == 0) fingerprint = ProcessorKeys.Get ("fingerprint-id:" + _processorId);
+		using var deadline = new CancellationTokenSource (TimeSpan.FromSeconds (30));
+		return await Client.ProcessorLease.AcquireAsync (host, new System.Net.NetworkCredential (_user.Text.Trim (), _key.Text), fingerprint, Guid.NewGuid ().ToString ("N"), deadline.Token);
 		}
 
 	private void MarkIncomplete (string reason)

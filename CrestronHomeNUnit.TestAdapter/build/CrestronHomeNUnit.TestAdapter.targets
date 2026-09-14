@@ -1,0 +1,10 @@
+<!-- Copyright (c) 2026 Neil Colvin. Licensed under the MIT License. -->
+<Project>
+  <PropertyGroup>
+    <CrestronWorkflowManifest Condition="'$(CrestronWorkflowManifest)' == ''">$(MSBuildProjectDirectory)/Workflows.xml</CrestronWorkflowManifest>
+  </PropertyGroup>
+  <ItemGroup Condition="Exists('$(CrestronWorkflowManifest)')">
+    <None Remove="$(CrestronWorkflowManifest)" />
+    <None Include="$(CrestronWorkflowManifest)" TargetPath="$(TargetFileName).workflow-tests.xml" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+  </ItemGroup>
+</Project>

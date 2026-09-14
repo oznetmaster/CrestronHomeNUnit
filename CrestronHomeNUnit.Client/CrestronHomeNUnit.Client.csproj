@@ -2,6 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings></PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="CrestronHomeNUnit.Client.Tests" />
     <PackageReference Include="SSH.NET" Version="2026.0.0" />
     <ProjectReference Include="../CrestronHomeNUnit.Transport/CrestronHomeNUnit.Transport.csproj" />
   </ItemGroup>

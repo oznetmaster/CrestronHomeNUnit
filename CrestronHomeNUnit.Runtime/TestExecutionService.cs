@@ -15,7 +15,7 @@ using CrestronHomeNUnit.Transport;
 
 namespace CrestronHomeNUnit.Runtime;
 /// <summary>Coordinates both Home commands and desktop requests for one driver instance.</summary>
-public sealed class TestExecutionService (string workDirectory, Func<string, Assembly> assemblyForSuite, IReadOnlyList<TestSuiteDefinition>? suiteDefinitions = null, string? testDataDirectory = null) : ITestExecutionHost, ITestSuiteProvider, IDisposable
+public sealed class TestExecutionService (string workDirectory, Func<string, Assembly> assemblyForSuite, IReadOnlyList<TestSuiteDefinition>? suiteDefinitions = null, string? testDataDirectory = null, string? processorLeasePath = null) : ITestExecutionHost, ITestSuiteProvider, IDisposable
 	{
 	private readonly object _gate = new ();
 	private readonly IReadOnlyDictionary<string, TestSuiteDefinition> _suites = (suiteDefinitions ?? TestSuiteDefinition.BuiltIn).ToDictionary (suite => suite.Id, StringComparer.Ordinal);
@@ -51,6 +51,7 @@ public sealed class TestExecutionService (string workDirectory, Func<string, Ass
 			WireMessage result;
 			try
 				{
+				using var processorLease = processorLeasePath == null ? null : ProcessorExecutionLease.Acquire (processorLeasePath, request.LeaseOwner, request.RequestId);
 				var started = WireMessage.Reply (request, "started", request.Kind == "discover" ? "Discovering tests" : "Running tests");
 				started.TargetId = request.Kind;
 				StateChanged?.Invoke (started);

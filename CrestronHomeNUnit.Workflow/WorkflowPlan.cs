@@ -48,6 +48,7 @@ public sealed record WorkflowPlan
 		get; init;
 		}
 	public int StageTimeoutSeconds { get; init; } = 600;
+	public int LeaseWaitSeconds { get; init; }
 	public bool AllowProcessorReboot
 		{
 		get; init;
@@ -61,7 +62,7 @@ public sealed record WorkflowPlan
 		{
 		if (string.IsNullOrWhiteSpace (Host) || string.IsNullOrWhiteSpace (CertificateSha256) || string.IsNullOrWhiteSpace (SshFingerprint))
 			throw new ArgumentException ("Processor address and verified HTTPS/SSH fingerprints are required.");
-		if (StageTimeoutSeconds is < 30 or > 86400 || SourceRoots.Length == 0 || LocalTests.Length == 0 || ProcessorSuites.Length == 0)
+		if (StageTimeoutSeconds is < 30 or > 86400 || LeaseWaitSeconds is < 0 or > 86400 || SourceRoots.Length == 0 || LocalTests.Length == 0 || ProcessorSuites.Length == 0)
 			throw new ArgumentException ("Configure source roots, local tests, processor suites and a bounded timeout.");
 		if (LocalTests.Any (t => t.MinimumPassed < 1) || ProcessorSuites.Concat (LiveSuites).Any (t => t.MinimumPassed < 1))
 			throw new ArgumentException ("Every required test stage needs a positive minimum passed count.");
