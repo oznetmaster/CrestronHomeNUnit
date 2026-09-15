@@ -37,7 +37,7 @@ try {
     $credentials = Get-Content "$privateRoot/processor.settings.json" -Raw | ConvertFrom-Json
     $plan = Get-Content "$privateRoot/templates/$Target.json" -Raw | ConvertFrom-Json
     if ([string]::IsNullOrWhiteSpace($credentials.UserName) -or [string]::IsNullOrWhiteSpace($credentials.Password)) { throw 'Missing service credentials.' }
-    if ($plan.ActualDriver -or @($plan.LiveSuites).Count -or @($plan.DeployedChecks).Count -or !$plan.RemoveTestInstanceAfterRun -or $plan.AllowProcessorReboot) { throw 'Only automatically cleaned-up test-only plans are enabled.' }
+    if ($plan.ActualDriver -or @($plan.LiveSuites).Count -or @($plan.DeployedChecks).Count -or !$plan.RemoveTestInstanceAfterRun -or !$plan.RemoveTestPackageAfterSuccessfulRun -or $plan.AllowProcessorReboot) { throw 'Only automatically cleaned-up test-only plans are enabled.' }
     $runRoot = Join-Path $privateRoot ('results/' + $Target + '/' + [Guid]::NewGuid().ToString('N'))
     [IO.Directory]::CreateDirectory($runRoot) | Out-Null
     @{SourceRepository=$selected.repository;SourceRevision=$SourceRevision;Target=$Target;PreflightOnly=[bool]$PreflightOnly} | ConvertTo-Json | Set-Content "$runRoot/SourceRevision.json" -Encoding utf8
@@ -158,7 +158,13 @@ try {
         if ([int]$counts.passed -lt 1 -or [int]$counts.passed -ne [int]$counts.total -or [int]$counts.failed -ne 0) { throw 'Incomplete or nonpassing adapter results.' }
         $leases=@(Get-ChildItem $runRoot -Recurse -Filter Lease.json)
         if ($leases.Count -ne 1 -or (Get-Content $leases[0].FullName -Raw | ConvertFrom-Json).State -ne 'Released') { throw 'The processor lease was not released.' }
-        $message="Processor workflow passed: $($counts.passed) results; temporary test-instance cleanup completed and the processor lease was released."
+        $workflows = @(Get-ChildItem $runRoot -Recurse -Filter Workflow.json)
+        if ($workflows.Count -ne 1) { throw 'Expected one workflow completion receipt.' }
+        $completed = Get-Content $workflows[0].FullName -Raw | ConvertFrom-Json
+        if (!$completed.Passed -or !@($completed.Stages | Where-Object { $_.Stage -eq 'Remove temporary test package' -and $_.Outcome -eq 'Passed' }).Count) {
+            throw 'Storage cleanup was not confirmed. Use adapter 1.3.0 or later and enable successful-run package cleanup.'
+        }
+        $message="Processor workflow passed: $($counts.passed) results; temporary instance and storage cleanup verified, and processor lease released. Catalogue cache may persist until the next planned reboot."
     }
     Write-Output $message
     if ($env:GITHUB_STEP_SUMMARY) { Add-Content $env:GITHUB_STEP_SUMMARY $message }

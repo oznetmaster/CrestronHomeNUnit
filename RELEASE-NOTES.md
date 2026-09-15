@@ -1,18 +1,20 @@
-# Crestron Home NUnit v1.2.2
+# Crestron Home NUnit v1.3.0
 
-Patch release fixing Debug version collisions in the CLI and Visual Studio Test Explorer workflow when a newer build has been deployed manually.
+Add optional automatic storage cleanup for successful CI test runs, while preserving manual deployments.
 
-- Reconcile standard project manifests with the highest matching catalogue revision before building, under the shared processor lease. Preserve the source major/minor/patch version; the normal build script allocates the next Debug revision.
-- Verify the built driver's identity and fresh version before upload, and check again for conflicting catalogue versions before deployment. Newer release versions, unreadable matching versions and exhausted counters require deliberate correction.
-- Preserve manifest formatting, UTF-8 BOM and unrelated values. Custom manifest layouts continue to require explicit counter management.
-- Include the reusable private hardware-CI bridge template and setup documentation published since 1.2.1. These cover exact-source GitHub App checks, approved source selection, release preflight and adding projects.
+- `removeTestPackageAfterSuccessfulRun` removes only this workflow's uploaded test archive after all requested stages pass and its test instance is confirmed removed. It requires `removeTestInstanceAfterRun` and defaults to false.
+- Capture pre-existing storage paths before upload; preserve those paths and every package still referenced by an installed model or alias. Verify exact package identity, version and SHA-256 against the retained build, and save a backup and operation evidence before deletion.
+- Hold the shared processor reservation and execution marker throughout removal and catalogue refresh. Uncertain cleanup retains the reservation for inspection; no command is automatically replayed.
+- Free storage and remove persisted catalogue references without rebooting. Home may retain a cached catalogue entry until its next planned reboot; workflow results report this explicitly.
+- Retain original package filenames in separate processor/actual artifact folders, so deployments no longer create generic `processor.pkg` or `actual.pkg` names.
+- Management requests use the configured workflow stage deadline, avoiding the shorter default HTTP timeout during slow activation.
 
-Validation: 73 desktop workflow regressions passed. A complete MC4-R test-only run started with source revision zero, reconciled catalogue baseline 1.1.1.5, built 1.1.1.6 and passed 69 local plus 69 processor tests. Its temporary test instance was removed and the processor lease released. No actual-driver update was attempted in this validation.
+Validation: 100 desktop workflow regressions passed. A complete MC4-R test-only run passed 47 local tests, 47 processor tests and three read-only live tests, then automatically removed its instance and hash-verified archive and released the reservation. All 14 pre-existing storage paths were protected. No actual driver was updated and no reboot was requested. An earlier activation timeout was reconciled separately and is not counted as a successful end-to-end run.
 
 ## Updating
 
-Update the desktop workflow project to **CrestronHomeNUnit.TestAdapter 1.2.2**, or extract the complete runner/CLI ZIP. The workflow continues to use **CrestronHomeDevTools 1.1.0** and official **NUnit 4.6.1**. Processor test packages remain GitHub assets only; the desktop adapter is the only NuGet package in this release.
+Use **CrestronHomeNUnit.TestAdapter 1.3.0** or the matching complete runner/CLI ZIP. Existing compatible processor test hosts do not require replacement solely for this desktop workflow feature. DevTools remains 1.1.0 and NUnit remains official 4.6.1. Only the desktop adapter is published to NuGet; processor packages remain GitHub-only.
 
-The correction runs in the desktop workflow backend. Existing compatible processor test hosts do not need redeployment solely for this fix. Private CI revision counters remain useful after catalogue packages have been removed. Upgrade pinned CI tooling deliberately; publishing this release does not change another repository's pinned dependencies or enable its hardware jobs.
+For CI, enable both cleanup options in the private workflow plan. The hardware-bridge template requires the storage-cleanup stage to be reported successfully, so an older adapter cannot silently ignore the new setting. Leave the package-cleanup option false for retained manual deployments. Keep private plans and recovery artifacts off public repositories.
 
-See the [Test Explorer guide](docs/VisualStudioTestExplorer.md), [CI workflow guide](docs/ContinuousIntegration.md) and [hardware-CI setup](docs/GitHubHardwareCI.md). Public release checks certify the tested source and retained Debug artifacts, not independently rebuilt Release bytes. Cross-run artifact reuse, generic installed-device control/restoration and rollback remain separate work.
+See the [CI guide](docs/ContinuousIntegration.md), [hardware CI setup](docs/GitHubHardwareCI.md) and [Test Explorer guide](docs/VisualStudioTestExplorer.md). Generic installed-device control/restoration, automatic rollback and cross-run artifact reuse remain separate work.

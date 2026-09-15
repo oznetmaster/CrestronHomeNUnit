@@ -94,6 +94,7 @@ The plan is deserialized into [WorkflowPlan](../CrestronHomeNUnit.Workflow/Workf
 | `actualDriver` | Optional production driver build/instance target. Omit when only validating a library or test suite. |
 | `deployedChecks` | Named read-only checks against exact installed device IDs/models/properties; expected JSON value or numeric bounds. Set `useActualDriver: true` and `deviceId: 0` to use the actual driver's verified instance ID. |
 | `removeTestInstanceAfterRun` | Explicit choice to remove the test host after tests and evidence preservation. |
+| `removeTestPackageAfterSuccessfulRun` | Opt-in CI storage cleanup after a completely successful run. Requires instance removal; false by default to retain manual deployments. |
 | `stageTimeoutSeconds` | Bounded stage wait, 600 by default. |
 
 Every listed stage is required. Replace example `minimumPassed` values with meaningful counts for the suite; a single passing selected test must not unlock a gate requiring a full suite. Keep ordinary filters separate from manual/Explicit fixtures. `actualDriver` requires both `liveSuites` and `deployedChecks`, and its identity/path must differ from the test target. Read-only checks can target fixed children only when their parent chain reaches the updated actual driver; child IDs must be configured before the run. Root-driver checks can instead use `useActualDriver: true` with `deviceId: 0`; model and ownership checks still apply.
@@ -146,7 +147,7 @@ The current installed-driver backend reads properties and validates expected val
 
 ## Readiness and version identity
 
-Upload, catalogue import, update eligibility, Loaded state and test-listener availability are separate milestones. The implementation waits for them, rather than assuming that completing SFTP makes the driver immediately updatable. Test connection attempts rediscover changing ports. Once a test request is submitted, it is not automatically replayed after a disconnect.
+Upload, catalogue import, update eligibility, Loaded state and test-listener availability are separate milestones. Management request timeouts follow `stageTimeoutSeconds`, as do the bounded workflow stages. The implementation waits for them, rather than assuming that completing SFTP makes the driver immediately updatable. Test connection attempts rediscover changing ports. Once a test request is submitted, it is not automatically replayed after a disconnect.
 
 Numeric version comparisons preserve all four processor components. Zero-padding can differ; `2.0.000.0005` equals `2.0.0.5`, not `2.0.0.6`. Three-part public release tags do not replace the exact local Debug identity.
 
@@ -180,7 +181,13 @@ Failures, skipped required tests, insufficient counts, cancellation, timeout, in
 
 If execution, activation or requested removal is uncertain, retain the test instance and processor lease for investigation. A missing tile or cleared room assignment is not enough. The lease at `/user/CrestronHomeNUnit-WorkflowLease` coordinates cooperating jobs across machines. Current source also coordinates the Windows runner, standalone CLI, updated Home tiles and DevTools/build mutations; older releases and manual Configure/SFTP activity can bypass it. It has no automatic expiry or lock stealing. Inspect the owned lease and remote state before clearing a stale lease manually. Do not replace an uncertain host with another one just to make the next run start. See [hardware CI coordination](GitHubHardwareCI.md) for upgrade requirements and manual reservations.
 
-Instance cleanup leaves retained catalogue packages in storage. Current DevTools source has a read-only `stored-packages` inspection command; it does not purge packages. A package can remain relevant to an installed instance or staged update even when its filename looks old. See [storage and deletion limits](https://github.com/oznetmaster/CrestronHomeDevTools/blob/HEAD/docs/ProcessorCoordination.md#catalogue-and-storage-are-separate-from-installed-instances).
+From tooling 1.3.0, `removeTestPackageAfterSuccessfulRun: true` additionally removes this run's stored test archive, only after every required stage passes and instance removal is confirmed. Failed runs retain their archives for investigation. Manual deployments remain retained by default.
+
+The workflow captures pre-existing paths before upload and never deletes those paths. It checks the exact package GUID/version, every supported model/alias, installed references and the SHA-256 of the retained build. It backs up the archive and catalogue manifest before deletion. A shared execution marker prevents tests from starting during cleanup; interrupted or uncertain cleanup retains the processor reservation for inspection. Recovery evidence is in the private results folder under `package-cleanup` and must not be published.
+
+Deleting the archive and refreshing the catalogue frees storage and removes the persisted catalogue reference. Home can still list a cached entry until its next planned reboot. This is reported in `Workflow.json` and `package-cleanup/verified.json`; cleanup does not initiate a reboot. The standalone DevTools `stored-packages` command remains read-only.
+
+Retained builds keep their original `.pkg` filename beneath `packages/processor` or `packages/actual`. These separate folders avoid filename collisions without renaming the uploaded archive to `processor.pkg` or `actual.pkg`.
 
 Save live SSH logs when diagnosing an active problem; processor logs written to disk can lag. Log streaming is currently an external diagnostic aid, not a DevTools CLI command or automatic workflow evidence feature.
 

@@ -28,11 +28,7 @@ public static class WorkflowRunner
 		Directory.CreateDirectory (results);
 		await using var exclusive = new FileStream (Path.Combine (results, "Workflow.json"), FileMode.CreateNew, FileAccess.Write, FileShare.Read);
 		var runId = Guid.NewGuid ().ToString ("N");
-		await using var client = await ConfigurationClient.ConnectAsync (new ()
-			{
-			Host = plan.Host,
-			CertificateSha256 = plan.CertificateSha256
-			}, credential, token).ConfigureAwait (false);
+		await using var client = await ConfigurationClient.ConnectAsync (ConnectionOptions (plan, plan.Host), credential, token).ConfigureAwait (false);
 		using var lease = await ProcessorLease.AcquireAsync (plan.Host, credential, plan.SshFingerprint, runId, TimeSpan.FromSeconds (plan.LeaseWaitSeconds), token).ConfigureAwait (false);
 		await File.WriteAllTextAsync (Path.Combine (results, "Lease.json"), JsonSerializer.Serialize (new
 			{
@@ -53,6 +49,7 @@ public static class WorkflowRunner
 			{
 			result = await ProcessorWorkflow.RunAsync (new (plan.ActualDriver != null, plan.ActualDriver != null,
 				 plan.LiveSuites.Length != 0, plan.ActualDriver != null, plan.RemoveTestInstanceAfterRun), operations, Report, token).ConfigureAwait (false);
+			result = await WorkflowPackageCleanup.AfterSuccessfulRunAsync (result, plan.RemoveTestPackageAfterSuccessfulRun, () => operations.RemoveTestPackageAsync (token), Report).ConfigureAwait (false);
 			await JsonSerializer.SerializeAsync (exclusive, result, cancellationToken: CancellationToken.None).ConfigureAwait (false);
 			await exclusive.FlushAsync (CancellationToken.None).ConfigureAwait (false);
 			release = CanReleaseLease (operations.RemoteExecutionConfirmedStopped, operations.ActivationUncertain, plan.RemoveTestInstanceAfterRun, operations.HasTestInstance);
@@ -94,6 +91,13 @@ public static class WorkflowRunner
 		return result!;
 		}
 
+	internal static ProcessorConnectionOptions ConnectionOptions (WorkflowPlan plan, string host) => new ()
+		{
+		Host = host,
+		CertificateSha256 = plan.CertificateSha256,
+		RequestTimeout = TimeSpan.FromSeconds (plan.StageTimeoutSeconds)
+		};
+
 	internal static bool CanReleaseLease (bool remoteExecutionStopped, bool activationUncertain, bool removalRequested, bool hasTestInstance)
 		=> remoteExecutionStopped && !activationUncertain && (!removalRequested || !hasTestInstance);
 
@@ -111,6 +115,7 @@ public static class WorkflowRunner
 		private string? _testPath;
 		private string? _actualPath;
 		private string? _source;
+		private WorkflowPackageCleanup? _packageCleanup;
 		public bool HasTestInstance => _test != null;
 		public bool RemoteExecutionConfirmedStopped => _remote.ExecutionConfirmedStopped && !ActivationUncertain;
 		public bool ActivationUncertain
@@ -180,9 +185,9 @@ public static class WorkflowRunner
 			if (exit != 0)
 				throw new IOException ("Package build failed; see retained build log.");
 			await CheckSource (deadline.Token).ConfigureAwait (false);
-			var dir = Path.Combine (results, "packages");
+			var dir = Path.Combine (results, "packages", prefix);
 			Directory.CreateDirectory (dir);
-			var path = Path.Combine (dir, prefix + ".pkg");
+			var path = Path.Combine (dir, Path.GetFileName (package.PackagePath));
 			File.Copy (package.PackagePath, path, overwrite: false);
 			preparedVersion?.VerifyBuiltPackage (DriverDeployment.Inspect (path));
 			var locked = new FileStream (path, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -206,6 +211,8 @@ public static class WorkflowRunner
 			_testPath = await Build (plan.TestPackage, true, token).ConfigureAwait (false);
 			if (_actualPath != null && DriverDeployment.Inspect (_actualPath).DriverId == DriverDeployment.Inspect (_testPath).DriverId)
 				throw new InvalidDataException ("Actual and test packages have the same driver identity.");
+			if (plan.RemoveTestPackageAfterSuccessfulRun)
+				_packageCleanup = await WorkflowPackageCleanup.CaptureAsync (_host, credential, plan.SshFingerprint, lease.Owner, Path.Combine (results, "package-cleanup"), token).ConfigureAwait (false);
 			_test = await Activate (plan.TestPackage, _testPath, "processor", token).ConfigureAwait (false);
 			}
 		private async Task<DriverInstanceReady> Activate (PackageBuildPlan target, string package, string prefix, CancellationToken token)
@@ -332,6 +339,16 @@ public static class WorkflowRunner
 			new XDocument (new XElement ("test-run", new XAttribute ("name", "InstalledDriver"), new XAttribute ("result", failed == 0 ? "Passed" : "Failed"),
 				 new XAttribute ("total", cases.Count), new XAttribute ("passed", cases.Count - failed), new XAttribute ("failed", failed), new XAttribute ("skipped", 0), cases)).Save (Path.Combine (results, "InstalledDriver.xml"));
 			}
+		public async Task<WorkflowPackageCleanup.Result> RemoveTestPackageAsync (CancellationToken token)
+			{
+			if (!RemoteExecutionConfirmedStopped || HasTestInstance || _packageCleanup == null || _testPath == null)
+				throw new InvalidOperationException ("Test package cleanup requires confirmed instance removal and an upload baseline.");
+			ActivationUncertain = true;
+			using var deadline = Deadline (token);
+			var result = await _packageCleanup.RemoveAsync (client, _host, credential, plan.SshFingerprint, _testPath, deadline.Token).ConfigureAwait (false);
+			ActivationUncertain = false;
+			return result;
+			}
 		public async Task RemoveTestInstanceAsync (CancellationToken token)
 			{
 			if (_test == null || !RemoteExecutionConfirmedStopped || _test.DeviceId == _actual?.DeviceId || _test.DeviceId == plan.ActualDriver?.ExpectedDeviceId)
@@ -376,7 +393,8 @@ public static class WorkflowRunner
 							 return await ConfigurationClient.ConnectAsync (new ()
 								 {
 								 Host = _host,
-								 CertificateSha256 = plan.CertificateSha256
+								 CertificateSha256 = plan.CertificateSha256,
+								 RequestTimeout = TimeSpan.FromSeconds (plan.StageTimeoutSeconds)
 								 }, credential, connectToken).ConfigureAwait (false);
 						 }, Timeout, ct),
 						 ct => lease.VerifyAfterReconnectAsync (_host, ct), token).ConfigureAwait (false);

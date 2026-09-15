@@ -8,6 +8,8 @@ Version 1.2.1 also supports private initial-driver configuration and health chec
 
 The workflow reconciles a standard project's Debug build counter with the processor catalogue before building, including packages previously deployed manually. It preserves the three release components and verifies a fresh package version before deployment. See [version identity and custom manifest layouts](docs/ContinuousIntegration.md#readiness-and-version-identity).
 
+Successful CI workflows can also remove their own stored test packages with `removeTestPackageAfterSuccessfulRun`, preserving pre-existing/manual packages and reporting catalogue entries that remain cached until a planned reboot. Deployment retains the original package filename. See [cleanup and interrupted runs](docs/ContinuousIntegration.md#cleanup-and-interrupted-runs).
+
 To run hardware checks from GitHub Actions on your own Windows computer and processor, follow [GitHub hardware CI setup](docs/GitHubHardwareCI.md). It includes private configuration, a relocatable plan wrapper, and an [automatic GitHub App reporting template](examples/hardware-bridge/README.md) for a private orchestration repository. One App can serve all of your projects.
 
 Run NUnit tests **on a Crestron Home processor**, using a Windows runner, automation CLI or a standalone test tile in Crestron Home. This checks your code in the processor's Mono-based environment, where SDK, filesystem and networking behavior can differ from Windows.

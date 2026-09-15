@@ -47,6 +47,10 @@ public sealed record WorkflowPlan
 		{
 		get; init;
 		}
+	public bool RemoveTestPackageAfterSuccessfulRun
+		{
+		get; init;
+		}
 	public int StageTimeoutSeconds { get; init; } = 600;
 	public int LeaseWaitSeconds
 		{
@@ -69,6 +73,8 @@ public sealed record WorkflowPlan
 			throw new ArgumentException ("Configure source roots, local tests, processor suites and a bounded timeout.");
 		if (LocalTests.Any (t => t.MinimumPassed < 1) || ProcessorSuites.Concat (LiveSuites).Any (t => t.MinimumPassed < 1))
 			throw new ArgumentException ("Every required test stage needs a positive minimum passed count.");
+		if (RemoveTestPackageAfterSuccessfulRun && !RemoveTestInstanceAfterRun)
+			throw new ArgumentException ("Automatic package cleanup requires confirmed test-instance removal.");
 		if (!AllowProcessorReboot && new[] { TestPackage, ActualDriver }.OfType<PackageBuildPlan> ().Any (p => p.RebootAfterInstall || p.RebootAfterRemoval))
 			throw new ArgumentException ("Explicit install/removal reboots require allowProcessorReboot.");
 		if (ActualDriver != null && (LiveSuites.Length == 0 || DeployedChecks.Length == 0))

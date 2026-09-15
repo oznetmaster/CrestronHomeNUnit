@@ -176,3 +176,8 @@ Account for release workflows before enforcing branch rules. During this rollout
 The release preflight can require passing hardware checks while branch checks remain informational. That is a release gate, not a pre-merge gate. It checks the source before version preparation and does not certify independently rebuilt Release bytes. Preserve existing protections, and activate additional branch requirements only after the publishing identity/workflow and a real App-reported hardware run have been validated.
 
 The template's 23 offline policy tests cover source identity, approvals, library/package pairing, collection pins, interruption recovery and check reporting. An App-reported library run has also passed on a development processor. Full rollout validation and activation of required rules are separate operational steps; copying the template does not enable a schedule or repository protections.
+
+
+## Successful CI package cleanup
+
+With tooling 1.3.0, set both `removeTestInstanceAfterRun` and `removeTestPackageAfterSuccessfulRun` to true in the private CI plan. The latter defaults to false for retained manual deployments. Only a successfully tested, uninstalled archive introduced by that run is eligible; pre-existing paths are protected and stored bytes must match the retained build. Storage is reclaimed immediately; a cached catalogue entry can remain until the next planned reboot. No cleanup reboot is automatic. See [cleanup guarantees and recovery evidence](ContinuousIntegration.md#cleanup-and-interrupted-runs).
