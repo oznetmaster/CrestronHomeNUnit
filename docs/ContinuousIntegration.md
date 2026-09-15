@@ -6,7 +6,7 @@ This guide explains the implemented CLI development workflow and how it connects
 
 **Current status:** the CLI implements the gated workflow and restores CrestronHomeDevTools from NuGet when built from source. Complete KasaTapo, Overkiz, Tesla, WeatherLink, Wiser and explicitly opted-in Apple TV V1 update/reboot workflows have passed unattended hardware validation. V1 initial-install/removal reboot paths have simulated coverage only. The stable .NET 10 Test Explorer adapter is available on NuGet as CrestronHomeNUnit.TestAdapter; see [its setup and validation](VisualStudioTestExplorer.md).
 
-Post-deployment checks of the installed production driver currently read properties and validate expected values or ranges. Processor live-test fixtures can operate devices and implement their own state capture and restoration. The shared workflow does not yet provide a generic installed-device control/state-restoration backend or automatic rollback.
+Post-deployment checks of the installed production driver currently read properties and validate expected values or ranges. Processor live-test fixtures can operate devices and implement their own state capture and restoration. Source builds also support optional [installed-device control checks with independent observation and state restoration](InstalledDriverControls.md). Automatic rollback remains unimplemented.
 
 ## Contents
 
@@ -143,7 +143,7 @@ Processor live fixtures use private `inputs`, usually `LiveTestSettings.json`. T
 
 Bind real devices deliberately using the test suite's supported stable device ID/alias scheme. Do not silently select another device when discovery misses the configured target. Missing credentials, ambiguous binding, device unavailability or a restoration failure must remain visible as failed/incomplete evidence. A new run after an intermittent discovery failure must retain the earlier failed result.
 
-The current installed-driver backend reads properties and validates expected values/ranges. It does not issue light, outlet, shade or heating commands. A future control backend would need to read and save current state, restore it reliably, and fail on restoration problems. Devices without readable state require an explicit alternative test design; never assume an initial value.
+Installed-driver checks read properties and validate expected values/ranges by default. Source builds also support opt-in `deployedControls`: explicit absolute commands, independent physical observations and verified restoration, all under the processor reservation. See [the control contract and private plan](InstalledDriverControls.md). KasaTapo outlet On/Off control has passed hardware validation; other command routes require their own validation. Devices without readable state require an explicit alternative test design; never assume an initial value.
 
 ## Readiness and version identity
 
@@ -170,7 +170,7 @@ The workflow requires a newly built version absent from the catalogue. DevTools 
 | Retained package/hash metadata and activation receipts | Exact bytes, catalogue availability and loaded-instance identity. |
 | Local TRX / processor NUnit XML | Actual executed tests and outcomes; local multi-target projects retain a distinct TRX file for every target framework. Set each local project's minimum count for the combined required runs. |
 | Progress and summaries | What ran before a connection loss or incomplete stage. |
-| `InstalledDriver.xml` | Individual read-only installed-device checks. |
+| `InstalledDriver.xml` | Individual installed-device property checks and optional control/restoration outcomes. |
 | `Lease.json` | Run owner and lease release/retention state. |
 
 Failures, skipped required tests, insufficient counts, cancellation, timeout, incomplete execution or inability to preserve stage evidence close the actual-driver deployment gate. A post-deployment check can fail after the driver is already updated; the result records that distinction. The backend does not automatically roll back or reboot to recover.
@@ -224,7 +224,7 @@ Earlier failed cleanup/reboot attempts remain recorded separately from the later
 
 Remaining work:
 
-- Add a generic backend for controlling installed devices and restoring their state; processor fixtures currently implement their own device-control cleanup where applicable.
+- Extend installed-driver control validation beyond the verified KasaTapo outlet command pair; the optional backend now captures and independently verifies physical state and restoration. Processor fixtures retain their own cleanup where applicable.
 - Validate V1 initial-install/removal reboot paths on hardware; current coverage is simulated.
 - Support cross-run artifact reuse with durable verification of the tested package's identity.
 - Design and validate automatic rollback before enabling it.

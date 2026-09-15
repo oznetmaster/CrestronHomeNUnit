@@ -37,12 +37,17 @@ public sealed class ProcessorLease : IProcessorLease
 		try
 			{
 			await sftp.ConnectAsync (token).ConfigureAwait (false);
-			if (await sftp.ExistsAsync (Path + ".ActiveTest", token).ConfigureAwait (false)) throw new ProcessorBusyException ();
+			if (await sftp.ExistsAsync (Path + ".ActiveTest", token).ConfigureAwait (false))
+				throw new ProcessorBusyException ();
 			// Never delete an existing lock, including an empty one from an interrupted creator.
-			try { await sftp.CreateDirectoryAsync (Path, token).ConfigureAwait (false); }
+			try
+				{
+				await sftp.CreateDirectoryAsync (Path, token).ConfigureAwait (false);
+				}
 			catch (Renci.SshNet.Common.SftpException) when (!token.IsCancellationRequested)
 				{
-				if (await sftp.ExistsAsync (Path, token).ConfigureAwait (false)) throw new ProcessorBusyException ();
+				if (await sftp.ExistsAsync (Path, token).ConfigureAwait (false))
+					throw new ProcessorBusyException ();
 				throw;
 				}
 			using var data = new MemoryStream (System.Text.Encoding.UTF8.GetBytes (runId));
@@ -58,12 +63,16 @@ public sealed class ProcessorLease : IProcessorLease
 
 	internal static async Task<T> WaitForLeaseAsync<T> (Func<CancellationToken, Task<T>> acquire, TimeSpan wait, CancellationToken token)
 		{
-		if (wait < TimeSpan.Zero || wait > TimeSpan.FromDays (1)) throw new ArgumentOutOfRangeException (nameof (wait));
+		if (wait < TimeSpan.Zero || wait > TimeSpan.FromDays (1))
+			throw new ArgumentOutOfRangeException (nameof (wait));
 		var elapsed = System.Diagnostics.Stopwatch.StartNew ();
 		while (true)
 			{
 			token.ThrowIfCancellationRequested ();
-			try { return await acquire (token).ConfigureAwait (false); }
+			try
+				{
+				return await acquire (token).ConfigureAwait (false);
+				}
 			catch (ProcessorBusyException) when (elapsed.Elapsed < wait)
 				{
 				await Task.Delay (TimeSpan.FromMilliseconds (Math.Min (1000, Math.Max (1, (wait - elapsed.Elapsed).TotalMilliseconds))), token).ConfigureAwait (false);
@@ -73,10 +82,15 @@ public sealed class ProcessorLease : IProcessorLease
 
 	public static async Task<ProcessorLease> ResumeAsync (string host, NetworkCredential credential, string fingerprint, string owner, CancellationToken token)
 		{
-		if (!Guid.TryParseExact (owner, "N", out _)) throw new ArgumentException ("Invalid lease owner.");
+		if (!Guid.TryParseExact (owner, "N", out _))
+			throw new ArgumentException ("Invalid lease owner.");
 		var sftp = new SftpClient (host, credential.UserName, credential.Password);
 		var lease = new ProcessorLease (sftp, owner, host, credential, fingerprint);
-		try { await lease.VerifyAfterReconnectAsync (host, token).ConfigureAwait (false); return lease; }
+		try
+			{
+			await lease.VerifyAfterReconnectAsync (host, token).ConfigureAwait (false);
+			return lease;
+			}
 		catch { lease.Dispose (); throw; }
 		}
 	public async Task VerifyAfterReconnectAsync (string host, CancellationToken token)
@@ -104,6 +118,33 @@ public sealed class ProcessorLease : IProcessorLease
 			throw new IOException ("Processor lease ownership marker changed; the lease was retained.");
 		}
 
+	// Reserve the same execution guard as processor test hosts for installed-device controls.
+	public async Task BeginControlAsync (CancellationToken token)
+		{
+		if (!_sftp.IsConnected)
+			await VerifyAfterReconnectAsync (_host, token).ConfigureAwait (false);
+		await VerifyOwnerAsync (token).ConfigureAwait (false);
+		await using var guard = await _sftp.OpenAsync (Path + ".ActiveTest", FileMode.CreateNew, FileAccess.Write, token).ConfigureAwait (false);
+		await guard.WriteAsync (System.Text.Encoding.UTF8.GetBytes ("control:" + _owner), token).ConfigureAwait (false);
+		await guard.FlushAsync (token).ConfigureAwait (false);
+		await VerifyOwnerAsync (token).ConfigureAwait (false);
+		}
+
+	public async Task EndControlAsync (CancellationToken token)
+		{
+		if (!_sftp.IsConnected)
+			await VerifyAfterReconnectAsync (_host, token).ConfigureAwait (false);
+		await VerifyOwnerAsync (token).ConfigureAwait (false);
+		var attributes = await _sftp.GetAttributesAsync (Path + ".ActiveTest", token).ConfigureAwait (false);
+		if (!attributes.IsRegularFile || attributes.IsSymbolicLink || attributes.Size != 40)
+			throw new IOException ("Control guard ownership changed; reservation retained.");
+		using var data = new MemoryStream ();
+		await _sftp.DownloadFileAsync (Path + ".ActiveTest", data, token).ConfigureAwait (false);
+		if (System.Text.Encoding.UTF8.GetString (data.ToArray ()) != "control:" + _owner)
+			throw new IOException ("Control guard ownership changed; reservation retained.");
+		await _sftp.DeleteFileAsync (Path + ".ActiveTest", token).ConfigureAwait (false);
+		}
+
 	public async Task ReleaseAsync (CancellationToken token)
 		{
 		if (!_sftp.IsConnected)
@@ -127,7 +168,10 @@ public sealed class ProcessorLease : IProcessorLease
 
 public interface IProcessorLease : IDisposable
 	{
-	string Owner { get; }
+	string Owner
+		{
+		get;
+		}
 	Task ReleaseAsync (CancellationToken token);
 	}
 

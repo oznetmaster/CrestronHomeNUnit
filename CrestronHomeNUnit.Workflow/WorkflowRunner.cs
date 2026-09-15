@@ -270,7 +270,12 @@ public static class WorkflowRunner
 					{
 					// Only our fixed diagnostics are safe to retain; never copy processor-returned error text.
 					await File.WriteAllTextAsync (Path.Combine (results, "actual-configuration.json"),
-						JsonSerializer.Serialize (new { _actual.DeviceId, Applied = false, Detail = rejected.Message }), CancellationToken.None).ConfigureAwait (false);
+						JsonSerializer.Serialize (new
+							{
+							_actual.DeviceId,
+							Applied = false,
+							Detail = rejected.Message
+							}), CancellationToken.None).ConfigureAwait (false);
 					throw;
 					}
 				await File.WriteAllTextAsync (Path.Combine (results, "actual-configuration.json"),
@@ -313,9 +318,27 @@ public static class WorkflowRunner
 				if (!passed)
 					break;
 				}
+			if (cases.Count == plan.DeployedChecks.Length && cases.All (c => (string?)c.Attribute ("result") == "Passed"))
+				{
+				for (int index = 0; index < plan.DeployedControls.Length; index++)
+					{
+					await CheckSource (token).ConfigureAwait (false);
+					ActivationUncertain = true;
+					var control = await InstalledControlRunner.RunAsync (client, lease, _actual!, plan.DeployedControls[index],
+						Path.Combine (results, "installed-control-" + index), token).ConfigureAwait (false);
+					ActivationUncertain = !control.RestorationConfirmed;
+					var test = new XElement ("test-case", new XAttribute ("name", control.Name), new XAttribute ("fullname", "InstalledDriver." + control.Name), new XAttribute ("result", control.Passed ? "Passed" : "Failed"));
+					if (!control.Passed)
+						test.Add (new XElement ("failure", new XElement ("message", control.Detail)));
+					cases.Add (test);
+					SaveChecks (cases);
+					if (!control.Passed)
+						break;
+					}
+				}
 			await client.WaitForDriverVersionAsync ([_actual!.DeviceId], _actual.Version, Timeout, token).ConfigureAwait (false);
 			await CheckSource (token).ConfigureAwait (false);
-			return new (cases.Count (c => (string?)c.Attribute ("result") == "Passed"), cases.Count (c => (string?)c.Attribute ("result") == "Failed"), 0, cases.Count == plan.DeployedChecks.Length);
+			return new (cases.Count (c => (string?)c.Attribute ("result") == "Passed"), cases.Count (c => (string?)c.Attribute ("result") == "Failed"), 0, cases.Count == plan.DeployedChecks.Length + plan.DeployedControls.Length);
 			}
 		private async Task<bool> BelongsToActualDriver (DeviceInfo device, CancellationToken token)
 			{

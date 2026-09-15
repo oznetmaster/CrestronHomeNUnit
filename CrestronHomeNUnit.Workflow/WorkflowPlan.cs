@@ -43,6 +43,7 @@ public sealed record WorkflowPlan
 		}
 	public SuitePlan[] LiveSuites { get; init; } = [];
 	public PropertyCheck[] DeployedChecks { get; init; } = [];
+	public InstalledControlPlan[] DeployedControls { get; init; } = [];
 	public bool RemoveTestInstanceAfterRun
 		{
 		get; init;
@@ -79,6 +80,12 @@ public sealed record WorkflowPlan
 			throw new ArgumentException ("Explicit install/removal reboots require allowProcessorReboot.");
 		if (ActualDriver != null && (LiveSuites.Length == 0 || DeployedChecks.Length == 0))
 			throw new ArgumentException ("Driver updates require processor live tests and installed-driver checks.");
+		if (DeployedControls.Length > 0 && ActualDriver == null)
+			throw new ArgumentException ("Post-deployment controls require an actual driver target.");
+		if (DeployedControls.Select (c => c.Name).Concat (DeployedChecks.Select (c => c.Name)).Distinct (StringComparer.Ordinal).Count () != DeployedControls.Length + DeployedChecks.Length)
+			throw new ArgumentException ("Installed-driver check names must be unique.");
+		foreach (var control in DeployedControls)
+			control.Validate ();
 		if (TestPackage.InitialConfigurationFile != null)
 			throw new ArgumentException ("Initial configuration is supported only for the actual driver.");
 		if (ActualDriver?.InitialConfigurationFile is string input && (!Path.IsPathFullyQualified (input) || !File.Exists (input)))
@@ -119,5 +126,8 @@ public sealed record PackageBuildPlan (string Project, string PackagePath, strin
 public sealed record SuitePlan (string Id, int MinimumPassed, string[] Inputs);
 public sealed record PropertyCheck (string Name, int DeviceId, string Model, string Property, JsonElement? Expected = null, double? Minimum = null, double? Maximum = null)
 	{
-	public bool UseActualDriver { get; init; }
+	public bool UseActualDriver
+		{
+		get; init;
+		}
 	}
