@@ -131,6 +131,24 @@ The generic Actions example must be validated on each developer's runner account
 
 ## Recorded service validation
 
-On 2026-09-15, a Windows GitHub Actions service running as NETWORK SERVICE completed real adapter workflows using published 1.2.1 tooling on a development MC4-R. Tesla library tests passed 236 local and 118 processor cases; KasaTapo driver tests passed 69 local and 69 processor cases; Overkiz driver tests passed 47 local and 47 processor cases. Each workflow removed its temporary instance and released its processor lease. These were test-only runs, without live device control or actual-driver updates.
+On 2026-09-15, a Windows GitHub Actions service running as NETWORK SERVICE completed all six driver and seven library test-only workflows using published 1.2.1 tooling on a development MC4-R. All 3,977 test executions passed. Local counts include both frameworks where the library targets net472 and .NET 10.
 
-Those jobs were manually dispatched in a private orchestration repository. This verifies unattended execution after scheduling; it does not establish an automatic public-PR trigger or a cross-repository required-check bridge. The reusable example remains a template to validate on each developer's own machine and network.
+| Suite | Local test executions | Processor test executions |
+|---|---:|---:|
+| AppleTVControlLibrary | 458 | 229 |
+| AppleTVCrestronDriver | 116 | 116 |
+| KasaTapoClient | 194 | 97 |
+| KasaTapoCrestronDriver | 69 | 69 |
+| OverkizClient | 466 | 233 |
+| OverkizCrestronDriver | 47 | 47 |
+| SimpleWeatherClient | 234 | 117 |
+| TeslaPowerwallCrestronDriver | 73 | 73 |
+| TeslaPowerwallLibrary | 236 | 118 |
+| WeatherLinkLiveCrestronDriver | 56 | 56 |
+| WeatherLinkLiveLibrary | 254 | 127 |
+| WiserHeatAPIv2 | 276 | 138 |
+| WiserHeatCrestronDriver | 39 | 39 |
+
+Every workflow built its package, activated a temporary test instance, executed the processor suites, confirmed instance removal and released the processor lease. These runs did not operate live devices or update production drivers. Apple TV's synthetic lifecycle suite is automatic from processor test package 1.0.2.
+
+The jobs were manually dispatched with exact source commits in a private orchestration repository and then ran unattended. This does not establish an automatic public-PR trigger or a cross-repository required-check bridge. Source identities and raw results remain in the private evidence; the reusable example must be validated on each developer's own machine and network.
