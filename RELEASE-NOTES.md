@@ -2,6 +2,7 @@
 
 Patch release completing the gated workflow's initial-installation path in the CLI and Visual Studio Test Adapter.
 
+- Keep separate TRX results for every target framework in a multi-target library. Aggregate all required results and display them separately in Test Explorer, preventing one framework from overwriting or hiding another.
 - Accept an optional private configuration file for an unconfigured actual driver. Support either named configuration values or an explicit ordered wizard. Validate the advertised items and steps, submit each once, and preserve already configured drivers.
 - Let installed-driver health checks follow the actual instance ID assigned during installation, rather than requiring a previously known ID.
 - Resolve private configuration paths through the hardware-CI wrapper, and keep configuration values and raw server errors out of retained evidence. Uncertain configuration stops the workflow and retains the processor lease for investigation.

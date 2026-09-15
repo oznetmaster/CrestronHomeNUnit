@@ -144,15 +144,15 @@ public static class WorkflowRunner
 				using var deadline = Deadline (token);
 				var test = plan.LocalTests[index];
 				var dir = Path.Combine (results, "local-" + index);
-				Directory.CreateDirectory (dir);
-				var args = new List<string> { "test", Path.GetFullPath (test.Project), "--configuration", "Debug", "-p:DeployAfterBuild=false", "-p:SkipMergeDependencies=true", "--logger", "trx;LogFileName=TestResult.trx", "--results-directory", dir };
+				WorkflowEvidence.PrepareLocalResults (dir);
+				var args = new List<string> { "test", Path.GetFullPath (test.Project), "--configuration", "Debug", "-p:DeployAfterBuild=false", "-p:SkipMergeDependencies=true", "--logger", "trx;LogFilePrefix=TestResult", "--results-directory", dir };
 				if (test.Filter != null)
 					{
 					args.Add ("--filter");
 					args.Add (test.Filter);
 					}
 				var exit = await WorkflowEvidence.ProcessAsync ("dotnet", args, Path.GetDirectoryName (Path.GetFullPath (test.Project))!, Path.Combine (dir, "Build.log"), deadline.Token).ConfigureAwait (false);
-				var outcome = WorkflowEvidence.ReadTrx (Path.Combine (dir, "TestResult.trx"), exit, test.MinimumPassed);
+				var outcome = WorkflowEvidence.ReadLocalResults (dir, exit, test.MinimumPassed);
 				passed += outcome.Passed;
 				failed += outcome.Failed;
 				skipped += outcome.Skipped;

@@ -73,6 +73,27 @@ public sealed class WorkflowAdapterTests
 		Assert.That (results.Skip (1).All (result => result.GetPropertyValue (TestProperty.Find ("ParentExecId")!, Guid.Empty) == id), Is.True);
 		}
 
+	[TestCase ("Passed", TestOutcome.Passed)]
+	[TestCase ("Failed", TestOutcome.Failed)]
+	public void BothFrameworkResultsRemainVisibleAndAFailureCannotBeHidden (string secondOutcome, TestOutcome expected)
+		{
+		var backend = new FakeExecution ((directory, _) =>
+			{
+			var local = Path.Combine (directory, "local-0");
+			Directory.CreateDirectory (local);
+			File.WriteAllText (Path.Combine (local, "TestResult_net472.trx"), "<TestRun><Results><UnitTestResult testName='SameTest' outcome='Passed'/></Results></TestRun>");
+			File.WriteAllText (Path.Combine (local, "TestResult_net10.0.trx"), $"<TestRun><Results><UnitTestResult testName='SameTest' outcome='{secondOutcome}'/></Results></TestRun>");
+			return Task.FromResult (new ProcessorWorkflowResult ([new ("Local", "Passed")], false, false));
+			});
+		var (handle, calls) = Handle ();
+		var test = WorkflowCatalog.Create (_source, WorkflowCatalog.Read (_source).Single ());
+		new WorkflowExecutor (backend).RunTests ([test], Context (), handle);
+		Assert.That (calls.Results, Has.Count.EqualTo (3));
+		Assert.That (calls.Results[0].Outcome, Is.EqualTo (expected));
+		Assert.That (calls.Results.Skip (1).Select (result => result.DisplayName), Is.EquivalentTo (new[]
+			{ "local-0 / TestResult_net472 / SameTest", "local-0 / TestResult_net10.0 / SameTest" }));
+		}
+
 	[Test]
 	public async Task Cancel_PropagatesToBackendAndWaitsForCleanup ()
 		{

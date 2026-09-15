@@ -29,6 +29,60 @@ public sealed class EvidenceTests
 		finally { File.Delete (file); }
 		}
 
+	[TestCase ("Passed", 0, 2, true)]
+	[TestCase ("Failed", 0, 1, false)]
+	[TestCase ("NotExecuted", 0, 1, false)]
+	[TestCase ("Passed", 1, 2, false)]
+	[TestCase ("Passed", 0, 3, false)]
+	public void EveryTargetFrameworkMustPassAndContributeItsResults (string secondOutcome, int exitCode, int minimum, bool gate)
+		{
+		var directory = Path.Combine (Path.GetTempPath (), "multi-target-results-" + Guid.NewGuid ().ToString ("N"));
+		Directory.CreateDirectory (directory);
+		try
+			{
+			void Result (string framework, string outcome) => File.WriteAllText (Path.Combine (directory, "TestResult_" + framework + ".trx"),
+				$"<TestRun><ResultSummary><Counters total='1' passed='{(outcome == "Passed" ? 1 : 0)}' failed='{(outcome == "Failed" ? 1 : 0)}'/></ResultSummary><Results><UnitTestResult testName='SameTest' outcome='{outcome}'/></Results></TestRun>");
+			Result ("net472", "Passed");
+			Result ("net10.0", secondOutcome);
+			var result = WorkflowEvidence.ReadLocalResults (directory, exitCode, minimum);
+			Assert.That (result.Passed, Is.EqualTo (secondOutcome == "Passed" ? 2 : 1));
+			Assert.That (result.MeetsGate, Is.EqualTo (gate));
+			}
+		finally
+			{
+			foreach (var path in Directory.EnumerateFiles (directory)) File.Delete (path);
+			Directory.Delete (directory);
+			}
+		}
+
+	[Test]
+	public void PreviousResultFilesCannotBeCountedByAnotherRun ()
+		{
+		var directory = Path.Combine (Path.GetTempPath (), "previous-results-" + Guid.NewGuid ().ToString ("N"));
+		WorkflowEvidence.PrepareLocalResults (directory);
+		var file = Path.Combine (directory, "TestResult_net472.trx");
+		try
+			{
+			File.WriteAllText (file, "original evidence");
+			Assert.Throws<InvalidOperationException> (() => WorkflowEvidence.PrepareLocalResults (directory));
+			Assert.That (File.ReadAllText (file), Is.EqualTo ("original evidence"));
+			}
+		finally
+			{
+			File.Delete (file);
+			Directory.Delete (directory);
+			}
+		}
+
+	[Test]
+	public void MissingFrameworkResultsCannotPass ()
+		{
+		var directory = Path.Combine (Path.GetTempPath (), "missing-target-results-" + Guid.NewGuid ().ToString ("N"));
+		Directory.CreateDirectory (directory);
+		try { Assert.That (WorkflowEvidence.ReadLocalResults (directory, 0, 1).MeetsGate, Is.False); }
+		finally { Directory.Delete (directory); }
+		}
+
 	[TestCase (true, false, true, true, false, TestName = "UnconfirmedRemovalRetainsProcessorLease")]
 	[TestCase (true, false, true, false, true, TestName = "ConfirmedRemovalAllowsLeaseRelease")]
 	[TestCase (true, false, false, true, true, TestName = "IntentionallyRetainedIdleHostAllowsLeaseRelease")]

@@ -28,6 +28,22 @@ public static class WorkflowEvidence
 		return new (passed, failed, Math.Max (0, total - passed - failed), complete);
 		}
 
+	internal static void PrepareLocalResults (string directory)
+		{
+		if (Directory.Exists (directory) && Directory.EnumerateFileSystemEntries (directory).Any ())
+			throw new InvalidOperationException ("Use a new results directory for each workflow run; previous evidence must not be reused.");
+		Directory.CreateDirectory (directory);
+		}
+
+	internal static WorkflowTestOutcome ReadLocalResults (string directory, int exitCode, int minimumPassed)
+		{
+		var outcomes = Directory.EnumerateFiles (directory, "TestResult*.trx").Order (StringComparer.Ordinal)
+			.Select (path => ReadTrx (path, exitCode, 1)).ToArray ();
+		int passed = outcomes.Sum (outcome => outcome.Passed);
+		return new (passed, outcomes.Sum (outcome => outcome.Failed), outcomes.Sum (outcome => outcome.Skipped),
+			outcomes.Length > 0 && passed >= minimumPassed && outcomes.All (outcome => outcome.MeetsGate));
+		}
+
 	public static async Task<int> ProcessAsync (string executable, IEnumerable<string> arguments, string directory, string log, CancellationToken token)
 		{
 		var start = new ProcessStartInfo (executable) { WorkingDirectory = directory, UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };

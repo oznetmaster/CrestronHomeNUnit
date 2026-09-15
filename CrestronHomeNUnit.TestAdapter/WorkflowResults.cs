@@ -44,7 +44,13 @@ internal static class WorkflowResults
 			{
 			var name = Path.GetFileName (suiteDirectory);
 			if (name.StartsWith ("local-", StringComparison.Ordinal))
-				ReadTrx (Path.Combine (suiteDirectory, "TestResult.trx"), name);
+				{
+				foreach (var path in Directory.EnumerateFiles (suiteDirectory, "TestResult*.trx").Order (StringComparer.Ordinal))
+					{
+					var resultName = Path.GetFileNameWithoutExtension (path);
+					ReadTrx (path, resultName == "TestResult" ? name : name + " / " + resultName);
+					}
+				}
 			else if (name.StartsWith ("processor-", StringComparison.Ordinal) || name.StartsWith ("live-", StringComparison.Ordinal))
 				ReadNUnit (Path.Combine (suiteDirectory, "TestResult.xml"), name);
 			}

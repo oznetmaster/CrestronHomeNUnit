@@ -159,7 +159,7 @@ The preview requires a newly built version absent from the catalogue. DevTools c
 | `Workflow.json`, `Stages.json` | Overall/stage outcome and actual-driver update status. |
 | `BuildIdentity.json` | Source digest and build context. |
 | Retained package/hash metadata and activation receipts | Exact bytes, catalogue availability and loaded-instance identity. |
-| Local TRX / processor NUnit XML | Actual executed tests and outcomes. |
+| Local TRX / processor NUnit XML | Actual executed tests and outcomes; local multi-target projects retain a distinct TRX file for every target framework. Set each local project's minimum count for the combined required runs. |
 | Progress and summaries | What ran before a connection loss or incomplete stage. |
 | `InstalledDriver.xml` | Individual read-only installed-device checks. |
 | `Lease.json` | Run owner and lease release/retention state. |
