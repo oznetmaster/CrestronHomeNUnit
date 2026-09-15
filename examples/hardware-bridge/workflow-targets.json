@@ -1,0 +1,16 @@
+{
+  "mydriver_driver": {
+    "repository": "MyDriver",
+    "kind": "driver",
+    "project": "MyDriver.WorkflowTests/MyDriver.WorkflowTests.csproj",
+    "settingsEnvironment": "MY_DRIVER_WORKFLOW_SETTINGS"
+  },
+  "myclient_library": {
+    "repository": "MyProcessorTests",
+    "kind": "library",
+    "project": "workflows/MyClient.WorkflowTests/MyClient.WorkflowTests.csproj",
+    "settingsEnvironment": "MY_CLIENT_WORKFLOW_SETTINGS",
+    "libraryRepository": "MyClient",
+    "sourceName": "MyClient"
+  }
+}

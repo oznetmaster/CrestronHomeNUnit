@@ -1,0 +1,42 @@
+{
+  "owner": "YOUR-ACCOUNT",
+  "orchestration": "CrestronHomeHardwareCI",
+  "approvalLabel": "hardware-approved",
+  "trustedReviewers": [
+    "YOUR-REVIEWER"
+  ],
+  "packageWorkflows": [
+    "validate-packages.yml",
+    "workflow-discovery.yml"
+  ],
+  "targets": [
+    {
+      "id": "mydriver_driver",
+      "repository": "MyDriver",
+      "packageRepository": "MyDriver",
+      "workflows": [
+        "tests.yml",
+        "workflow-discovery.yml"
+      ]
+    },
+    {
+      "id": "myclient_library",
+      "repository": "MyClient",
+      "packageRepository": "MyProcessorTests",
+      "sourceName": "MyClient",
+      "workflows": [
+        "tests.yml"
+      ]
+    },
+    {
+      "id": "collection_myclient_library",
+      "repository": "MyProcessorTests",
+      "packageRepository": "MyProcessorTests",
+      "workflows": [
+        "validate-packages.yml",
+        "workflow-discovery.yml"
+      ],
+      "workflowTarget": "myclient_library"
+    }
+  ]
+}

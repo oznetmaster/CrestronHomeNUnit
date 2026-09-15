@@ -1,0 +1,101 @@
+# Copyright (c) 2026 Neil Colvin. Licensed under the MIT License; see LICENSE.
+name: Automatic processor tests
+run-name: Automatic processor tests${{ inputs.target && format(' - {0}', inputs.target) || '' }}
+on:
+  schedule:
+    - cron: '7,17,27,37,47,57 * * * *'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Optional exact target ID; empty selects the next eligible target
+        type: string
+      dry_run:
+        description: Select a revision without creating a check or contacting the processor
+        type: boolean
+        default: true
+      retry_failed:
+        description: Retry a failed result only after inspecting its private evidence and cleanup
+        type: boolean
+        default: false
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: automatic-processor-controller
+  cancel-in-progress: false
+jobs:
+  plan:
+    if: github.event.repository.private && github.ref == 'refs/heads/main' && (vars.HARDWARE_BRIDGE_ENABLED == 'true' || (github.event_name == 'workflow_dispatch' && vars.HARDWARE_BRIDGE_APP_ID != ''))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      selected: ${{ steps.plan.outputs.selected }}
+      receipt: ${{ steps.plan.outputs.receipt }}
+      target: ${{ steps.plan.outputs.target }}
+      source_commit: ${{ steps.plan.outputs.source_commit }}
+      library_commit: ${{ steps.plan.outputs.library_commit }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test bridge policy
+        run: node --test bridge/*.test.mjs
+      - uses: actions/create-github-app-token@v2
+        id: app
+        with:
+          app-id: ${{ vars.HARDWARE_BRIDGE_APP_ID }}
+          private-key: ${{ secrets.HARDWARE_BRIDGE_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          permission-actions: read
+          permission-checks: write
+          permission-contents: read
+          permission-pull-requests: read
+      - name: Select an approved revision
+        id: plan
+        env:
+          BRIDGE_TOKEN: ${{ steps.app.outputs.token }}
+          BRIDGE_APP_ID: ${{ vars.HARDWARE_BRIDGE_APP_ID }}
+          ORCHESTRATION_TOKEN: ${{ github.token }}
+          TARGET_ID: ${{ inputs.target }}
+          DRY_RUN: ${{ inputs.dry_run || false }}
+          RETRY_FAILED: ${{ inputs.retry_failed || false }}
+        run: node bridge/controller.mjs plan
+  hardware:
+    needs: plan
+    if: needs.plan.outputs.selected == 'true'
+    uses: ./.github/workflows/processor-tests.yml
+    with:
+      target: ${{ needs.plan.outputs.target }}
+      source_commit: ${{ needs.plan.outputs.source_commit }}
+      library_commit: ${{ needs.plan.outputs.library_commit }}
+      preflight_only: false
+    # No App key or reporting token is passed to the machine executing tested code.
+  report:
+    needs: [plan, hardware]
+    if: always() && needs.plan.outputs.selected == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/create-github-app-token@v2
+        id: app
+        with:
+          app-id: ${{ vars.HARDWARE_BRIDGE_APP_ID }}
+          private-key: ${{ secrets.HARDWARE_BRIDGE_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          permission-checks: write
+      - name: Report the exact tested revision
+        env:
+          BRIDGE_TOKEN: ${{ steps.app.outputs.token }}
+          BRIDGE_APP_ID: ${{ vars.HARDWARE_BRIDGE_APP_ID }}
+          REQUEST_RECEIPT: ${{ needs.plan.outputs.receipt }}
+          HARDWARE_RESULT: ${{ needs.hardware.result }}
+        run: node bridge/controller.mjs report

@@ -1,5 +1,11 @@
 # Changelog
 
+## Automatic hardware-check template - 2026-09-15 (no package release)
+
+- Add a reusable private orchestration template with exact-source hosted-test gates, approved PR selection, GitHub App reporting and sequential processor execution.
+- Cover independent library changes and collection package definitions separately, with original dependency pins retained for collection checks.
+- Document one-time App provisioning, adding projects, required-check policy and release-generated source validation. Include offline policy tests and generic release-check scripts.
+
 ## Hardware CI documentation - 2026-09-15 (no package release)
 
 - Record successful GitHub runner service executions through the published adapter, including temporary-instance cleanup and lease release.

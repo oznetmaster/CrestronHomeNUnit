@@ -1,0 +1,98 @@
+# Copyright (c) 2026 Neil Colvin. Licensed under the MIT License; see LICENSE.
+name: Processor tests
+run-name: Processor tests - ${{ inputs.target }} - ${{ inputs.source_commit }}
+on:
+  workflow_call:
+    inputs:
+      target:
+        required: true
+        type: string
+      source_commit:
+        required: true
+        type: string
+      library_commit:
+        required: false
+        type: string
+        default: ''
+      preflight_only:
+        type: boolean
+        default: false
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Reviewed processor workflow
+        required: true
+        type: choice
+        options:
+          - mydriver_driver
+          - myclient_library
+      source_commit:
+        description: Reviewed full SHA in the target source repository
+        required: true
+        type: string
+      library_commit:
+        description: Optional exact library SHA; all other package dependencies retain their pins
+        required: false
+        type: string
+      preflight_only:
+        description: Validate service access, tools and source paths without contacting the processor
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: development-processor
+  cancel-in-progress: false
+  queue: max
+jobs:
+  hardware:
+    if: github.event.repository.private && github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, Windows, X64, crestron-home]
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: orchestration
+          persist-credentials: false
+      - name: Validate requested target
+        id: request
+        env:
+          TARGET_ID: ${{ inputs.target }}
+          SOURCE_SHA: ${{ inputs.source_commit }}
+        run: |
+          if ($env:SOURCE_SHA -notmatch '^[0-9a-f]{40}$') { throw 'Use a reviewed full commit SHA.' }
+          $targets = Get-Content orchestration/workflow-targets.json -Raw | ConvertFrom-Json -AsHashtable
+          if (!$targets.ContainsKey($env:TARGET_ID)) { throw 'Unknown workflow target.' }
+          $repository = $targets[$env:TARGET_ID].repository
+          if ($repository -notmatch '^[A-Za-z0-9]+$') { throw 'Invalid source repository.' }
+          "repository=$repository" >> $env:GITHUB_OUTPUT
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/${{ steps.request.outputs.repository }}
+          ref: ${{ inputs.source_commit }}
+          path: source
+          persist-credentials: false
+      - name: Run reviewed Test Explorer workflow
+        env:
+          TARGET_ID: ${{ inputs.target }}
+          SOURCE_SHA: ${{ inputs.source_commit }}
+          PREFLIGHT_ONLY: ${{ inputs.preflight_only }}
+          LIBRARY_SHA: ${{ inputs.library_commit }}
+        run: |
+          # ManifestUtil cannot read some licence files under a long Actions workspace path.
+          # The service owns this temporary mapping; never replace an existing drive.
+          if (Test-Path 'X:\') { throw 'The short build drive X: is already in use.' }
+          subst X: $env:GITHUB_WORKSPACE
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot create the short build path.' }
+          try {
+            & pwsh -NoProfile -File X:/orchestration/Invoke-HardwareWorkflow.ps1 -Target $env:TARGET_ID -SourceRevision $env:SOURCE_SHA -LibraryRevision $env:LIBRARY_SHA -CheckoutRoot X:/ -PreflightOnly:($env:PREFLIGHT_ONLY -eq 'true')
+            $workflowExit = $LASTEXITCODE
+          } finally {
+            subst X: /D
+            if ($LASTEXITCODE -ne 0) { throw 'Cannot remove the temporary build drive.' }
+          }
+          exit $workflowExit
+      # Raw TRX, logs, resolved plans and processor credentials stay on this computer.

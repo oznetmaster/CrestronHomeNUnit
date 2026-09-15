@@ -6,7 +6,7 @@ Version 1.2.1 includes a [Visual Studio Test Explorer workflow adapter](docs/Vis
 
 Version 1.2.1 also supports private initial-driver configuration and health checks using newly assigned instance IDs. The tooling coordinates desktop tests, updated Home test tiles and DevTools/build operations through a shared processor reservation. Upgrade the participating tools and test packages together, using DevTools 1.1.0 or later; see [hardware CI setup and coordination](docs/GitHubHardwareCI.md). [Build deployment settings and retained package inspection](https://github.com/oznetmaster/CrestronHomeDevTools/blob/HEAD/docs/ProcessorCoordination.md) are documented in DevTools.
 
-To run hardware checks from GitHub Actions on your own Windows computer and processor, follow [GitHub hardware CI setup](docs/GitHubHardwareCI.md). It includes private configuration, a relocatable plan wrapper and an example workflow for a private orchestration repository.
+To run hardware checks from GitHub Actions on your own Windows computer and processor, follow [GitHub hardware CI setup](docs/GitHubHardwareCI.md). It includes private configuration, a relocatable plan wrapper, and an [automatic GitHub App reporting template](examples/hardware-bridge/README.md) for a private orchestration repository. One App can serve all of your projects.
 
 Run NUnit tests **on a Crestron Home processor**, using a Windows runner, automation CLI or a standalone test tile in Crestron Home. This checks your code in the processor's Mono-based environment, where SDK, filesystem and networking behavior can differ from Windows.
 

@@ -1,0 +1,24 @@
+# Copyright (c) 2026 Neil Colvin. Licensed under the MIT License; see LICENSE.
+name: Hardware bridge template
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate bridge decisions without hardware
+        run: node --test examples/hardware-bridge/bridge/*.test.mjs
+      - name: Validate release-check decisions without GitHub access
+        shell: pwsh
+        run: '& ./examples/hardware-bridge/source-release-checks/Test-RequiredReleaseChecks.ps1'
