@@ -39,7 +39,7 @@ The App action creates short-lived installation tokens independently in the host
 
 First manually dispatch **Automatic processor tests** with `dry_run: true` and a target. Then dispatch with `dry_run: false` to validate its real check, exact source, hardware results and cleanup. No source/package release is triggered by this workflow.
 
-After a successful real run, make `Processor tests / <target ID>` required in that source repository's branch protection or ruleset. Select this GitHub App as the expected source of the check. Preserve existing protections and required checks. An unavailable development machine, failed run, unapproved PR, or missing result must leave the gate unsatisfied. For single-maintainer development, normal-branch pushes can be tested automatically; a self-authored PR cannot satisfy the independent reviewer policy without another trusted reviewer.
+After a successful real run, configure the release preflight with `Processor tests / <target ID>` and this App as the required check source. Required branch checks are optional and need a compatible publishing identity or release workflow first: GitHub rejected its built-in Actions integration as a bypass actor during validation. Preserve existing protections. Missing or nonpassing results must leave the configured gate unsatisfied. For single-maintainer development, normal-branch pushes can be tested automatically; a self-authored PR cannot satisfy the independent reviewer policy without another trusted reviewer.
 
 Branch protection is a separate repository setting, not established merely by adding these files. Enable it only after the App check has been registered and validated. Do not claim pre-merge gating from a passing manual processor run.
 
@@ -53,6 +53,6 @@ Scheduled automation is disabled until `HARDWARE_BRIDGE_ENABLED` is true and the
 
 References: [GitHub App authentication](https://docs.github.com/en/actions/how-tos/security-for-github-actions/security-guides/making-authenticated-api-requests-with-a-github-app-in-a-github-actions-workflow), [check runs](https://docs.github.com/en/rest/checks/runs), [concurrency queues](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency).
 
-## Validated installation - 2026-09-15
+## Validate your installation
 
-The private installation has completed App authentication, an exact-library-revision hardware run, and a successful cross-repository report on KasaTapoClient. The App is installed only on the approved 14 source/package repositories. Its sole working private key is stored as an encrypted repository secret, and the temporary local download was removed. The remaining target/check registrations and branch gates are still being validated; the scheduled switch remains off during rollout.
+Validate every configured driver, current-library and pinned-collection target on your own development processor. Require the App report to match the tested source/package revisions and confirm instance removal, archive cleanup and lease release. Enable the schedule only after this matrix passes and the selected release or branch gates have been independently checked. Copying the example does not provision an App, grant publishing access or enable any gate.

@@ -175,7 +175,7 @@ Account for release workflows before enforcing branch rules. During this rollout
 
 The release preflight can require passing hardware checks while branch checks remain informational. That is a release gate, not a pre-merge gate. It checks the source before version preparation and does not certify independently rebuilt Release bytes. Preserve existing protections, and activate additional branch requirements only after the publishing identity/workflow and a real App-reported hardware run have been validated.
 
-The template's 23 offline policy tests cover source identity, approvals, library/package pairing, collection pins, interruption recovery and check reporting. An App-reported library run has also passed on a development processor. Full rollout validation and activation of required rules are separate operational steps; copying the template does not enable a schedule or repository protections.
+The template's offline policy tests cover source identity, approvals, library/package pairing, collection pins, interruption recovery and check reporting. On 2026-09-15 the reference installation completed App-reported current-source runs for all six drivers and seven libraries using adapter 1.3.0, including successful test-instance and archive cleanup. Each installation must also validate its configured collection revisions and release gates before enabling its schedule; copying the template does not enable a schedule or repository protections.
 
 
 ## Successful CI package cleanup
