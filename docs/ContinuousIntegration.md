@@ -143,7 +143,7 @@ Processor live fixtures use private `inputs`, usually `LiveTestSettings.json`. T
 
 Bind real devices deliberately using the test suite's supported stable device ID/alias scheme. Do not silently select another device when discovery misses the configured target. Missing credentials, ambiguous binding, device unavailability or a restoration failure must remain visible as failed/incomplete evidence. A new run after an intermittent discovery failure must retain the earlier failed result.
 
-Installed-driver checks read properties and validate expected values/ranges by default. Source builds also support opt-in `deployedControls`: explicit absolute commands, independent physical observations and verified restoration, all under the processor reservation. See [the control contract and private plan](InstalledDriverControls.md). KasaTapo outlet On/Off control has passed hardware validation; other command routes require their own validation. Devices without readable state require an explicit alternative test design; never assume an initial value.
+Installed-driver checks read properties and validate expected values/ranges by default. From tooling 1.4.0, workflows also support opt-in `deployedControls`: explicit absolute commands, independent physical observations and verified restoration, all under the processor reservation. See [the control contract and private plan](InstalledDriverControls.md). KasaTapo outlet On/Off control has passed hardware validation; other command routes require their own validation. Devices without readable state require an explicit alternative test design; never assume an initial value.
 
 ## Readiness and version identity
 
