@@ -117,3 +117,6 @@ A standalone .NET 10 CLI shares the Windows runner's TCP and authentication code
 
 
 The CLI also runs the [gated development workflow](docs/ProcessorTestWorkflow.md): local tests, processor package installation, processor/live tests, actual-driver update and checks, then test-instance cleanup. Complete KasaTapo, Overkiz, WeatherLink and Apple TV V1 runs have been validated on hardware, including the explicitly authorized V1 reboot. The [Visual Studio adapter](docs/VisualStudioTestExplorer.md) uses the same backend.
+
+
+For source and package CI checks without duplicated test totals, see [discovery-based coverage validation](docs/ProcessorTestPackages.md#validate-coverage-without-duplicated-counts).

@@ -15,6 +15,8 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.401
+      - name: Coverage-checker regressions
+        run: ./tools/Test-DiscoveredCoverageGuards.ps1
       - name: Build solution without deployment
         run: dotnet build CrestronHomeNUnit.sln -c Release -p:CreateDriverPackage=false -p:DeployAfterBuild=false
       - name: Runner and transport regressions

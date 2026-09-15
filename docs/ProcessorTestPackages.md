@@ -6,7 +6,7 @@ For the complete local-to-processor development cycle, see the [continuous integ
 
 ## Repository ownership
 
-Platform-independent library repositories contain only their libraries and ordinary NUnit test projects. Their processor package projects live in the separate CrestronLibraryTests collection, with one Visual Studio solution. Source projects are referenced through that collection's sources directory. Crestron-specific drivers may keep processor test projects in their own driver repositories and solutions. Never add Crestron packaging references or documentation to independent library repositories.
+Platform-independent library repositories contain only their libraries and ordinary NUnit test projects. Their processor package projects live in the separate CrestronHomeLibraryTests collection, with one Visual Studio solution. Source projects are referenced through that collection's sources directory. Crestron-specific drivers may keep processor test projects in their own driver repositories and solutions. Never add Crestron packaging references or documentation to independent library repositories.
 
 ## Create a package project
 
@@ -91,3 +91,16 @@ Every package includes its own host and standalone Home tile; installing the NUn
 Keep UI files used by a tested driver under a separate data root such as DriverTestData. The shared package builder preserves the host's top-level UI and verifies that generated metadata belongs to the test host. Driver test references should suppress the production driver's own merge and deployment side effects.
 
 The shared host's license and third-party notices are staged under Licenses/CrestronHomeNUnit. Package authors must additionally include the notices for their tests and application dependencies. Processor test packages are released as .pkg assets, not NuGet packages.
+
+
+## Validate coverage without duplicated counts
+
+New projects omit `ExpectedCount` by default. Keep suite membership in `ProcessorTests.json`; derive test coverage from discovery instead of maintaining a second total whenever a fixture changes. An explicitly supplied positive `ExpectedUnitTestCount` remains supported for callers that intentionally want a fixed count.
+
+The source tools `tools/Test-DiscoveredCoverage.ps1` and `tools/Test-DiscoveredCoverageGuards.ps1` provide reusable checks. The Desktop stage selects one target framework, saves the NUnit discovery tree and compares executed test identities with it. The Package stage compares the merged assembly's suites with the saved net472 inventories and verifies two automatic executions. Live tests are discovered without being operated. Each invocation needs a fresh results directory. Use short paths for Windows net472 fixtures that create nested temporary files.
+
+Supply `RequiredCategories` for the source project and `SuiteCategories` to map package IDs to `unit`, `processor`, `live`, `live-read` or `live-control`. `SourceInventory` accepts multiple inventory files for packages containing several test assemblies. `ValidatorPath` selects a package-specific validation host where desktop SDK dependencies require one. `CompareProcessorInventory` verifies that a separate desktop SDK harness covers the processor-only source fixtures. `ExcludeProcessor` preserves a portable-only desktop run; `DiscoveryOnly` supports live-only source projects or package fixtures that cannot execute in the Windows SDK. Such processor fixtures still require hardware execution.
+
+NUnit can shorten distinct parameterized cases to the same displayed name. The checker preserves their multiplicity, requires separate execution records, normalizes known `_Stripped.System` type relocation without altering quoted argument data, and rejects category ambiguity, missing tests, invalid suites and unexpected skips. Only documented processor-runtime skips may be explicitly allowed on Windows; hardware workflow results still require all selected tests to pass.
+
+See the [library collection validation](https://github.com/oznetmaster/CrestronHomeLibraryTests/blob/main/Validate-Tests.ps1) and [package release validation](https://github.com/oznetmaster/CrestronHomeLibraryTests/blob/main/Build-TestRelease.ps1) for integration across multiple libraries. These source-tool changes do not require upgrading an already deployed test host.

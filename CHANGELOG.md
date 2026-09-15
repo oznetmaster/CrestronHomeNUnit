@@ -1,5 +1,11 @@
 # Changelog
 
+## Discovery-based source tooling - 2026-09-15 (no binary release)
+
+- Generate package suites without duplicated expected-count fields by default, while preserving an explicitly requested positive count.
+- Add reusable source-to-execution and source-to-package coverage checks, including multiple test assemblies, custom suite names, distinct live/control categories and duplicate parameter display names.
+- These source tools preserve live-test exclusion and existing Windows/processor execution boundaries. No runner, host or NuGet version changes.
+
 ## 1.3.0 - 2026-09-15
 
 Add optional automatic storage cleanup for successful CI test runs, while preserving manual deployments.

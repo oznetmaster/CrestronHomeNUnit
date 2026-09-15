@@ -81,10 +81,11 @@ $configuration = [ordered]@{
     Name = $DisplayName
     Port = $Port
     Suites = @(
-        [ordered]@{ Id=$SuiteId; Name="$DisplayName — Unit Tests"; FilterXml="<filter><and><namespace re='1'>$namespacePattern</namespace><not><cat>Live</cat></not></and></filter>"; ManualOnly=$false; ExpectedCount=$ExpectedUnitTestCount },
-        [ordered]@{ Id="$SuiteId-live"; Name="$DisplayName — Live Tests"; FilterXml="<filter><and><namespace re='1'>$namespacePattern</namespace><cat>Live</cat></and></filter>"; ManualOnly=$true; ExpectedCount=0 }
+        [ordered]@{ Id=$SuiteId; Name="$DisplayName — Unit Tests"; FilterXml="<filter><and><namespace re='1'>$namespacePattern</namespace><not><cat>Live</cat></not></and></filter>"; ManualOnly=$false },
+        [ordered]@{ Id="$SuiteId-live"; Name="$DisplayName — Live Tests"; FilterXml="<filter><and><namespace re='1'>$namespacePattern</namespace><cat>Live</cat></and></filter>"; ManualOnly=$true }
     )
 }
+if ($ExpectedUnitTestCount -gt 0) { $configuration.Suites[0]['ExpectedCount'] = $ExpectedUnitTestCount }
 if (!$IncludeLiveTests) { $configuration.Suites = @($configuration.Suites[0]) }
 Write-PackageFile 'ProcessorTests.json' ($configuration | ConvertTo-Json -Depth 8)
 $ui = [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'CrestronHomeNUnit.Driver\IncludeInPkg\UiDefinitions\UiDefinition.xml')).Replace('command:runCompatibilityTests','command:runAdditionalTests')
