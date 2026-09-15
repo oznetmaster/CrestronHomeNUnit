@@ -1,5 +1,11 @@
 # Changelog
 
+## Hardware CI documentation - 2026-09-15 (no package release)
+
+- Record successful GitHub runner service executions through the published adapter, including temporary-instance cleanup and lease release.
+- Document service account provisioning, pinned helper sources, short packaging paths, Debug revision persistence and target-specific test filters.
+
+
 ## 1.2.1 — 2026-09-15
 
 - Preserve separate local TRX files for every target framework, combine their required outcomes and show every framework's results in Test Explorer. A passing target cannot hide another target's failure or overwrite its evidence.

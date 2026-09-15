@@ -1,6 +1,6 @@
 # GitHub Actions with your own Crestron Home processor
 
-A developer can run processor tests in GitHub Actions using a self-hosted Windows runner on the same network as their Crestron Home processor. GitHub schedules the job on that computer; our CLI builds and tests the code, uploads the test package, waits for Home to load it, runs the processor suites and returns an exit code. No AI agent, interactive Windows runner or manual Configure session is required for supported workflows.
+A developer can run processor tests in GitHub Actions using a self-hosted Windows runner on the same network as their Crestron Home processor. GitHub schedules the job on that computer; our CLI or Test Explorer adapter builds and tests the code, uploads the test package, waits for Home to load it, runs the processor suites and returns an exit code. No AI agent, interactive Windows runner or manual Configure session is required for supported workflows.
 
 The processor is a test target, not a GitHub Actions runner. Your Windows computer needs to be online and awake. Keep processor management on your LAN; this arrangement does not require exposing it to the Internet.
 
@@ -21,6 +21,19 @@ Use a dedicated development processor. Live tests may control equipment; configu
 During Windows registration, choose to install the runner **as a service**. It then starts automatically when Windows boots and does not require an interactive sign-in, an open console or Visual Studio. Manage it in Windows Services. The computer still needs to be awake and connected; sleep or shutdown makes the agent unavailable. If the runner was registered without service mode, GitHub documents removing/reconfiguring it to select that option. See [GitHub's Windows service instructions](https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/configure-the-application?platform=windows).
 
 Use a processor-specific agent label if separate computers serve different networks. With several processors reachable from one agent, the private plan selects the target by host or exact system name. The workflow rediscovers test-package ports; do not hard-code the last observed test port.
+
+## Service build checklist
+
+Validate the service account independently of your interactive Windows account. A successful desktop build does not prove that the service has the same tools, source checkouts or private settings.
+
+- Provision credentials and plans outside the repository. Grant access only to the selected service identity and the administrators/users who maintain it. Do not copy your entire interactive profile or credential store.
+- Pin every source dependency, including desktop test helpers and the processor packaging SDK. A project reference to a sibling repository requires that sibling at the expected location in the job workspace.
+- Supply packaging tool paths explicitly. Install ILRepack for the service or provide its tool directory; an interactive user's global tool installation is not automatically available to the service.
+- Keep the build root short. ManifestUtil can fail on long licence-file paths even when .NET builds successfully. Configure a short runner work directory, or use a temporary, unused drive mapping for the job and remove only the mapping that job created.
+- Preserve Debug version counters outside disposable checkouts. Before updating an existing instance, reconcile a newer package built manually; do not assume a fresh checkout's revision is higher than the processor's catalogue version.
+- Check each local test filter against its actual target framework. A fixture may carry the `Processor` category only in its net472 build. The workflow intentionally fails if a required local stage selects zero tests.
+
+Use offline discovery first, then a test-only workflow with `removeTestInstanceAfterRun: true`. Verify processor execution, removal of the temporary instance and the released lease in the private evidence. Package files retained in the processor catalogue are separate from installed instances; instance cleanup does not purge catalogue storage.
 
 ## Create private configuration
 
@@ -90,7 +103,7 @@ CrestronHomeNUnit.Cli.exe release --settings C:/private/processor.json --receipt
 
 The settings must include `Host`, `SshFingerprint`, `UserName` and `Password` (or the supported environment overrides). Use a new receipt path for each reservation. Release verifies the exact saved owner; it never removes another owner's lease. Reservations persist after the command exits and after a computer restart. Keep the receipt private and release it deliberately when manual work is complete. A receipt written before a failed acquisition records the attempted owner, not proof that a reservation was acquired.
 
-**Coordination coverage:** the workflow, new standalone CLI test commands, Windows runner, updated Home tile execution, DevTools mutations and revised project deployment scripts use the shared lease. Desktop/tile exclusion and the build deployment path have passed MC4-R hardware validation. This requires NUnit tooling 1.2.0 and DevTools 1.1.0 or later: rebuild/update every participating tool and processor test host before enabling unattended hardware jobs. Already-installed older test hosts can bypass the gate. Crestron's Configure software and arbitrary SFTP/SSH clients cannot be forced to honor our lease. Reserve the processor before manual Configure work. See [the shared protocol and build settings](https://github.com/oznetmaster/CrestronHomeDevTools/blob/HEAD/docs/ProcessorCoordination.md). GitHub concurrency alone is insufficient.
+**Coordination coverage:** the workflow, new standalone CLI test commands, Windows runner, updated Home tile execution, DevTools mutations and revised project deployment scripts use the shared lease. Desktop/tile exclusion and the build deployment path have passed MC4-R hardware validation. Use NUnit tooling and rebuilt processor test hosts 1.2.1 or later, with DevTools 1.1.0 or later: rebuild/update every participating tool and processor test host before enabling unattended hardware jobs. Already-installed older test hosts can bypass the gate. Crestron's Configure software and arbitrary SFTP/SSH clients cannot be forced to honor our lease. Reserve the processor before manual Configure work. See [the shared protocol and build settings](https://github.com/oznetmaster/CrestronHomeDevTools/blob/HEAD/docs/ProcessorCoordination.md). GitHub concurrency alone is insufficient.
 
 Start with a library/test-only plan and optional test-instance cleanup. After that works, enable processor live suites with private inputs. Add actual-driver update and installed-driver checks only when those targets and checks have been configured deliberately. V1 reboot must be separately authorized by the plan; Entity V2 normally does not require it.
 
@@ -112,6 +125,12 @@ When diagnosing a current processor problem, use live SSH logging. Home's saved 
 
 ## Relationship to Visual Studio
 
-[The Test Explorer adapter](VisualStudioTestExplorer.md) and the CLI use the same workflow backend. Developers can run the workflow locally from Visual Studio and use the CLI for unattended GitHub jobs. Ordinary NUnit tests remain usable through NUnit's existing adapter. GitHub jobs do not require Visual Studio to be open.
+[The Test Explorer adapter](VisualStudioTestExplorer.md) and the CLI use the same workflow backend. Developers can run the workflow locally from Visual Studio and use either the CLI or VSTest-based `dotnet test` for unattended GitHub jobs. An adapter job supplies the manifest's settings environment variable under the service account and generates its private plan against that job's checked-out sources. Keep its console output and TRX in the protected results folder, just as with the CLI example. Ordinary NUnit tests remain usable through NUnit's existing adapter. GitHub jobs do not require Visual Studio to be open.
 
 The generic Actions example must be validated on each developer's runner account and network. Local hardware validation of our workflow is not evidence that a particular GitHub agent has been registered or that its job has executed.
+
+## Recorded service validation
+
+On 2026-09-15, a Windows GitHub Actions service running as NETWORK SERVICE completed real adapter workflows using published 1.2.1 tooling on a development MC4-R. Tesla library tests passed 236 local and 118 processor cases; KasaTapo driver tests passed 69 local and 69 processor cases; Overkiz driver tests passed 47 local and 47 processor cases. Each workflow removed its temporary instance and released its processor lease. These were test-only runs, without live device control or actual-driver updates.
+
+Those jobs were manually dispatched in a private orchestration repository. This verifies unattended execution after scheduling; it does not establish an automatic public-PR trigger or a cross-repository required-check bridge. The reusable example remains a template to validate on each developer's own machine and network.
