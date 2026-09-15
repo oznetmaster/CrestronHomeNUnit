@@ -1,5 +1,7 @@
 # Automated development and processor testing
 
+**Processor requirement:** Automated deployment and configuration through DevTools require a **V2 Crestron Home processor**. V1 processors do not support these management commands. This is separate from V1 drivers: a V1 driver hosted on a supported V2 processor uses the explicit reboot workflow described below.
+
 This guide explains the implemented CLI development workflow and how it connects local NUnit tests, CrestronHomeDevTools and processor test packages. It is the central integration guide for driver and library repositories.
 
 **Current status:** the CLI implements the gated workflow and restores CrestronHomeDevTools from NuGet when built from source. Complete KasaTapo, Overkiz, Tesla, WeatherLink, Wiser and explicitly opted-in Apple TV V1 update/reboot workflows have passed unattended hardware validation. V1 initial-install/removal reboot paths have simulated coverage only. The stable .NET 10 Test Explorer adapter is available on NuGet as CrestronHomeNUnit.TestAdapter; see [its setup and validation](VisualStudioTestExplorer.md).
