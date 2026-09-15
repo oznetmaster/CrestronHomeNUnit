@@ -1,20 +1,17 @@
-# Crestron Home NUnit v1.3.0
+# Crestron Home NUnit v1.4.0
 
-Add optional automatic storage cleanup for successful CI test runs, while preserving manual deployments.
+Add optional installed-device control testing with independent physical observation and restoration, and explicit reuse of retained workflow packages.
 
-- `removeTestPackageAfterSuccessfulRun` removes only this workflow's uploaded test archive after all requested stages pass and its test instance is confirmed removed. It requires `removeTestInstanceAfterRun` and defaults to false.
-- Capture pre-existing storage paths before upload; preserve those paths and every package still referenced by an installed model or alias. Verify exact package identity, version and SHA-256 against the retained build, and save a backup and operation evidence before deletion.
-- Hold the shared processor reservation and execution marker throughout removal and catalogue refresh. Uncertain cleanup retains the reservation for inspection; no command is automatically replayed.
-- Free storage and remove persisted catalogue references without rebooting. Home may retain a cached catalogue entry until its next planned reboot; workflow results report this explicitly.
-- Retain original package filenames in separate processor/actual artifact folders, so deployments no longer create generic `processor.pkg` or `actual.pkg` names.
-- Management requests use the configured workflow stage deadline, avoiding the shorter default HTTP timeout during slow activation.
+- `deployedControls` captures a device's current state through a private read-only probe, issues an absolute command, verifies the driver's command-completion counter and independently observes the physical result. Cleanup restores and verifies the original state within a separate deadline.
+- Require exact device/model/physical identity, root-driver ancestry and version. Uncertain command completion, overlap, restart or restoration retains the processor reservation for investigation. Boolean devices can use distinct absolute On/Off commands; arbitrary parameterized setters require driver-specific validation.
+- Save private control intent and restoration evidence before mutation. New shared execution guards keep cooperating test and management tools from overlapping the control cycle.
+- `artifactReuse` verifies a successful previous run, released lease, source identity, build inputs, driver identity and retained package SHA-256. Every required test stage runs again. An equal/newer catalogue version causes a fresh Debug build; corrupt evidence stops the run.
+- Resolve DevTools 1.3.0 from NuGet. Official NUnit 4.6.1 remains unchanged.
 
-Validation: 100 desktop workflow regressions passed. A complete MC4-R test-only run passed 47 local tests, 47 processor tests and three read-only live tests, then automatically removed its instance and hash-verified archive and released the reservation. All 14 pre-existing storage paths were protected. No actual driver was updated and no reboot was requested. An earlier activation timeout was reconciled separately and is not counted as a successful end-to-end run.
+Validation: 151 workflow regressions passed, including a retained-artifact path that succeeds with a deliberately unbuildable project. The KasaTapo hardware workflow passed 71 local tests, 71 processor tests, three processor live tests and four installed checks, including physical outlet control and restoration. The temporary instance and archive were removed and the reservation released. Cross-processor reuse has not yet been hardware-validated. Automatic rollback is not enabled by this release.
 
 ## Updating
 
-Use **CrestronHomeNUnit.TestAdapter 1.3.0** or the matching complete runner/CLI ZIP. Existing compatible processor test hosts do not require replacement solely for this desktop workflow feature. DevTools remains 1.1.0 and NUnit remains official 4.6.1. Only the desktop adapter is published to NuGet; processor packages remain GitHub-only.
+Use **CrestronHomeNUnit.TestAdapter 1.4.0** or the matching complete runner/CLI ZIP. Existing compatible processor test hosts do not require replacement solely for these desktop features. Only the adapter is published to NuGet; processor packages remain GitHub-only.
 
-For CI, enable both cleanup options in the private workflow plan. The hardware-bridge template requires the storage-cleanup stage to be reported successfully, so an older adapter cannot silently ignore the new setting. Leave the package-cleanup option false for retained manual deployments. Keep private plans and recovery artifacts off public repositories.
-
-See the [CI guide](docs/ContinuousIntegration.md), [hardware CI setup](docs/GitHubHardwareCI.md) and [Test Explorer guide](docs/VisualStudioTestExplorer.md). Generic installed-device control/restoration, automatic rollback and cross-run artifact reuse remain separate work.
+Both features are opt-in. Installed controls require a suitable driver identity/completion contract and an independent read-only device probe. Keep plans, inputs and raw evidence private. See [installed-driver controls](docs/InstalledDriverControls.md), [artifact reuse](docs/ArtifactReuse.md), the [CI guide](docs/ContinuousIntegration.md) and [Test Explorer setup](docs/VisualStudioTestExplorer.md).

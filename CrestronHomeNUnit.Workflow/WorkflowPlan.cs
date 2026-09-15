@@ -44,6 +44,10 @@ public sealed record WorkflowPlan
 	public SuitePlan[] LiveSuites { get; init; } = [];
 	public PropertyCheck[] DeployedChecks { get; init; } = [];
 	public InstalledControlPlan[] DeployedControls { get; init; } = [];
+	public ArtifactReusePlan? ArtifactReuse
+		{
+		get; init;
+		}
 	public bool RemoveTestInstanceAfterRun
 		{
 		get; init;
@@ -86,6 +90,10 @@ public sealed record WorkflowPlan
 			throw new ArgumentException ("Installed-driver check names must be unique.");
 		foreach (var control in DeployedControls)
 			control.Validate ();
+		if (ArtifactReuse != null && (ArtifactReuse.BuildInputFiles == null
+			|| ArtifactReuse.BuildInputFiles.Any (path => !Path.IsPathFullyQualified (path) || !File.Exists (path))
+			|| ArtifactReuse.PreviousResults is string previous && (!Path.IsPathFullyQualified (previous) || !Directory.Exists (previous))))
+			throw new ArgumentException ("Artifact reuse needs an existing absolute results directory and existing absolute build-input files.");
 		if (TestPackage.InitialConfigurationFile != null)
 			throw new ArgumentException ("Initial configuration is supported only for the actual driver.");
 		if (ActualDriver?.InitialConfigurationFile is string input && (!Path.IsPathFullyQualified (input) || !File.Exists (input)))

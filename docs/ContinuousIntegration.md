@@ -187,6 +187,8 @@ The workflow captures pre-existing paths before upload and never deletes those p
 
 Deleting the archive and refreshing the catalogue frees storage and removes the persisted catalogue reference. Home can still list a cached entry until its next planned reboot. This is reported in `Workflow.json` and `package-cleanup/verified.json`; cleanup does not initiate a reboot. The standalone DevTools `stored-packages` command remains read-only.
 
+Optional [artifact reuse](ArtifactReuse.md) verifies prior bytes and build inputs while rerunning all required tests.
+
 Retained builds keep their original `.pkg` filename beneath `packages/processor` or `packages/actual`. These separate folders avoid filename collisions without renaming the uploaded archive to `processor.pkg` or `actual.pkg`.
 
 Save live SSH logs when diagnosing an active problem; processor logs written to disk can lag. Log streaming is currently an external diagnostic aid, not a DevTools CLI command or automatic workflow evidence feature.
@@ -216,7 +218,7 @@ The expanded suites passed on Windows in Debug and Release. On MC4-R / Crestron 
 | Wiser Heat | 39 | Passed twice | Passed initial installation: 39 local tests, 39 processor tests, 3 live checks, private configuration wizard and 3 installed-driver checks; lease released |
 | Apple TV, including extension lifecycle | 116 | Passed twice | Passed: 116 local tests, 105 processor unit tests, 11 processor lifecycle tests, V1 update/reboot, 3 installed-driver health checks, test-host removal and lease release |
 
-The complete workflow column covers deploying/updating the actual production driver and checking that installed instance. Processor suites exercise the driver code inside a separate test package. Passing those suites does not establish that the complete production-update workflow has run for that driver. Installed-driver checks in the validated workflows are read-only.
+The complete workflow column covers deploying/updating the actual production driver and checking that installed instance. Processor suites exercise the driver code inside a separate test package. Passing those suites does not establish that the complete production-update workflow has run for that driver. The table records the earlier read-only validation runs. A subsequent KasaTapo workflow passed 71 local tests, 71 processor tests, three processor live tests and four installed checks, including independently observed outlet control and restoration. It removed its temporary test instance and archive and released the reservation. See [installed-driver controls](InstalledDriverControls.md) for the verified command pair and limits.
 
 CP4-R / Home 4.11.322 validation additionally covered a temporary Entity V2 Apple TV test host: installation, update, current-instance reuse, targeted reload, authorized reboot, reconnection, lease verification and removal. Its 116 tests passed before and after reboot. All seven pre-existing driver instances retained their identities, room assignments and versions and were Loaded. This was test-host lifecycle validation; no existing production driver was updated on the CP4-R.
 
@@ -226,7 +228,7 @@ Remaining work:
 
 - Extend installed-driver control validation beyond the verified KasaTapo outlet command pair; the optional backend now captures and independently verifies physical state and restoration. Processor fixtures retain their own cleanup where applicable.
 - Validate V1 initial-install/removal reboot paths on hardware; current coverage is simulated.
-- Support cross-run artifact reuse with durable verification of the tested package's identity.
+- Validate cross-processor deployment of a reused artifact on hardware. The opt-in [artifact reuse backend](ArtifactReuse.md) has automated identity, corruption, dependency-change and build-bypass coverage; same-processor catalogue conflicts deliberately trigger a fresh Debug build.
 - Design and validate automatic rollback before enabling it.
 - Extend the processor/firmware compatibility matrix beyond the two tested models and firmware version.
 

@@ -109,6 +109,7 @@ public static class WorkflowRunner
 		private string _host = plan.Host;
 		private int _rebootNumber;
 		private readonly List<FileStream> _artifacts = [];
+		private readonly Dictionary<string, string> _artifactInputs = [];
 		private readonly RemoteSuiteRun _remote = new ();
 		private DriverInstanceReady? _test;
 		private DriverInstanceReady? _actual;
@@ -176,31 +177,43 @@ public static class WorkflowRunner
 			if (File.Exists (manifestPath) && !plan.SourceRoots.Any (root => manifestPath.StartsWith (
 				Path.GetFullPath (root).TrimEnd (Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)))
 				throw new InvalidOperationException ("The driver manifest must belong to a declared source root before Debug version reconciliation.");
-			var preparedVersion = await WorkflowDebugVersion.PrepareAsync (manifestPath, client.GetDriversAsync, deadline.Token).ConfigureAwait (false);
-			await CheckSource (deadline.Token).ConfigureAwait (false);
-			var args = new List<string> { "build", Path.GetFullPath (package.Project), "--configuration", "Debug", "--no-incremental", "-p:DeployAfterBuild=false", "-m:1" };
-			if (test)
-				args.Add ("-p:BuildProcessorTestPackages=true");
-			int exit = await WorkflowEvidence.ProcessAsync ("dotnet", args, Path.GetDirectoryName (Path.GetFullPath (package.Project))!, Path.Combine (results, prefix + "-build.log"), deadline.Token).ConfigureAwait (false);
-			if (exit != 0)
-				throw new IOException ("Package build failed; see retained build log.");
+			var reuse = plan.ArtifactReuse;
+			var inputs = reuse == null ? null : await WorkflowArtifacts.InputsDigestAsync (package.Project, reuse.BuildInputFiles, deadline.Token, plan.SourceRoots).ConfigureAwait (false);
+			var retained = reuse?.PreviousResults == null ? null : await WorkflowArtifacts.TryReuseAsync (reuse.PreviousResults, prefix,
+				Path.GetFileName (package.PackagePath), manifestPath, _source!, inputs, client.GetDriversAsync, deadline.Token).ConfigureAwait (false);
+			PreparedDebugVersion? preparedVersion = null;
+			if (retained == null)
+				{
+				preparedVersion = await WorkflowDebugVersion.PrepareAsync (manifestPath, client.GetDriversAsync, deadline.Token).ConfigureAwait (false);
+				await CheckSource (deadline.Token).ConfigureAwait (false);
+				var args = new List<string> { "build", Path.GetFullPath (package.Project), "--configuration", "Debug", "--no-incremental", "-p:DeployAfterBuild=false", "-m:1" };
+				if (test)
+					args.Add ("-p:BuildProcessorTestPackages=true");
+				int exit = await WorkflowEvidence.ProcessAsync ("dotnet", args, Path.GetDirectoryName (Path.GetFullPath (package.Project))!, Path.Combine (results, prefix + "-build.log"), deadline.Token).ConfigureAwait (false);
+				if (exit != 0)
+					throw new IOException ("Package build failed; see retained build log.");
+				inputs = reuse == null ? null : await WorkflowArtifacts.InputsDigestAsync (package.Project, reuse.BuildInputFiles, deadline.Token, plan.SourceRoots).ConfigureAwait (false);
+				}
 			await CheckSource (deadline.Token).ConfigureAwait (false);
 			var dir = Path.Combine (results, "packages", prefix);
 			Directory.CreateDirectory (dir);
 			var path = Path.Combine (dir, Path.GetFileName (package.PackagePath));
-			File.Copy (package.PackagePath, path, overwrite: false);
+			if (retained == null)
+				File.Copy (package.PackagePath, path, overwrite: false);
+			else
+				await WorkflowArtifacts.CopyVerifiedAsync (retained, path, deadline.Token).ConfigureAwait (false);
 			preparedVersion?.VerifyBuiltPackage (DriverDeployment.Inspect (path));
 			var locked = new FileStream (path, FileMode.Open, FileAccess.Read, FileShare.Read);
 			_artifacts.Add (locked);
 			var hash = Convert.ToHexString (await SHA256.HashDataAsync (locked, deadline.Token).ConfigureAwait (false));
 			locked.Position = 0;
-			await File.WriteAllTextAsync (Path.Combine (results, prefix + "-package.json"), JsonSerializer.Serialize (new
-				{
-				Package = DriverDeployment.Inspect (path),
-				DebugRevisionBaseline = preparedVersion?.Baseline.ToString (),
-				Sha256 = hash,
-				SourceSha256 = _source
-				}), deadline.Token).ConfigureAwait (false);
+			if (retained != null && hash != retained.Receipt.Sha256)
+				throw new InvalidDataException ("Copied artifact failed verification.");
+			await File.WriteAllTextAsync (Path.Combine (results, prefix + "-package.json"), JsonSerializer.Serialize (new PackageReceipt (
+				DriverDeployment.Inspect (path), preparedVersion?.Baseline.ToString () ?? retained?.Receipt.DebugRevisionBaseline,
+				hash, _source!, inputs, retained?.RunId)), deadline.Token).ConfigureAwait (false);
+			if (inputs != null)
+				_artifactInputs.Add (path, inputs);
 			return path;
 			}
 		public async Task PrepareTestInstanceAsync (CancellationToken token)
@@ -220,6 +233,9 @@ public static class WorkflowRunner
 			using var deadline = Deadline (token);
 			await CheckSource (deadline.Token).ConfigureAwait (false);
 			// A unique version must be newly imported; catalogue reuse cannot prove the uploaded bytes.
+			if (_artifactInputs.TryGetValue (package, out var inputs) && inputs != await WorkflowArtifacts.InputsDigestAsync (
+				target.Project, plan.ArtifactReuse!.BuildInputFiles, deadline.Token, plan.SourceRoots).ConfigureAwait (false))
+				throw new InvalidOperationException ("Build inputs changed after package preparation; rebuild and rerun tests.");
 			var info = DriverDeployment.Inspect (package);
 			var catalogue = await client.GetDriversAsync (info.Model, deadline.Token).ConfigureAwait (false);
 			if (catalogue.Any (d => string.Equals (d.Model?.Trim (), info.Model.Trim (), StringComparison.OrdinalIgnoreCase)
