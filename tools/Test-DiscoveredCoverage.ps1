@@ -147,7 +147,9 @@ if ($Stage -eq 'Desktop') {
     Write-Host "Verified $($observed.Count) test results against discovery; $(@($inventory | Where-Object Live).Count) live tests discovered only."
 } elseif ($Stage -eq 'Package') {
     $inventory = @(foreach ($path in $SourceInventory) { Get-Content $path -Raw | ConvertFrom-Json })
-    $validation = Join-Path $results ('package-' + [Guid]::NewGuid().ToString('N'))
+    # The validator already creates a unique run folder; avoid another long path component.
+    $validation = Join-Path $results 'package'
+    if (Test-Path $validation) { throw 'Use a fresh package results directory to avoid stale evidence.' }
     $validator = if ($ValidatorPath) { $ValidatorPath } else { "$SdkRoot/ProcessorTestPackage.Validation/bin/Release/net472/ProcessorTestPackage.Validation.exe" }
     & $validator $PackageAssembly "$validation/discovery" 0
     if ($LASTEXITCODE) { throw 'Package discovery failed.' }
