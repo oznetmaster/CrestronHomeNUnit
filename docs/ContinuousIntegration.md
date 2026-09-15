@@ -6,7 +6,7 @@ This guide explains the implemented CLI development workflow and how it connects
 
 **Current status:** the CLI implements the gated workflow and restores CrestronHomeDevTools from NuGet when built from source. Complete KasaTapo, Overkiz, Tesla, WeatherLink, Wiser and explicitly opted-in Apple TV V1 update/reboot workflows have passed unattended hardware validation. V1 initial-install/removal reboot paths have simulated coverage only. The stable .NET 10 Test Explorer adapter is available on NuGet as CrestronHomeNUnit.TestAdapter; see [its setup and validation](VisualStudioTestExplorer.md).
 
-Post-deployment checks of the installed production driver currently read properties and validate expected values or ranges. Processor live-test fixtures can operate devices and implement their own state capture and restoration. Source builds also support optional [installed-device control checks with independent observation and state restoration](InstalledDriverControls.md). Automatic rollback remains unimplemented.
+Post-deployment checks of the installed production driver currently read properties and validate expected values or ranges. Processor live-test fixtures can operate devices and implement their own state capture and restoration. Source builds also support optional [installed-device control checks with independent observation and state restoration](InstalledDriverControls.md). Optional [code rollback](DriverRollback.md) requires a known prior package and a driver-specific current-configuration compatibility verifier.
 
 ## Contents
 
@@ -173,7 +173,7 @@ The workflow requires a newly built version absent from the catalogue. DevTools 
 | `InstalledDriver.xml` | Individual installed-device property checks and optional control/restoration outcomes. |
 | `Lease.json` | Run owner and lease release/retention state. |
 
-Failures, skipped required tests, insufficient counts, cancellation, timeout, incomplete execution or inability to preserve stage evidence close the actual-driver deployment gate. A post-deployment check can fail after the driver is already updated; the result records that distinction. The backend does not automatically roll back or reboot to recover.
+Failures, skipped required tests, insufficient counts, cancellation, timeout, incomplete execution or inability to preserve stage evidence close the actual-driver deployment gate. A post-deployment check can fail after the driver is already updated; the result records that distinction. By default the backend does not roll back or reboot to recover. An explicit [rollback policy](DriverRollback.md) can restore previous code after a completed failed installed-driver check, with current configuration preserved and all recovery guards satisfied.
 
 ## Cleanup and interrupted runs
 
@@ -229,7 +229,7 @@ Remaining work:
 - Extend installed-driver control validation beyond the verified KasaTapo outlet command pair; the optional backend now captures and independently verifies physical state and restoration. Processor fixtures retain their own cleanup where applicable.
 - Validate V1 initial-install/removal reboot paths on hardware; current coverage is simulated.
 - Validate cross-processor deployment of a reused artifact on hardware. The opt-in [artifact reuse backend](ArtifactReuse.md) has automated identity, corruption, dependency-change and build-bypass coverage; same-processor catalogue conflicts deliberately trigger a fresh Debug build.
-- Design and validate automatic rollback before enabling it.
+- Extend rollback validation beyond the temporary Entity V2 test-host backend run. Each production driver needs its own reviewed configuration-compatibility verifier; V1 and initial-install rollback remain unsupported.
 - Extend the processor/firmware compatibility matrix beyond the two tested models and firmware version.
 
 ## V1 development and reboot policy

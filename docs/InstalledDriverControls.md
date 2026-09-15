@@ -4,7 +4,7 @@ An optional `deployedControls` array extends the private workflow plan. These ch
 
 Each check captures the physical state, submits one absolute command through the installed driver, waits for the driver's background operation to finish, and verifies both physical state and Home's reported state. It then restores and independently verifies the original state. The independent probe is read-only and uses the underlying device API, not Home's cached properties.
 
-The processor reservation and exclusive execution marker cover the complete control/restoration sequence. A command with an uncertain outcome is not repeated. Cancellation starts a separate bounded restoration window; the runner waits for confirmed command completion before restoring. If completion, identity or restoration cannot be confirmed, it retains the reservation and original-state evidence for deliberate recovery. It does not automatically reboot or roll back the driver.
+The processor reservation and exclusive execution marker cover the complete control/restoration sequence. A command with an uncertain outcome is not repeated. Cancellation starts a separate bounded restoration window; the runner waits for confirmed command completion before restoring. If completion, identity or restoration cannot be confirmed, it retains the reservation and original-state evidence for deliberate recovery. Control cleanup does not reboot or roll back the driver. A separate optional [rollback policy](DriverRollback.md) can run only after physical-state restoration has been confirmed.
 
 ## Required driver diagnostics
 

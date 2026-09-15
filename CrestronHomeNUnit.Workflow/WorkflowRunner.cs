@@ -49,6 +49,7 @@ public static class WorkflowRunner
 			{
 			result = await ProcessorWorkflow.RunAsync (new (plan.ActualDriver != null, plan.ActualDriver != null,
 				 plan.LiveSuites.Length != 0, plan.ActualDriver != null, plan.RemoveTestInstanceAfterRun), operations, Report, token).ConfigureAwait (false);
+			result = await operations.RollbackAfterFailureAsync (result, Report).ConfigureAwait (false);
 			result = await WorkflowPackageCleanup.AfterSuccessfulRunAsync (result, plan.RemoveTestPackageAfterSuccessfulRun, () => operations.RemoveTestPackageAsync (token), Report).ConfigureAwait (false);
 			await JsonSerializer.SerializeAsync (exclusive, result, cancellationToken: CancellationToken.None).ConfigureAwait (false);
 			await exclusive.FlushAsync (CancellationToken.None).ConfigureAwait (false);
@@ -117,6 +118,7 @@ public static class WorkflowRunner
 		private string? _actualPath;
 		private string? _source;
 		private WorkflowPackageCleanup? _packageCleanup;
+		private WorkflowRollback.Prepared? _rollback;
 		public bool HasTestInstance => _test != null;
 		public bool RemoteExecutionConfirmedStopped => _remote.ExecutionConfirmedStopped && !ActivationUncertain;
 		public bool ActivationUncertain
@@ -272,6 +274,13 @@ public static class WorkflowRunner
 		public Task<WorkflowTestOutcome> RunProcessorLiveTestsAsync (CancellationToken token) => RunSuites (plan.LiveSuites, true, token);
 		public async Task DeployAndVerifyActualDriverAsync (CancellationToken token)
 			{
+			if (plan.Rollback != null)
+				{
+				using var deadline = Deadline (token);
+				await CheckSource (deadline.Token).ConfigureAwait (false);
+				_rollback = await WorkflowRollback.Prepared.CaptureAsync (client, plan.Rollback, plan.ActualDriver!, _actualPath!,
+					Path.Combine (results, "rollback"), _host, credential, plan.SshFingerprint, Timeout, deadline.Token).ConfigureAwait (false);
+				}
 			_actual = await Activate (plan.ActualDriver!, _actualPath!, "actual", token).ConfigureAwait (false);
 			if (initialConfiguration != null)
 				{
@@ -378,6 +387,42 @@ public static class WorkflowRunner
 			new XDocument (new XElement ("test-run", new XAttribute ("name", "InstalledDriver"), new XAttribute ("result", failed == 0 ? "Passed" : "Failed"),
 				 new XAttribute ("total", cases.Count), new XAttribute ("passed", cases.Count - failed), new XAttribute ("failed", failed), new XAttribute ("skipped", 0), cases)).Save (Path.Combine (results, "InstalledDriver.xml"));
 			}
+		public async Task<ProcessorWorkflowResult> RollbackAfterFailureAsync (ProcessorWorkflowResult result, Action<WorkflowStageResult> report)
+			{
+			if (!WorkflowRollback.ShouldAttempt (result, RemoteExecutionConfirmedStopped, _rollback != null))
+				return result;
+			ActivationUncertain = true;
+			WorkflowStageResult stage;
+			using var recovery = new CancellationTokenSource (Timeout);
+			try
+				{
+				await WorkflowRollback.ExecuteGuardedAsync (_rollback!, lease.BeginControlAsync, lease.EndControlAsync, recovery.Token).ConfigureAwait (false);
+				_actual = _rollback!.RestoredDriver;
+				ActivationUncertain = false;
+				stage = new ("Rollback actual driver", "Passed", Detail: "Previous code restored and checked with current configuration preserved. The original workflow failure remains.");
+				}
+			catch
+				{
+				stage = new ("Rollback actual driver", "Error", Detail: "Rollback could not be verified. The reservation and recovery evidence are retained; no operation was retried.");
+				}
+			result = result with
+				{
+				Stages = result.Stages.Append (stage).ToArray ()
+				};
+			try
+				{
+				report (stage);
+				}
+			catch
+				{
+				ActivationUncertain = true;
+				result = result with
+					{
+					Stages = result.Stages.Append (new WorkflowStageResult ("Save rollback evidence", "Error", Detail: "Rollback reporting failed; inspect retained recovery evidence.")).ToArray ()
+					};
+				}
+			return result;
+			}
 		public async Task<WorkflowPackageCleanup.Result> RemoveTestPackageAsync (CancellationToken token)
 			{
 			if (!RemoteExecutionConfirmedStopped || HasTestInstance || _packageCleanup == null || _testPath == null)
@@ -448,6 +493,8 @@ public static class WorkflowRunner
 
 		public async ValueTask DisposeAsync ()
 			{
+			if (_rollback != null)
+				await _rollback.DisposeAsync ().ConfigureAwait (false);
 			foreach (var artifact in _artifacts)
 				artifact.Dispose ();
 			if (!ReferenceEquals (client, _initialClient))

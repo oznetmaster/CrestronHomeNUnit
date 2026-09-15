@@ -10,7 +10,7 @@ The workflow reconciles a standard project's Debug build counter with the proces
 
 Successful CI workflows can also remove their own stored test packages with `removeTestPackageAfterSuccessfulRun`, preserving pre-existing/manual packages and reporting catalogue entries that remain cached until a planned reboot. Deployment retains the original package filename. See [cleanup and interrupted runs](docs/ContinuousIntegration.md#cleanup-and-interrupted-runs).
 
-Optional [installed-driver controls](docs/InstalledDriverControls.md) capture physical state through a read-only probe, verify command completion and independently observe restoration. [Artifact reuse](docs/ArtifactReuse.md) can retain verified build bytes across runs while rerunning every required test stage. Both features are opt-in.
+Optional [installed-driver controls](docs/InstalledDriverControls.md) capture physical state through a read-only probe, verify command completion and independently observe restoration. [Artifact reuse](docs/ArtifactReuse.md) can retain verified build bytes across runs while rerunning every required test stage. Both features are opt-in. [Guarded code rollback](docs/DriverRollback.md) additionally requires a known previous package and a driver-specific configuration verifier; it preserves current settings and tokens.
 
 To run hardware checks from GitHub Actions on your own Windows computer and processor, follow [GitHub hardware CI setup](docs/GitHubHardwareCI.md). It includes private configuration, a relocatable plan wrapper, and an [automatic GitHub App reporting template](examples/hardware-bridge/README.md) for a private orchestration repository. One App can serve all of your projects.
 

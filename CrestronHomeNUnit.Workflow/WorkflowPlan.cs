@@ -48,6 +48,10 @@ public sealed record WorkflowPlan
 		{
 		get; init;
 		}
+	public DriverRollbackPlan? Rollback
+		{
+		get; init;
+		}
 	public bool RemoveTestInstanceAfterRun
 		{
 		get; init;
@@ -90,6 +94,12 @@ public sealed record WorkflowPlan
 			throw new ArgumentException ("Installed-driver check names must be unique.");
 		foreach (var control in DeployedControls)
 			control.Validate ();
+		if (Rollback != null)
+			{
+			Rollback.Validate ();
+			if (ActualDriver?.ExpectedDeviceId == null || ActualDriver.InitialConfigurationFile != null || AllowProcessorReboot)
+				throw new ArgumentException ("Rollback requires an existing exact driver target, preserved current configuration and a reboot-free workflow.");
+			}
 		if (ArtifactReuse != null && (ArtifactReuse.BuildInputFiles == null
 			|| ArtifactReuse.BuildInputFiles.Any (path => !Path.IsPathFullyQualified (path) || !File.Exists (path))
 			|| ArtifactReuse.PreviousResults is string previous && (!Path.IsPathFullyQualified (previous) || !Directory.Exists (previous))))
@@ -108,7 +118,7 @@ public sealed record WorkflowPlan
 			if (!File.Exists (p.Project) || !Path.IsPathFullyQualified (p.PackagePath))
 				throw new ArgumentException ("Invalid build project or package output path.");
 			}
-		if (DeployedChecks.Any (c => (c.UseActualDriver ? c.DeviceId != 0 || ActualDriver == null : c.DeviceId <= 0) || string.IsNullOrWhiteSpace (c.Model) || string.IsNullOrWhiteSpace (c.Property)
+		if (DeployedChecks.Concat (Rollback?.VerificationChecks ?? []).Any (c => (c.UseActualDriver ? c.DeviceId != 0 || ActualDriver == null : c.DeviceId <= 0) || string.IsNullOrWhiteSpace (c.Model) || string.IsNullOrWhiteSpace (c.Property)
 			 || (c.Expected is not null ? c.Minimum != null || c.Maximum != null
 				  : c.Minimum == null || c.Maximum == null || !double.IsFinite (c.Minimum.Value) || !double.IsFinite (c.Maximum.Value) || c.Minimum > c.Maximum)))
 			throw new ArgumentException ("Each installed-device check needs an ID or useActualDriver with deviceId zero, model, property, and either an expected value or numeric range.");
