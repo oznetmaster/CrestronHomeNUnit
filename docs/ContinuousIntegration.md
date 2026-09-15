@@ -6,7 +6,7 @@ This guide explains the implemented CLI development workflow and how it connects
 
 **Current status:** the CLI implements the gated workflow and restores CrestronHomeDevTools from NuGet when built from source. Complete KasaTapo, Overkiz, Tesla, WeatherLink, Wiser and explicitly opted-in Apple TV V1 update/reboot workflows have passed unattended hardware validation. V1 initial-install/removal reboot paths have simulated coverage only. The stable .NET 10 Test Explorer adapter is available on NuGet as CrestronHomeNUnit.TestAdapter; see [its setup and validation](VisualStudioTestExplorer.md).
 
-Post-deployment checks of the installed production driver currently read properties and validate expected values or ranges. Processor live-test fixtures can operate devices and implement their own state capture and restoration. Source builds also support optional [installed-device control checks with independent observation and state restoration](InstalledDriverControls.md). Optional [code rollback](DriverRollback.md) requires a known prior package and a driver-specific current-configuration compatibility verifier.
+Post-deployment checks of the installed production driver currently read properties and validate expected values or ranges. Processor live-test fixtures can operate devices and implement their own state capture and restoration. From tooling 1.4.0, workflows also support optional [installed-device control checks with independent observation and state restoration](InstalledDriverControls.md). Optional [code rollback](DriverRollback.md) requires a known prior package and a driver-specific current-configuration compatibility verifier.
 
 ## Contents
 
@@ -159,7 +159,7 @@ Custom manifest layouts retain the existing collision checks and must manage the
 
 Hardware validation deliberately reset a standard Kasa test-package source revision to zero with catalogue version 1.1.1.5 present. The workflow built 1.1.1.6, passed 69 local and 69 processor tests, removed the temporary test instance and released its lease. No actual-driver update was attempted. The version logic also passed 73 desktop workflow regressions.
 
-The workflow requires a newly built version absent from the catalogue. DevTools can independently reuse an already-current instance, but cross-run artifact reuse in the gated workflow is not implemented because matching version text alone cannot establish matching tested bytes.
+The workflow requires a version newer than matching catalogue entries. From tooling 1.4.0, optional [artifact reuse](ArtifactReuse.md) can supply retained package bytes from a successful prior run after verifying source, build inputs and package hashes. All required tests run again. If the target catalogue already contains that version or a newer one, the workflow builds a fresh Debug revision instead; matching version text alone never establishes matching tested bytes.
 
 ## Results and deployment gates
 
