@@ -169,7 +169,7 @@ An App check is informational until you make its exact name and App identity req
 
 Release workflows that push version or changelog commits using `GITHUB_TOKEN` need explicit follow-up validation: those pushes do not start ordinary push workflows. A successful-release `workflow_run` can dispatch your hosted tests against the current default branch. Require those hosted tests on the exact new revision before allowing subsequent hardware execution. See [GitHub's workflow triggering rules](https://docs.github.com/en/actions/how-tos/writing-workflows/choosing-when-your-workflow-runs/triggering-a-workflow).
 
-The [generic release-check scripts](../examples/hardware-bridge/source-release-checks/Wait-RequiredReleaseChecks.ps1) can be copied into a source repository's `.github/scripts` folder without a processor dependency. After checkout and before version preparation or publication, run the script with `GH_TOKEN` and a `REQUIRED_RELEASE_CHECKS` environment variable containing an array such as `[{"context":"Processor tests / mydriver_driver","appId":12345}]`. Grant that job `checks: read`. Use your actual App ID. The script checks the current checkout's SHA, expected App and latest check, waits up to ten minutes for a pending result, and blocks on missing or nonpassing evidence. An unset variable leaves the additional check disabled; configure it explicitly when activating the gate.
+The [generic release-check scripts](../examples/hardware-bridge/source-release-checks/Wait-RequiredReleaseChecks.ps1) can be copied into a source repository's `.github/scripts` folder without a processor dependency. After checkout and before version preparation or publication, run the script with `GH_TOKEN` and a `REQUIRED_RELEASE_CHECKS` environment variable containing an array such as `[{"context":"Processor tests / mydriver_driver","appId":12345}]`. Grant that job `checks: read` and `actions: read`. Configure `REQUIRED_HOSTED_WORKFLOWS` as a JSON array of hosted validation workflow filenames; their latest run for the exact source must pass independently of hardware results. Use your actual App ID. The script checks the current checkout's SHA, expected App and latest check, waits up to ten minutes for a pending result, and blocks on missing or nonpassing evidence. An unset variable leaves the additional check disabled; configure it explicitly when activating the gate.
 
 Account for release workflows before enforcing branch rules. During this rollout GitHub rejected its built-in Actions integration as a bypass actor; do not assume `GITHUB_TOKEN` can bypass a required check. Direct release-version commits would then be blocked before they can receive tests. A separately installed publishing App with narrowly scoped write access, or a revised version-commit workflow, is needed for that combination. The reporting App in this template has read-only Contents access and cannot serve as a publishing identity.
 
@@ -181,3 +181,34 @@ The template's offline policy tests cover source identity, approvals, library/pa
 ## Successful CI package cleanup
 
 With tooling 1.3.0, set both `removeTestInstanceAfterRun` and `removeTestPackageAfterSuccessfulRun` to true in the private CI plan. The latter defaults to false for retained manual deployments. Only a successfully tested, uninstalled archive introduced by that run is eligible; pre-existing paths are protected and stored bytes must match the retained build. Storage is reclaimed immediately; a cached catalogue entry can remain until the next planned reboot. No cleanup reboot is automatic. See [cleanup guarantees and recovery evidence](ContinuousIntegration.md#cleanup-and-interrupted-runs).
+
+## Publishing without local hardware
+
+A processor or the local self-hosted GitHub Actions runner can be offline without preventing publication. The release workflow itself runs on GitHub-hosted runners. Add these optional manual-dispatch inputs to each release workflow:
+
+```yaml
+skip_hardware_checks:
+  description: Publish without hardware validation when the processor or local runner is unavailable
+  type: boolean
+  required: false
+  default: false
+hardware_skip_reason:
+  description: Reason for skipping hardware checks (required when selected)
+  type: string
+  required: false
+```
+
+Pass the values to the release-check step through environment variables, together with your actual hosted workflow filenames:
+
+```yaml
+env:
+  GH_TOKEN: ${{ github.token }}
+  REQUIRED_RELEASE_CHECKS: ${{ vars.RELEASE_REQUIRED_CHECKS }}
+  REQUIRED_HOSTED_WORKFLOWS: '["tests.yml", "workflow-discovery.yml"]'
+  RELEASE_SKIP_HARDWARE_CHECKS: ${{ inputs.skip_hardware_checks }}
+  RELEASE_HARDWARE_SKIP_REASON: ${{ inputs.hardware_skip_reason }}
+```
+
+The helper accepts an override only for a manual `workflow_dispatch`, with a nonempty single-line reason. It bypasses only check names beginning `Processor tests / ` for that invocation. This also covers a failed hardware check caused by unavailable infrastructure; the override deliberately waives that check rather than inferring why it failed. It leaves App check results unchanged and records the source revision, reason and waived checks in the workflow warning and job summary. It never reports that unexecuted hardware tests passed.
+
+Hosted validation remains mandatory for the exact checked-out source, including after an override. Other configured checks, release builds, tests and packaging remain required. Run the configured hosted workflows on the intended source revision first if no passing result exists. An automatic tag/release-triggered invocation retains its normal checks; use the updated release workflow's manual invocation and normal source/version controls when an offline release is required. The default remains hardware validation, with no persistent global bypass or new branch requirement.

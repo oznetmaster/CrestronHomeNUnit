@@ -1,5 +1,10 @@
 # Changelog
 
+## Offline release workflow support - 2026-09-15 (no binary release)
+
+- Add an explicit manual hardware-check override with a required reason and exact-source workflow evidence, covering an unavailable processor or local GitHub runner.
+- Independently require configured GitHub-hosted validation and preserve other release checks. No runner, host or NuGet version changes.
+
 ## Discovery-based source tooling - 2026-09-15 (no binary release)
 
 - Generate package suites without duplicated expected-count fields by default, while preserving an explicitly requested positive count.
