@@ -4,6 +4,6 @@ Licensed under the MIT License. See LICENSE in the repository root.
 -->
 <Project>
   <PropertyGroup>
-    <Version>1.2.1</Version>
+    <Version>1.2.2</Version>
   </PropertyGroup>
 </Project>
