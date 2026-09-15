@@ -2,7 +2,7 @@
 
 This guide explains the implemented CLI development workflow and how it connects local NUnit tests, CrestronHomeDevTools and processor test packages. It is the central integration guide for driver and library repositories.
 
-**Current status:** the CLI implements the gated workflow and restores CrestronHomeDevTools from NuGet when built from source. Complete KasaTapo, Overkiz, WeatherLink and explicitly opted-in Apple TV V1 update/reboot workflows have passed unattended hardware validation. V1 initial-install/removal reboot paths have simulated coverage only. The stable .NET 10 Test Explorer adapter is available on NuGet as CrestronHomeNUnit.TestAdapter 1.2.0; see [its setup and validation](VisualStudioTestExplorer.md).
+**Current status:** the CLI implements the gated workflow and restores CrestronHomeDevTools from NuGet when built from source. Complete KasaTapo, Overkiz, Tesla, WeatherLink, Wiser and explicitly opted-in Apple TV V1 update/reboot workflows have passed unattended hardware validation. V1 initial-install/removal reboot paths have simulated coverage only. The stable .NET 10 Test Explorer adapter is available on NuGet as CrestronHomeNUnit.TestAdapter 1.2.1; see [its setup and validation](VisualStudioTestExplorer.md).
 
 Post-deployment checks of the installed production driver currently read properties and validate expected values or ranges. Processor live-test fixtures can operate devices and implement their own state capture and restoration. The shared workflow does not yet provide a generic installed-device control/state-restoration backend or automatic rollback.
 
@@ -90,11 +90,13 @@ The plan is deserialized into [WorkflowPlan](../CrestronHomeNUnit.Workflow/Workf
 | `processorSuites` | Required suite IDs and positive minimum counts. Use package metadata/discovery, not assumed generic IDs. |
 | `liveSuites` | Required explicitly selected live suites, each with private input paths and a positive minimum. Empty for a test-only plan without live tests. |
 | `actualDriver` | Optional production driver build/instance target. Omit when only validating a library or test suite. |
-| `deployedChecks` | Named read-only checks against exact installed device IDs/models/properties; expected JSON value or numeric bounds. |
+| `deployedChecks` | Named read-only checks against exact installed device IDs/models/properties; expected JSON value or numeric bounds. Set `useActualDriver: true` and `deviceId: 0` to use the actual driver's verified instance ID. |
 | `removeTestInstanceAfterRun` | Explicit choice to remove the test host after tests and evidence preservation. |
 | `stageTimeoutSeconds` | Bounded stage wait, 600 by default. |
 
-Every listed stage is required. Replace example `minimumPassed` values with meaningful counts for the suite; a single passing selected test must not unlock a gate requiring a full suite. Keep ordinary filters separate from manual/Explicit fixtures. `actualDriver` currently requires both `liveSuites` and `deployedChecks`, and its identity/path must differ from the test target. Read-only checks can target fixed children only when their parent chain reaches the updated actual driver; their IDs must be configured before the run.
+Every listed stage is required. Replace example `minimumPassed` values with meaningful counts for the suite; a single passing selected test must not unlock a gate requiring a full suite. Keep ordinary filters separate from manual/Explicit fixtures. `actualDriver` requires both `liveSuites` and `deployedChecks`, and its identity/path must differ from the test target. Read-only checks can target fixed children only when their parent chain reaches the updated actual driver; child IDs must be configured before the run. Root-driver checks can instead use `useActualDriver: true` with `deviceId: 0`; model and ownership checks still apply.
+
+From version 1.2.1, `actualDriver.initialConfigurationFile` optionally names an absolute private JSON path containing configuration item IDs mapped to string values. The workflow snapshots it before connecting and applies it after verified activation only if the actual driver reports it is unconfigured. Existing configured drivers retain their settings. Only advertised writable items are submitted, once, using the driver's apply-configuration command. A rejected or uncertain response stops the workflow for inspection; For drivers requiring a wizard, supply an ordered `steps` array as shown below; the workflow checks each advertised step ID and writable item, then requires the wizard to finish after the last planned step. It never guesses answers to additional steps. Values and raw configuration errors are omitted from evidence. Keep this file outside source control, packages and uploaded CI artifacts, just like live-test inputs. The settings are sent only to the pinned processor. Follow application with checks for configured, online and ready state; command acknowledgement alone does not prove the external service connected.
 
 Credentials come from `CRESTRON_HOME_USER` and `CRESTRON_HOME_PASSWORD`, or `userName`/`password` in the separate `--settings` file. The workflow's host and fingerprints come from its plan. This command does not automatically load DevTools console profiles.
 
@@ -194,9 +196,9 @@ The expanded suites passed on Windows in Debug and Release. On MC4-R / Crestron 
 | --- | ---: | --- | --- |
 | KasaTapo | 69 | Passed twice | Passed through VSTest: 69 local tests, 69 processor tests, 3 live checks, 7 installed-driver checks, test-host removal and lease release |
 | Overkiz | 47 | Passed twice | Passed: 47 local tests, 47 processor tests, 3 live checks and 3 installed-driver checks; lease released |
-| Tesla Powerwall | 73 | Passed twice | Not yet validated |
+| Tesla Powerwall | 73 | Passed twice | Passed with independent Owner and Fleet sessions: 73 local tests, 73 processor tests, 3 live checks and 3 installed-driver checks; automatic Fleet region discovery and lease release verified |
 | WeatherLink Live | 56 | Passed twice | Passed: 56 local tests, 56 processor tests, 3 live checks and 3 installed-driver checks; lease released |
-| Wiser Heat | 39 | Passed twice | Not yet validated |
+| Wiser Heat | 39 | Passed twice | Passed initial installation: 39 local tests, 39 processor tests, 3 live checks, private configuration wizard and 3 installed-driver checks; lease released |
 | Apple TV, including extension lifecycle | 116 | Passed twice | Passed: 116 local tests, 105 processor unit tests, 11 processor lifecycle tests, V1 update/reboot, 3 installed-driver health checks, test-host removal and lease release |
 
 The complete workflow column covers deploying/updating the actual production driver and checking that installed instance. Processor suites exercise the driver code inside a separate test package. Passing those suites does not establish that the complete production-update workflow has run for that driver. Installed-driver checks in the validated workflows are read-only.
@@ -207,7 +209,6 @@ Earlier failed cleanup/reboot attempts remain recorded separately from the later
 
 Remaining work:
 
-- Validate complete production-update workflows for Tesla and Wiser, with driver-specific live inputs and installed-driver checks.
 - Add a generic backend for controlling installed devices and restoring their state; processor fixtures currently implement their own device-control cleanup where applicable.
 - Validate V1 initial-install/removal reboot paths on hardware; current coverage is simulated.
 - Support cross-run artifact reuse with durable verification of the tested package's identity.
@@ -240,3 +241,16 @@ The implementation has simulated regression coverage for authorization, lost upd
 The unattended CLI reboot was exercised on the development MC4-R. The first recovery attempt authenticated after about three minutes but stopped on a transient HTTP 500 from device inventory while Home initialized. The fix retries bounded startup read failures (HTTP 500/502/503/504), while authorization/request errors still stop recovery. Read-only verification was then resumed without another reboot: all 21 previously loaded driver instances had unchanged identity/version and were Loaded; the original lease was verified and released. No driver packages changed. The failure and resumed verification are retained separately. The later uninterrupted V1 update validation is described below.
 
 A complete unattended Apple TV V1 workflow subsequently passed on the development MC4-R: 116 local tests, 105 processor driver tests, 11 processor SDK lifecycle tests and three read-only installed-driver health checks. It installed a fresh Entity V2 test host, staged the V1 update, received the matching swap-completion event, requested one Home configuration reboot, reconnected and verified lease ownership, verified the new driver version was Loaded, online, ready and configured, then removed the test host and released the lease. Independent checks confirmed the other 19 driver instances retained their identities and versions and were Loaded. The first V1 attempt exposed an incorrect assumption that swap initiates reboot; it required one separately recorded assisted reboot and was not counted as an unattended pass. A second attempt confirmed swap completion but an immediate SSH reboot returned with the previous version; it was stopped, reconciled and retained as a failed validation. The passing run used Home configuration reboot instead. V1 initial-install/removal reboot paths still have simulated coverage only. The SDK lifecycle tests and read-only health checks do not establish playback or device-control behavior.
+
+An initial configuration wizard file has this form (example values only):
+
+```json
+{
+  "steps": [
+    { "id": "Connection", "values": { "_Host_": "192.0.2.10", "HubSecret": "REPLACE_LOCALLY" } },
+    { "id": "HeatSettings", "values": { "TemperatureUnits": "Celsius", "BoostDelta": "2", "BoostDurationMinutes": "60", "EnableWholeHouseHotWater": "false", "AllowAwayMode": "false" } }
+  ]
+}
+```
+
+Use IDs advertised by your driver. Supply each required choice explicitly, even when the UI displays a default; omitting a field does not guarantee that the driver accepts its default. A flat object such as `{ "SettingId": "value" }` uses the apply-all command and requires an already advertised settings list. Wizard validation errors, repeated steps, unexpected steps and non-writable items stop the workflow. Partial configuration may remain after a failure; inspect the retained lease and exact instance before recovery. These features are currently in source for the next release, not in the published 1.2.0 tools.

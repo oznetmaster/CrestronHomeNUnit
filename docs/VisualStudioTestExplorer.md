@@ -6,7 +6,7 @@ The adapter and its test container target .NET 10. Use a Visual Studio installat
 
 ## Add a workflow container
 
-Use [the sample project](../samples/WorkflowTests/WorkflowTests.csproj) as the starting point. Add a separate .NET 10 workflow test project to your local solution, install `CrestronHomeNUnit.TestAdapter` version `1.2.0` and `Microsoft.NET.Test.Sdk`, and mark both references `PrivateAssets="all"`. No source checkout of the tooling is required. The sample uses the released package by default; contributors can set `UseSourceAdapter=true` to test source changes.
+Use [the sample project](../samples/WorkflowTests/WorkflowTests.csproj) as the starting point. Add a separate .NET 10 workflow test project to your local solution, install `CrestronHomeNUnit.TestAdapter` version `1.2.1` and `Microsoft.NET.Test.Sdk`, and mark both references `PrivateAssets="all"`. No source checkout of the tooling is required. The sample uses the released package by default; contributors can set `UseSourceAdapter=true` to test source changes.
 
 Add `Workflows.xml` to this project. The NuGet package copies it to the output automatically; set the `CrestronWorkflowManifest` project property to choose another filename.
 

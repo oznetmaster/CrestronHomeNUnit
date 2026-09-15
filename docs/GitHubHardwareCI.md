@@ -35,7 +35,7 @@ For CI, source paths must refer to the **checked-out revision for that job**, no
 | `${CHECKOUT}/source/...` | A path under the current Actions workspace. |
 | `${PRIVATE}/LiveTestSettings.json` | A path under your separately protected private-input folder. |
 
-Use `${CHECKOUT}` paths for `sourceRoots`, local test projects, test/actual package projects and package output paths. Use `${PRIVATE}` paths for suite inputs. Each referenced build project and output must stay within the checkout. Other plan fields, including device IDs and expected values, are preserved. The resolved plan is written to the private result directory, not back into source control.
+Use `${CHECKOUT}` paths for `sourceRoots`, local test projects, test/actual package projects and package output paths. Use `${PRIVATE}` paths for suite inputs and optional `actualDriver.initialConfigurationFile` (supported from 1.2.1). Each referenced build project and output must stay within the checkout. Other plan fields, including device IDs and expected values, are preserved. The resolved plan is written to the private result directory, not back into source control.
 
 Example path fields to put into an otherwise complete private plan:
 

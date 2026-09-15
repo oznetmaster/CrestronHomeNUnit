@@ -48,7 +48,10 @@ public sealed record WorkflowPlan
 		get; init;
 		}
 	public int StageTimeoutSeconds { get; init; } = 600;
-	public int LeaseWaitSeconds { get; init; }
+	public int LeaseWaitSeconds
+		{
+		get; init;
+		}
 	public bool AllowProcessorReboot
 		{
 		get; init;
@@ -70,6 +73,10 @@ public sealed record WorkflowPlan
 			throw new ArgumentException ("Explicit install/removal reboots require allowProcessorReboot.");
 		if (ActualDriver != null && (LiveSuites.Length == 0 || DeployedChecks.Length == 0))
 			throw new ArgumentException ("Driver updates require processor live tests and installed-driver checks.");
+		if (TestPackage.InitialConfigurationFile != null)
+			throw new ArgumentException ("Initial configuration is supported only for the actual driver.");
+		if (ActualDriver?.InitialConfigurationFile is string input && (!Path.IsPathFullyQualified (input) || !File.Exists (input)))
+			throw new ArgumentException ("Initial configuration needs an existing private file with an absolute path.");
 		if (ActualDriver != null && (TestPackage.ExpectedDeviceId == ActualDriver.ExpectedDeviceId && TestPackage.ExpectedDeviceId != null
 			 || TestPackage.InstanceName == ActualDriver.InstanceName || TestPackage.PackagePath == ActualDriver.PackagePath))
 			throw new ArgumentException ("Test and actual driver targets must be distinct.");
@@ -80,16 +87,20 @@ public sealed record WorkflowPlan
 			if (!File.Exists (p.Project) || !Path.IsPathFullyQualified (p.PackagePath))
 				throw new ArgumentException ("Invalid build project or package output path.");
 			}
-		if (DeployedChecks.Any (c => c.DeviceId <= 0 || string.IsNullOrWhiteSpace (c.Model) || string.IsNullOrWhiteSpace (c.Property)
+		if (DeployedChecks.Any (c => (c.UseActualDriver ? c.DeviceId != 0 || ActualDriver == null : c.DeviceId <= 0) || string.IsNullOrWhiteSpace (c.Model) || string.IsNullOrWhiteSpace (c.Property)
 			 || (c.Expected is not null ? c.Minimum != null || c.Maximum != null
 				  : c.Minimum == null || c.Maximum == null || !double.IsFinite (c.Minimum.Value) || !double.IsFinite (c.Maximum.Value) || c.Minimum > c.Maximum)))
-			throw new ArgumentException ("Each installed-device check needs an ID, model, property, and either an expected value or numeric range.");
+			throw new ArgumentException ("Each installed-device check needs an ID or useActualDriver with deviceId zero, model, property, and either an expected value or numeric range.");
 		}
 	}
 
 public sealed record LocalTestPlan (string Project, int MinimumPassed, string? Filter = null);
 public sealed record PackageBuildPlan (string Project, string PackagePath, string InstanceName, int LocationId, int? ExpectedDeviceId = null)
 	{
+	public string? InitialConfigurationFile
+		{
+		get; init;
+		}
 	public bool RebootAfterInstall
 		{
 		get; init;
@@ -100,4 +111,7 @@ public sealed record PackageBuildPlan (string Project, string PackagePath, strin
 		}
 	}
 public sealed record SuitePlan (string Id, int MinimumPassed, string[] Inputs);
-public sealed record PropertyCheck (string Name, int DeviceId, string Model, string Property, JsonElement? Expected = null, double? Minimum = null, double? Maximum = null);
+public sealed record PropertyCheck (string Name, int DeviceId, string Model, string Property, JsonElement? Expected = null, double? Minimum = null, double? Maximum = null)
+	{
+	public bool UseActualDriver { get; init; }
+	}

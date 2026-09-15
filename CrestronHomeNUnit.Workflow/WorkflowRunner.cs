@@ -18,6 +18,7 @@ public static class WorkflowRunner
 		 Action<WorkflowStageResult>? progress = null, CancellationToken token = default)
 		{
 		plan.Validate ();
+		var initialConfiguration = WorkflowConfiguration.ReadInputs (plan.ActualDriver?.InitialConfigurationFile);
 		if (!string.IsNullOrWhiteSpace (plan.ProcessorSystemName))
 			plan = plan with
 				{
@@ -38,7 +39,7 @@ public static class WorkflowRunner
 			RunId = runId,
 			State = "Held"
 			}), token).ConfigureAwait (false);
-		await using var operations = new Operations (plan, credential, results, client, lease);
+		await using var operations = new Operations (plan, credential, results, client, lease, initialConfiguration);
 		ProcessorWorkflowResult? result = null;
 		bool release = false;
 		var stages = new List<WorkflowStageResult> ();
@@ -96,7 +97,8 @@ public static class WorkflowRunner
 	internal static bool CanReleaseLease (bool remoteExecutionStopped, bool activationUncertain, bool removalRequested, bool hasTestInstance)
 		=> remoteExecutionStopped && !activationUncertain && (!removalRequested || !hasTestInstance);
 
-	private sealed class Operations (WorkflowPlan plan, NetworkCredential credential, string results, ConfigurationClient initialClient, ProcessorLease lease) : IProcessorWorkflowOperations, IAsyncDisposable
+	private sealed class Operations (WorkflowPlan plan, NetworkCredential credential, string results, ConfigurationClient initialClient, ProcessorLease lease,
+		 WorkflowConfiguration.Inputs? initialConfiguration) : IProcessorWorkflowOperations, IAsyncDisposable
 		{
 		private readonly ConfigurationClient _initialClient = initialClient;
 		private ConfigurationClient client = initialClient;
@@ -239,6 +241,30 @@ public static class WorkflowRunner
 		public async Task DeployAndVerifyActualDriverAsync (CancellationToken token)
 			{
 			_actual = await Activate (plan.ActualDriver!, _actualPath!, "actual", token).ConfigureAwait (false);
+			if (initialConfiguration != null)
+				{
+				using var deadline = Deadline (token);
+				ActivationUncertain = true;
+				bool applied;
+				try
+					{
+					applied = await WorkflowConfiguration.ApplyAsync (client, _actual, initialConfiguration, deadline.Token).ConfigureAwait (false);
+					}
+				catch (WorkflowConfiguration.Rejected rejected)
+					{
+					// Only our fixed diagnostics are safe to retain; never copy processor-returned error text.
+					await File.WriteAllTextAsync (Path.Combine (results, "actual-configuration.json"),
+						JsonSerializer.Serialize (new { _actual.DeviceId, Applied = false, Detail = rejected.Message }), CancellationToken.None).ConfigureAwait (false);
+					throw;
+					}
+				await File.WriteAllTextAsync (Path.Combine (results, "actual-configuration.json"),
+					JsonSerializer.Serialize (new
+						{
+						_actual.DeviceId,
+						Applied = applied
+						}), deadline.Token).ConfigureAwait (false);
+				ActivationUncertain = false;
+				}
 			}
 		public async Task<WorkflowTestOutcome> RunDeployedDriverLiveTestsAsync (CancellationToken token)
 			{
@@ -250,7 +276,7 @@ public static class WorkflowRunner
 				// Devices can become ready after the root driver reports Loaded.
 				while (true)
 					{
-					var device = await client.GetDeviceAsync (check.DeviceId, deadline.Token).ConfigureAwait (false);
+					var device = await client.GetDeviceAsync (check.UseActualDriver ? _actual!.DeviceId : check.DeviceId, deadline.Token).ConfigureAwait (false);
 					if (device?.Model == check.Model && await BelongsToActualDriver (device, deadline.Token).ConfigureAwait (false)
 						 && device.PropertyValues.TryGetValue (check.Property, out var value))
 						passed = CheckProperty (check, value);

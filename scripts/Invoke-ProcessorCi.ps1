@@ -54,6 +54,9 @@ try {
         if ($null -eq $package) { continue }
         $package.Project = Resolve-CiPath $package.Project '${CHECKOUT}/' $CheckoutRoot
         $package.PackagePath = Resolve-CiPath $package.PackagePath '${CHECKOUT}/' $CheckoutRoot
+        if ($null -ne $package.InitialConfigurationFile) {
+            $package.InitialConfigurationFile = Resolve-CiPath $package.InitialConfigurationFile '${PRIVATE}/' $PrivateRoot
+        }
     }
     foreach ($suite in @($plan.ProcessorSuites) + @($plan.LiveSuites)) {
         if ($null -ne $suite) { $suite.Inputs = @($suite.Inputs | ForEach-Object { Resolve-CiPath $_ '${PRIVATE}/' $PrivateRoot }) }

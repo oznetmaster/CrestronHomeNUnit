@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.1 — 2026-09-15
+
+- Allow workflow health checks to follow the actual driver's newly assigned instance ID, supporting initial installation without a pre-existing device ID.
+- Add optional private initial-configuration input for unconfigured actual drivers. Snapshot inputs before processor access, validate advertised writable items, preserve configured instances, and withhold values from evidence. Configuration commands are never retried automatically.
+
 ## 1.2.0 — 2026-09-14
 
 - Publish the stable `CrestronHomeNUnit.TestAdapter` NuGet package, including automatic workflow-manifest copying and a package-based sample. Consume released CrestronHomeDevTools 1.1.0; no adjacent source checkout is required.
