@@ -1,18 +1,18 @@
-# Crestron Home NUnit v1.2.1
+# Crestron Home NUnit v1.2.2
 
-Patch release completing the gated workflow's initial-installation path in the CLI and Visual Studio Test Adapter.
+Patch release fixing Debug version collisions in the CLI and Visual Studio Test Explorer workflow when a newer build has been deployed manually.
 
-- Keep separate TRX results for every target framework in a multi-target library. Aggregate all required results and display them separately in Test Explorer, preventing one framework from overwriting or hiding another.
-- Accept an optional private configuration file for an unconfigured actual driver. Support either named configuration values or an explicit ordered wizard. Validate the advertised items and steps, submit each once, and preserve already configured drivers.
-- Let installed-driver health checks follow the actual instance ID assigned during installation, rather than requiring a previously known ID.
-- Resolve private configuration paths through the hardware-CI wrapper, and keep configuration values and raw server errors out of retained evidence. Uncertain configuration stops the workflow and retains the processor lease for investigation.
+- Reconcile standard project manifests with the highest matching catalogue revision before building, under the shared processor lease. Preserve the source major/minor/patch version; the normal build script allocates the next Debug revision.
+- Verify the built driver's identity and fresh version before upload, and check again for conflicting catalogue versions before deployment. Newer release versions, unreadable matching versions and exhausted counters require deliberate correction.
+- Preserve manifest formatting, UTF-8 BOM and unrelated values. Custom manifest layouts continue to require explicit counter management.
+- Include the reusable private hardware-CI bridge template and setup documentation published since 1.2.1. These cover exact-source GitHub App checks, approved source selection, release preflight and adding projects.
 
-These changes have offline regression coverage and passed a complete Wiser initial-installation workflow: 39 local tests, 39 processor tests, three read-only live checks, private wizard configuration and three installed-driver health checks. Complete Tesla Owner and Fleet workflows also passed, including automatic region discovery. Existing KasaTapo, Overkiz, WeatherLink and Apple TV V1 validation remains applicable to the unchanged paths.
+Validation: 73 desktop workflow regressions passed. A complete MC4-R test-only run started with source revision zero, reconciled catalogue baseline 1.1.1.5, built 1.1.1.6 and passed 69 local plus 69 processor tests. Its temporary test instance was removed and the processor lease released. No actual-driver update was attempted in this validation.
 
 ## Updating
 
-Install **CrestronHomeNUnit.TestAdapter 1.2.1** in a separate .NET 10 workflow project, or extract the complete runner/CLI ZIP. The tooling continues to use **CrestronHomeDevTools 1.1.0** and official **NUnit 4.6.1**. The self-test processor package is **1.2.001.0000**, under **Utility** in Configure. Processor test packages are GitHub assets only; only the desktop adapter is published to NuGet.
+Update the desktop workflow project to **CrestronHomeNUnit.TestAdapter 1.2.2**, or extract the complete runner/CLI ZIP. The workflow continues to use **CrestronHomeDevTools 1.1.0** and official **NUnit 4.6.1**. Processor test packages remain GitHub assets only; the desktop adapter is the only NuGet package in this release.
 
-See the [Test Explorer guide](docs/VisualStudioTestExplorer.md), [CI setup](docs/ContinuousIntegration.md) and [hardware-agent template](docs/GitHubHardwareCI.md). Private credentials, machine paths and test results are excluded from source and release archives.
+The correction runs in the desktop workflow backend. Existing compatible processor test hosts do not need redeployment solely for this fix. Private CI revision counters remain useful after catalogue packages have been removed. Upgrade pinned CI tooling deliberately; publishing this release does not change another repository's pinned dependencies or enable its hardware jobs.
 
-This release does not automatically add workflow projects to consumer solutions or enable their hardware CI jobs. V1 initial-install/removal reboot hardware validation, generic installed-device control/restoration, rollback and cross-run artifact reuse remain separate work.
+See the [Test Explorer guide](docs/VisualStudioTestExplorer.md), [CI workflow guide](docs/ContinuousIntegration.md) and [hardware-CI setup](docs/GitHubHardwareCI.md). Public release checks certify the tested source and retained Debug artifacts, not independently rebuilt Release bytes. Cross-run artifact reuse, generic installed-device control/restoration and rollback remain separate work.

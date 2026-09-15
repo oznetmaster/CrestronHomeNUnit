@@ -167,6 +167,12 @@ public static class WorkflowRunner
 			using var deadline = Deadline (token);
 			await CheckSource (deadline.Token).ConfigureAwait (false);
 			var prefix = test ? "processor" : "actual";
+			var manifestPath = Path.ChangeExtension (Path.GetFullPath (package.Project), ".json");
+			if (File.Exists (manifestPath) && !plan.SourceRoots.Any (root => manifestPath.StartsWith (
+				Path.GetFullPath (root).TrimEnd (Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)))
+				throw new InvalidOperationException ("The driver manifest must belong to a declared source root before Debug version reconciliation.");
+			var preparedVersion = await WorkflowDebugVersion.PrepareAsync (manifestPath, client.GetDriversAsync, deadline.Token).ConfigureAwait (false);
+			await CheckSource (deadline.Token).ConfigureAwait (false);
 			var args = new List<string> { "build", Path.GetFullPath (package.Project), "--configuration", "Debug", "--no-incremental", "-p:DeployAfterBuild=false", "-m:1" };
 			if (test)
 				args.Add ("-p:BuildProcessorTestPackages=true");
@@ -178,6 +184,7 @@ public static class WorkflowRunner
 			Directory.CreateDirectory (dir);
 			var path = Path.Combine (dir, prefix + ".pkg");
 			File.Copy (package.PackagePath, path, overwrite: false);
+			preparedVersion?.VerifyBuiltPackage (DriverDeployment.Inspect (path));
 			var locked = new FileStream (path, FileMode.Open, FileAccess.Read, FileShare.Read);
 			_artifacts.Add (locked);
 			var hash = Convert.ToHexString (await SHA256.HashDataAsync (locked, deadline.Token).ConfigureAwait (false));
@@ -185,6 +192,7 @@ public static class WorkflowRunner
 			await File.WriteAllTextAsync (Path.Combine (results, prefix + "-package.json"), JsonSerializer.Serialize (new
 				{
 				Package = DriverDeployment.Inspect (path),
+				DebugRevisionBaseline = preparedVersion?.Baseline.ToString (),
 				Sha256 = hash,
 				SourceSha256 = _source
 				}), deadline.Token).ConfigureAwait (false);
@@ -207,8 +215,9 @@ public static class WorkflowRunner
 			// A unique version must be newly imported; catalogue reuse cannot prove the uploaded bytes.
 			var info = DriverDeployment.Inspect (package);
 			var catalogue = await client.GetDriversAsync (info.Model, deadline.Token).ConfigureAwait (false);
-			if (catalogue.Any (d => d.Model == info.Model && Version.TryParse (d.Version, out var existing) && existing == Version.Parse (info.Version)))
-				throw new InvalidOperationException ("This version already exists in the catalogue. Build a fresh Debug version for an unambiguous deployment.");
+			if (catalogue.Any (d => string.Equals (d.Model?.Trim (), info.Model.Trim (), StringComparison.OrdinalIgnoreCase)
+				 && WorkflowDebugVersion.ParseVersion (d.Version) >= WorkflowDebugVersion.ParseVersion (info.Version)))
+				throw new InvalidOperationException ("An equal or newer model version is already in the catalogue. Rerun the workflow to reconcile its Debug revision before deployment.");
 			ActivationUncertain = true;
 			var imported = await DriverDeployment.DeployAsync (client, _host, credential, plan.SshFingerprint, package, Timeout, deadline.Token).ConfigureAwait (false);
 			await File.WriteAllTextAsync (Path.Combine (results, prefix + "-import.json"), JsonSerializer.Serialize (imported), deadline.Token).ConfigureAwait (false);

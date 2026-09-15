@@ -50,9 +50,21 @@ jobs:
           $text = [IO.File]::ReadAllText($path)
           $text = [regex]::Replace($text, '<Version>[^<]+</Version>', '<Version>' + $env:RELEASE_VERSION + '</Version>')
           [IO.File]::WriteAllText($path, $text)
+          $notes = [IO.File]::ReadAllText((Join-Path $env:GITHUB_WORKSPACE 'RELEASE-NOTES.md'))
+          $heading = '# Crestron Home NUnit v' + $env:RELEASE_VERSION
+          if (($notes -split '\r?\n', 2)[0] -ne $heading) { throw 'Release notes must match the requested version.' }
+          $body = (($notes -split '\r?\n', 2)[1] -split '(?m)^## Updating', 2)[0].Trim()
+          if (-not $body) { throw 'Release notes need a change summary.' }
+          $changelog = Join-Path $env:GITHUB_WORKSPACE 'CHANGELOG.md'
+          $existing = [IO.File]::ReadAllText($changelog)
+          if ($existing -match ('(?m)^## \[?' + [regex]::Escape($env:RELEASE_VERSION) + '(?:\]|\s|$)')) { throw 'Changelog already contains this version.' }
+          $firstBreak = $existing.IndexOf("`n")
+          if ($firstBreak -lt 0) { throw 'Invalid changelog header.' }
+          $entry = "## $env:RELEASE_VERSION - $([DateTime]::UtcNow.ToString('yyyy-MM-dd'))`n`n$body`n`n"
+          [IO.File]::WriteAllText($changelog, $existing.Substring(0, $firstBreak + 1) + "`n" + $entry + $existing.Substring($firstBreak + 1).TrimStart())
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -- Version.props CrestronHomeNUnit.Driver/CrestronHomeNUnit.Driver.json
+          git add -- Version.props CrestronHomeNUnit.Driver/CrestronHomeNUnit.Driver.json CHANGELOG.md
           git commit -m "Release $tag"
           if ($LASTEXITCODE -ne 0) { throw 'Release version commit failed.' }
       - name: Install packaging tools

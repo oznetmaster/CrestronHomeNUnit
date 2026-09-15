@@ -2,7 +2,7 @@
 
 This guide explains the implemented CLI development workflow and how it connects local NUnit tests, CrestronHomeDevTools and processor test packages. It is the central integration guide for driver and library repositories.
 
-**Current status:** the CLI implements the gated workflow and restores CrestronHomeDevTools from NuGet when built from source. Complete KasaTapo, Overkiz, Tesla, WeatherLink, Wiser and explicitly opted-in Apple TV V1 update/reboot workflows have passed unattended hardware validation. V1 initial-install/removal reboot paths have simulated coverage only. The stable .NET 10 Test Explorer adapter is available on NuGet as CrestronHomeNUnit.TestAdapter 1.2.1; see [its setup and validation](VisualStudioTestExplorer.md).
+**Current status:** the CLI implements the gated workflow and restores CrestronHomeDevTools from NuGet when built from source. Complete KasaTapo, Overkiz, Tesla, WeatherLink, Wiser and explicitly opted-in Apple TV V1 update/reboot workflows have passed unattended hardware validation. V1 initial-install/removal reboot paths have simulated coverage only. The stable .NET 10 Test Explorer adapter is available on NuGet as CrestronHomeNUnit.TestAdapter; see [its setup and validation](VisualStudioTestExplorer.md).
 
 Post-deployment checks of the installed production driver currently read properties and validate expected values or ranges. Processor live-test fixtures can operate devices and implement their own state capture and restoration. The shared workflow does not yet provide a generic installed-device control/state-restoration backend or automatic rollback.
 
@@ -150,7 +150,13 @@ Numeric version comparisons preserve all four processor components. Zero-padding
 
 The workflow hashes tracked/non-ignored source files and records the package SHA-256. It retains the tested package bytes and refuses subsequent source changes; it does not rebuild the production package after passing the gate. Generated manifest dates and fourth-component Debug increments are normalized in source identity. Local secrets must already be excluded or outside the source roots.
 
-The preview requires a newly built version absent from the catalogue. DevTools can independently reuse an already-current instance, but cross-run artifact reuse in the gated workflow is not implemented because matching version text alone cannot establish matching tested bytes.
+For standard projects whose manifest has the same basename as the project and sits beside it, the workflow now reconciles the fourth-component Debug counter with the highest same-model catalogue version while holding its processor lease. The manifest must belong to a declared source root. The normal project build still increments that counter, and the workflow verifies the resulting driver identity, release components and newer revision before upload. Manifest formatting, UTF-8 BOM and unrelated fields are preserved. A newer release already on the processor, an unreadable matching version or an exhausted revision stops the build for deliberate correction.
+
+Custom manifest layouts retain the existing collision checks and must manage their Debug counter explicitly. Keep private CI counters when using disposable checkouts: they preserve allocated revisions after catalogue packages are removed. The workflow rechecks for equal or newer matching catalogue versions immediately before deployment; a conflicting manual deployment stops that run.
+
+Hardware validation deliberately reset a standard Kasa test-package source revision to zero with catalogue version 1.1.1.5 present. The workflow built 1.1.1.6, passed 69 local and 69 processor tests, removed the temporary test instance and released its lease. No actual-driver update was attempted. The version logic also passed 73 desktop workflow regressions.
+
+The workflow requires a newly built version absent from the catalogue. DevTools can independently reuse an already-current instance, but cross-run artifact reuse in the gated workflow is not implemented because matching version text alone cannot establish matching tested bytes.
 
 ## Results and deployment gates
 
@@ -253,4 +259,4 @@ An initial configuration wizard file has this form (example values only):
 }
 ```
 
-Use IDs advertised by your driver. Supply each required choice explicitly, even when the UI displays a default; omitting a field does not guarantee that the driver accepts its default. A flat object such as `{ "SettingId": "value" }` uses the apply-all command and requires an already advertised settings list. Wizard validation errors, repeated steps, unexpected steps and non-writable items stop the workflow. Partial configuration may remain after a failure; inspect the retained lease and exact instance before recovery. These features are currently in source for the next release, not in the published 1.2.0 tools.
+Use IDs advertised by your driver. Supply each required choice explicitly, even when the UI displays a default; omitting a field does not guarantee that the driver accepts its default. A flat object such as `{ "SettingId": "value" }` uses the apply-all command and requires an already advertised settings list. Wizard validation errors, repeated steps, unexpected steps and non-writable items stop the workflow. Partial configuration may remain after a failure; inspect the retained lease and exact instance before recovery. Initial configuration and checks using newly assigned instance IDs are supported from version 1.2.1.
