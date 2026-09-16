@@ -9,6 +9,7 @@ public sealed class CrestronHomeNavigation
 	private readonly AndroidWorkflowSession _session;
 	private readonly TimeSpan _readinessTimeout;
 	private Action<AndroidHierarchy>? _pendingInputPage;
+	private string? _extensionTitle;
 	public bool HomeRestored { get; private set; }
 
 	public CrestronHomeNavigation (AndroidWorkflowSession session) : this (session, TimeSpan.FromSeconds (25)) { }
@@ -27,6 +28,8 @@ public sealed class CrestronHomeNavigation
 	private AndroidSelector HomeCard => new (AndroidSelectorKind.ContentDescription, _session.Context.Profile.ExpectedHomeText);
 	private static AndroidSelector MySystems => new (AndroidSelectorKind.ContentDescription, "home_wholeHouse_popoverButtonMySystemsLabel");
 	private void Home (AndroidHierarchy hierarchy) => CrestronHomePages.RequireHome (hierarchy, _session.Context.Profile.ExpectedHomeText);
+	private void Extension (AndroidHierarchy hierarchy) => CrestronHomePages.RequireExtensionPage (hierarchy,
+		_extensionTitle ?? throw new InvalidOperationException ("No extension page was selected by this navigation session."));
 	private void Menu (AndroidHierarchy hierarchy)
 		{
 		if (hierarchy.RequireUnique (Id ("home_wholeHouse_name")).Text != _session.Context.Profile.ExpectedHomeText)
@@ -131,6 +134,36 @@ public sealed class CrestronHomeNavigation
 			}
 		}
 
+	/// <summary>Navigate to one uniquely named Home tile, inspect its page, then restore Home. Sends no device commands.</summary>
+	public async Task InspectHomeExtensionAsync (string checkId, string tileName, string pageTitle, Action<AndroidHierarchy> verify, CancellationToken token = default)
+		{
+		ArgumentException.ThrowIfNullOrWhiteSpace (tileName);
+		ArgumentException.ThrowIfNullOrWhiteSpace (pageTitle);
+		ArgumentNullException.ThrowIfNull (verify);
+		await WaitAsync (Home, token).ConfigureAwait (false);
+		_extensionTitle = pageTitle;
+		var tile = new AndroidSelector (AndroidSelectorKind.Text, tileName) { AncestorResourceId = CrestronHomePages.ResourcePrefix + "fragmentHomeContainer" };
+		void HomeTile (AndroidHierarchy hierarchy)
+			{
+			Home (hierarchy);
+			if (hierarchy.RequireUnique (tile).ResourceId != CrestronHomePages.ResourcePrefix + "titleSubtitle_title")
+				throw new InvalidOperationException ("The matching Home text is not a tile title.");
+			}
+		try
+			{
+			await TapAsync (tile, HomeTile, token).ConfigureAwait (false);
+			await WaitAsync (Extension, token).ConfigureAwait (false);
+			await ConfirmDepartureAsync (token).ConfigureAwait (false);
+			await _session.CaptureAsync (checkId + ".controls", hierarchy => { Extension (hierarchy); verify (hierarchy); }, token).ConfigureAwait (false);
+			}
+		finally
+			{
+			using var cleanup = new CancellationTokenSource (TimeSpan.FromMinutes (2));
+			await RestoreHomeAsync (cleanup.Token).ConfigureAwait (false);
+			await _session.CaptureAsync (checkId + ".home-restored", Home, cleanup.Token).ConfigureAwait (false);
+			}
+		}
+
 	/// <summary>Restore only recognized navigation pages of the expected Home; never dismiss an unknown screen.</summary>
 	public async Task RestoreHomeAsync (CancellationToken token = default)
 		{
@@ -139,7 +172,7 @@ public sealed class CrestronHomeNavigation
 		for (int step = 0; step < 4; step++)
 			{
 			int page = -1;
-			var guards = new Action<AndroidHierarchy>[] { Home, Details, Options, Systems, Menu };
+			var guards = new Action<AndroidHierarchy>[] { Home, Details, Options, Systems, Menu, Extension };
 			await WaitAsync (hierarchy =>
 				{
 				for (int index = 0; index < guards.Length; index++)
@@ -149,11 +182,13 @@ public sealed class CrestronHomeNavigation
 					}
 				throw new InvalidOperationException ("The current screen is not a recognized navigation page of the expected Home.");
 				}, token).ConfigureAwait (false);
-			if (page == 0) { HomeRestored = true; return; }
+			if (page == 0) { HomeRestored = true; _extensionTitle = null; return; }
 			if (page == 1)
 				await TapAsync (Id ("mobileclaimhome_back"), Details, token).ConfigureAwait (false);
 			else if (page == 3)
 				await TapAsync (HomeCard, Systems, token).ConfigureAwait (false);
+			else if (page == 5)
+				await TapAsync (Id ("customdevices_toolbarClose"), Extension, token).ConfigureAwait (false);
 			else
 				{
 				_session.VerifyActive ();

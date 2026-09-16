@@ -1,5 +1,11 @@
 # Changelog
 
+## Android toolkit development - 2026-09-16 (not yet packaged)
+
+- Add read-only inspection of a uniquely named Home extension tile with page-title validation and observed Home restoration, including when assertions fail.
+- Read repeated status-and-button controls within their own labelled rows instead of selecting a global repeated resource ID.
+- Retry transient hierarchy reads at most three times, clean each read's temporary file, and preserve the original failure when cleanup also fails. Taps and Back commands are never automatically repeated.
+
 ## 1.6.0 - 2026-09-16
 
 Add explicit shared-driver reboot scope for removing temporary V1 instances. Existing plans retain their previous behavior.

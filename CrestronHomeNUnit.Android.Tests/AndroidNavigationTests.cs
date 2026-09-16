@@ -19,6 +19,26 @@ public sealed class AndroidNavigationTests
 	private static string Document (string nodes) => "<hierarchy>" + nodes + "</hierarchy>";
 
 	[Test]
+	public async Task TransientCaptureFailureRepeatsOnlyReadsBeforeOneTap ()
+		{
+		var transport = new FakeTransport (Document (Node)) { FailedDumpsRemaining = 1 };
+		await new AndroidDevice (transport, Application).TapAsync (Selector, _ => { });
+		Assert.That (transport.Commands.Count (c => c.Contains ("uiautomator")), Is.EqualTo (2));
+		Assert.That (transport.Commands.Count (c => c.Contains ("input")), Is.EqualTo (1));
+		Assert.That (transport.Commands.Where (c => c.Contains ("rm")).All (c => c.Contains ("-f")), Is.True);
+		}
+
+	[Test]
+	public void CaptureFailureSurvivesSecondaryCleanupFailure ()
+		{
+		var transport = new FakeTransport (Document (Node)) { FailDump = true, FailCleanup = true };
+		var error = Assert.ThrowsAsync<IOException> (() => new AndroidDevice (transport, Application).CaptureAsync ());
+		Assert.That (error!.Message, Does.Contain ("could not capture"));
+		Assert.That (transport.Commands.Count (c => c.Contains ("uiautomator")), Is.EqualTo (3));
+		Assert.That (transport.Commands.Any (c => c.Contains ("input")), Is.False);
+		}
+
+	[Test]
 	public async Task TapUsesFreshObservedBoundsAfterPageValidation ()
 		{
 		var transport = new FakeTransport (Document (Node));
@@ -83,7 +103,9 @@ public sealed class AndroidNavigationTests
 		var device = new AndroidDevice (transport, Application);
 		Assert.ThrowsAsync<IOException> (() => device.TapAsync (Selector, _ => { }));
 		Assert.That (transport.Commands.Any (args => args.Contains ("input")), Is.False);
-		Assert.That (transport.Commands.Count (args => args.Contains ("rm")), Is.EqualTo (1));
+		var dumps = transport.Commands.Where (args => args.Contains ("uiautomator")).Select (args => args[^1]).ToArray ();
+		Assert.That (dumps, Has.Length.EqualTo (3).And.Unique);
+		Assert.That (transport.Commands.Where (args => args.Contains ("rm")).Select (args => args[^1]), Is.EquivalentTo (dumps));
 		}
 
 	[Test]
@@ -122,6 +144,8 @@ public sealed class AndroidNavigationTests
 	private sealed class FakeTransport (string hierarchy) : IAndroidCommandTransport
 		{
 		public List<string[]> Commands { get; } = [];
+		public int FailedDumpsRemaining;
+		public bool FailCleanup;
 		public bool FailInput
 			{
 			get; init;
@@ -135,6 +159,8 @@ public sealed class AndroidNavigationTests
 			{
 			cancellationToken.ThrowIfCancellationRequested ();
 			Commands.Add (arguments.ToArray ());
+			if (arguments.Contains ("rm") && FailCleanup) throw new IOException ("Cleanup failed");
+			if (arguments.Contains ("uiautomator") && FailedDumpsRemaining-- > 0) throw new IOException ("Transient capture failure");
 			if (arguments.Contains ("input") && FailInput)
 				throw new TimeoutException ("Unknown input outcome");
 			var response = arguments.Contains ("uiautomator") ? (FailDump ? "ERROR: null root node" : "UI hierarchy dumped to: " + arguments[^1]) : arguments.Contains ("cat") ? hierarchy : "";

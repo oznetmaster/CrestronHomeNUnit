@@ -42,6 +42,42 @@ public sealed class CrestronHomeNavigationTests
 		}
 
 	[Test]
+	public void MatchingTextOutsideATileCannotBeTapped ()
+		{
+		_transport.NonTileText = true;
+		Assert.ThrowsAsync<InvalidOperationException> (() => _navigation.InspectHomeExtensionAsync ("not-a-tile", "Example Driver", "Example Options", _ => { }));
+		Assert.That (_transport.Inputs, Is.Empty);
+		Assert.That (_navigation.HomeRestored, Is.True);
+		}
+
+	[Test]
+	public async Task ExtensionInspectionIsReadOnlyAndRepeatable ()
+		{
+		for (int run = 0; run < 2; run++)
+			await _navigation.InspectHomeExtensionAsync ($"extension-{run}", "Example Driver", "Example Options", h => CrestronHomePages.RequireExtensionPage (h, "Example Options"));
+		Assert.That (_transport.Inputs, Is.EqualTo (new[] { "home", "extension", "home", "extension" }));
+		Assert.That (_navigation.HomeRestored, Is.True);
+		}
+
+	[Test]
+	public void FailedControlAssertionStillClosesTheSelectedExtension ()
+		{
+		Assert.ThrowsAsync<InvalidDataException> (() => _navigation.InspectHomeExtensionAsync ("extension-failure", "Example Driver", "Example Options", _ => throw new InvalidDataException ("Unexpected status")));
+		Assert.That (_navigation.HomeRestored, Is.True);
+		Assert.That (_transport.Inputs, Is.EqualTo (new[] { "home", "extension" }));
+		Assert.That (File.Exists (Path.Combine (_directory, "extension-failure.controls", "observation.json")), Is.False);
+		}
+
+	[Test]
+	public void UncertainExtensionOpenIsNotReplayed ()
+		{
+		_transport.ThrowAfterInput = 1;
+		Assert.ThrowsAsync<IOException> (() => _navigation.InspectHomeExtensionAsync ("extension-uncertain", "Example Driver", "Example Options", _ => { }));
+		Assert.That (_navigation.HomeRestored, Is.True);
+		Assert.That (_transport.Inputs, Is.EqualTo (new[] { "home", "extension" }));
+		}
+
+	[Test]
 	public async Task ReadsOnlyLocalEndpointAndRestoresHomeTwice ()
 		{
 		await _navigation.VerifySavedEndpointAsync ("first", 50001);
@@ -159,6 +195,7 @@ public sealed class CrestronHomeNavigationTests
 		public bool IgnoreBack;
 		public int BackInputs;
 		public bool DuplicateMenu;
+		public bool NonTileText;
 		public List<string> Inputs { get; } = [];
 		private static XElement Node (string id, string text = "", string description = "", int left = 0) => new ("node",
 			new XAttribute ("package", "com.crestron.phoenix.app"), new XAttribute ("resource-id", CrestronHomePages.ResourcePrefix + id),
@@ -167,6 +204,12 @@ public sealed class CrestronHomeNavigationTests
 			{
 			var parent = Node (id);
 			parent.Add (Node ("commonui_animatedEditText_editText", value));
+			return parent;
+			}
+		private XElement HomeTree ()
+			{
+			var parent = Node ("fragmentHomeContainer");
+			parent.Add (Node ("home_wholeHouse_name", "Example Home"), Node ("home_wholeHouse_topbarMenuButton"), Node (NonTileText ? "otherText" : "titleSubtitle_title", "Example Driver", left: 400));
 			return parent;
 			}
 		public Task<byte[]> ExecuteAsync (IReadOnlyList<string> arguments, CancellationToken cancellationToken)
@@ -179,7 +222,8 @@ public sealed class CrestronHomeNavigationTests
 				{
 				IEnumerable<XElement> nodes = Page switch
 					{
-					"home" => [Node ("home_wholeHouse_name", "Example Home"), Node ("home_wholeHouse_topbarMenuButton")],
+					"home" => [HomeTree ()],
+					"extension" => [Node ("customdevices_toolbarTitle", "Example Options"), Node ("customdevices_toolbarClose")],
 					"menu" => [Node ("home_wholeHouse_name", "Example Home"), Node ("fragmentPulleyContainer"), Node ("menu", description: "home_wholeHouse_popoverButtonMySystemsLabel")],
 					"systems" => [Node ("homeswitcher_title"), Node ("card", description: "Example Home", left: 200), Node ("homeview_more")],
 					"options" => [Node ("bottomSheet_infoBar", "Example Home"), Node ("action", "Edit")],
@@ -203,7 +247,7 @@ public sealed class CrestronHomeNavigationTests
 				}
 			else
 				{
-				Page = Page switch { "home" => "menu", "menu" => "systems", "systems" => arguments[3] == "250" ? "home" : "options", "options" => "details", "details" => "systems", _ => throw new InvalidOperationException ("Unexpected tap") };
+				Page = Page switch { "home" => arguments[3] == "450" ? "extension" : "menu", "extension" => "home", "menu" => "systems", "systems" => arguments[3] == "250" ? "home" : "options", "options" => "details", "details" => "systems", _ => throw new InvalidOperationException ("Unexpected tap") };
 				}
 			if (UnknownAfterInput == Inputs.Count) Page = "unknown";
 			if (ThrowAfterInput == Inputs.Count) throw new IOException ("Input outcome unknown.");

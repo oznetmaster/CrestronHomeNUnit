@@ -80,6 +80,10 @@ ADB and the emulator must be privately configured by the developer. Use local ac
 
 Build and run the offline project:
 
+The developing toolkit also provides `CrestronHomeNavigation.InspectHomeExtensionAsync` for read-only inspection of a uniquely named Home tile. It verifies the extension page title, invokes the fixture's assertions and restores Home even after a failed assertion. `CrestronHomePages.ReadStatusAndButton` reads a labelled row without confusing repeated button IDs. A fresh hierarchy read may be attempted up to three times after a transient capture failure; neither taps nor Back commands are retried. These helpers are source-only until the next toolkit distribution.
+
+The Wiser driver's separate Android test project uses these helpers to compare gateway controls with fresh management state. A unique name plus matching saved endpoint does not establish the active Android network route, so these initial fixtures send no physical device commands. Room controls, stronger instance binding and submission-contract integration remain required work.
+
 ```powershell
 dotnet test CrestronHomeNUnit.Android.Tests/CrestronHomeNUnit.Android.Tests.csproj -c Release
 ```

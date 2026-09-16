@@ -26,6 +26,34 @@ public sealed class CrestronHomePageTests
 		Field ("mobileclaimhome_remoteIpAddressOrHostName", remote));
 
 	[Test]
+	public void StatusAndButtonReadsItsOwnRowDespiteRepeatedIds ()
+		{
+		XElement Row (string label, string status, string action)
+			{
+			var row = Node ("row");
+			var group = Node ("customdevice_statusAndButtonTitleSubtitle");
+			group.Add (Node ("titleSubtitle_title", label), Node ("titleSubtitle_subtitle", status));
+			row.Add (group, Node ("customdevice_statusAndButtonAction", action));
+			return row;
+			}
+		var hotWater = Row ("Hot Water", "OFF", "Hot Water On");
+		var away = Row ("Away Mode", "DISABLED", "Enable Away");
+		Assert.That (CrestronHomePages.ReadStatusAndButton (Tree (hotWater, away), "Hot Water"), Is.EqualTo (("OFF", "Hot Water On", true)));
+		Assert.That (CrestronHomePages.ReadStatusAndButton (Tree (hotWater, away), "Away Mode"), Is.EqualTo (("DISABLED", "Enable Away", true)));
+		Assert.Throws<InvalidOperationException> (() => CrestronHomePages.ReadStatusAndButton (Tree (hotWater, new XElement (hotWater)), "Hot Water"));
+		hotWater.Elements ().Last ().Remove ();
+		Assert.Throws<InvalidOperationException> (() => CrestronHomePages.ReadStatusAndButton (Tree (hotWater, away), "Hot Water"), "Never borrow an action from another row.");
+		}
+
+	[Test]
+	public void ExtensionTitleAndCloseControlAreBothRequired ()
+		{
+		CrestronHomePages.RequireExtensionPage (Tree (Node ("customdevices_toolbarTitle", "Options"), Node ("customdevices_toolbarClose")), "Options");
+		Assert.Throws<InvalidOperationException> (() => CrestronHomePages.RequireExtensionPage (Tree (Node ("customdevices_toolbarTitle", "Other"), Node ("customdevices_toolbarClose")), "Options"));
+		Assert.Throws<InvalidOperationException> (() => CrestronHomePages.RequireExtensionPage (Tree (Node ("customdevices_toolbarTitle", "Options")), "Options"));
+		}
+
+	[Test]
 	public void SavedEndpointUsesScopedLocalFieldsDespiteRepeatedEditControlIds ()
 		{
 		CrestronHomePages.RequireSavedLocalEndpoint (Details (), "Example Home", "192.0.2.9", 50001);

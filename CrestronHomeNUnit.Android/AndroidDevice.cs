@@ -79,7 +79,21 @@ public sealed class AndroidDevice (IAndroidCommandTransport transport, string ap
 	{
 	public async Task<AndroidHierarchy> CaptureAsync (CancellationToken cancellationToken = default)
 		{
+		for (int attempt = 0; ; attempt++)
+			{
+			try { return await CaptureOnceAsync (cancellationToken).ConfigureAwait (false); }
+			catch (Exception exception) when (attempt < 2 && !cancellationToken.IsCancellationRequested && exception is IOException or TimeoutException)
+				{
+				// Only the read is repeated. Input operations remain outside this loop.
+				await Task.Delay (TimeSpan.FromMilliseconds (250), cancellationToken).ConfigureAwait (false);
+				}
+			}
+		}
+
+	private async Task<AndroidHierarchy> CaptureOnceAsync (CancellationToken cancellationToken)
+		{
 		var path = "/sdcard/ch-ui-" + Guid.NewGuid ().ToString ("N") + ".xml";
+		bool failed = false;
 		try
 			{
 			var response = await transport.ExecuteAsync (["shell", "uiautomator", "dump", path], cancellationToken).ConfigureAwait (false);
@@ -88,11 +102,17 @@ public sealed class AndroidDevice (IAndroidCommandTransport transport, string ap
 			var bytes = await transport.ExecuteAsync (["shell", "cat", path], cancellationToken).ConfigureAwait (false);
 			return new (Encoding.UTF8.GetString (bytes), application);
 			}
+		catch { failed = true; throw; }
 		finally
 			{
 			using var cleanup = new CancellationTokenSource (TimeSpan.FromSeconds (3));
 			// Only this capture's unique temporary XML can be removed.
-			await transport.ExecuteAsync (["shell", "rm", path], cleanup.Token).ConfigureAwait (false);
+			try { await transport.ExecuteAsync (["shell", "rm", "-f", path], cleanup.Token).ConfigureAwait (false); }
+			catch (Exception exception) when (failed && exception is IOException or TimeoutException or OperationCanceledException)
+				{
+				// Preserve the capture failure; a missing dump must not replace it
+				// with a misleading secondary cleanup error.
+				}
 			}
 		}
 
