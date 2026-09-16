@@ -33,13 +33,13 @@ The Windows runner saves diagnostics for incomplete operations, preserves comple
 
 The current TCP server and test execution share a process. Fatal process failures cannot preserve its TCP connection. Separate driver packages are not sufficient to guarantee process isolation under Crestron's documented driver grouping rules. Automatic reconnection has not been added.
 
-## Driver processor package and package switching — 11 September 2026
+## Driver processor package and package switching â€” 11 September 2026
 
 The user reports that both KasaTapoCrestronDriver suites passed on the Crestron Home processor: Unit Tests (34 cases) and Processor lifecycle (20 cases). This is user-reported processor validation; the runner result XML was not collected in this task.
 
 Windows regression validation passed for switching between two local TCP test packages while connected, refreshing discovery without losing an active connection, replacing the suite catalog, clearing stale selections, and disabling package switching during an active operation. Existing runner recovery, restart preferences, secure inputs, transport, cancellation and reconnect checks also passed.
 
-## Windows runner .NET 10 migration — 11 September 2026
+## Windows runner .NET 10 migration â€” 11 September 2026
 
 The Windows runner and UI/transport regression harness now target `net10.0-windows`. Shared transport and host libraries multi-target `net472;net10.0`. Processor packages and the validator that directly loads merged processor assemblies remain on `net472`; loading those Framework assemblies under .NET 10 is not used as a substitute for Framework validation.
 
@@ -53,7 +53,7 @@ The Windows runner and UI/transport regression harness now target `net10.0-windo
 - Connection defaults and input-file selections now use LocalAppData. Legacy import preserves original files and newer destination settings; the existing protected credential and restart-preference stores remain in place.
 
 This migration does not fix or suppress the previously documented upstream NUnit repeated-run stream-comparison issue. GitHub publication remains pending README approval.
-## Window placement persistence — 11 September 2026
+## Window placement persistence â€” 11 September 2026
 
 The runner now saves normal bounds and maximized state immediately on location/size changes, independently of saved test selections. Minimized transitions and minimized shutdown do not change the saved placement. Writes use a temporary file followed by replacement, so an interrupted write retains the previous complete settings. The private file is `Runner.window.local.json` under the runner's LocalAppData directory.
 
@@ -63,7 +63,7 @@ The full runner regression harness passed, including new checks for persistence 
 The first hosted run exposed a placement-test assumption about monitor width; the test now moves inward and the complete runner suite passes on the hosted Windows desktop. The second run exposed 24 stack-trace assertions in the optimized merged Release self-test package. The same 24 failures reproduced locally. Disabling optimization on the primary self-test host preserves the stack frames after ILRepack merges its already-unoptimized fixture sources. No NUnit assertion was changed or skipped. The corrected Release package passed **2,406 self-tests, 60 skipped, zero failed**, plus **34 compatibility tests, zero failed**, locally. This setting applies to the supplied self-test host; generic processor packages keep their normal optimization settings.
 Runner endpoint recovery is covered by the transport validation harness (`--runner-endpoints` for the focused check): new ports and addresses for an existing package, dropped connections, Find packages refresh, missing/ambiguous identities, retained results, explicit disconnect and no test replay. All peers are synthetic loopback servers.
 
-## Shared runner inputs — 12 September 2026
+## Shared runner inputs â€” 12 September 2026
 
 The runner and transport regression suite passed with shared inputs across suites in the same processor package. Coverage includes processor/package isolation, changed ports, migration of compatible selections, conflicting legacy paths, explicit clearing, settings persistence, recovery and secure transfer. The processor host implementation is unchanged.
 
@@ -80,3 +80,13 @@ The initial attempt exposed a renamed-manifest version-reconciliation gap and st
 The 1.7.1 adapter candidate passed both read-only Wiser gateway NUnit cases with Google's Pixel 7 Android 16 (API 36.1) emulator minimized. The app was Crestron Home 4.6.18, installed by transferring its original APK from the existing BlueStacks installation without Google sign-in. The fixtures checked the already-installed Debug gateway, verified saved local connection details and compared Hot Water/Away controls against fresh processor state. They did not deploy a driver or operate heating controls. Eight screenshot/hierarchy pairs matched their retained hashes, Home restoration was confirmed and both reservations were released.
 
 The first run with 1.7.0 failed because the local-port field was below the portrait viewport. The fix retains name/address evidence before a single guarded scroll and then checks the port. All 67 local Android tests passed, including portrait navigation and uncertain-scroll restoration. A separate earlier app termination remains unexplained; reopening restored connectivity. No-window mode, service-account operation and complete submission acceptance have not been validated.
+
+## Room and selection-list validation - 16 September 2026
+
+The Android helper suite passed all 91 offline tests from source and from a private adapter package. An isolated consumer also verified ordinary NUnit use and workflow discovery without runtime project references.
+
+Against the already-installed Wiser Debug driver on the development processor, the room helper completed two inspections and returned Home after an intentional assertion failure. Nested-page validation then compared all 16 schedule labels, seven literal day labels and 48 half-hour labels, including selected values. It dismissed the lists, cancelled the editor and restored Home. All 13 accepted screenshot/hierarchy pairs matched their retained hashes; installed identities/locations and checked target, boost, schedule, hot-water and Away settings were preserved, and both reservations were released.
+
+Two earlier time-list runs exposed clipped Android row fragments: missing child controls at the lower edge and inverted offscreen child bounds at the upper edge. Both failed checks restored Home and released their reservations. Regression tests now distinguish these short boundary fragments from invalid full-size or interior rows, without relaxing tap-coordinate validation.
+
+These checks used a private validation program with Google's emulator minimized, rather than the Wiser NUnit fixture. They prove the tested helper paths, not exact Release-candidate acceptance, physical heating response, complete visual correctness or Crestron certification.

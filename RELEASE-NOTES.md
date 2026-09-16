@@ -1,13 +1,13 @@
-# Crestron Home NUnit v1.7.1
+# Crestron Home NUnit v1.8.0
 
-Fix saved-connection inspection on portrait Android screens where the local-port field is below the visible area. The navigator first verifies and records the Home name and local address, makes one guarded scroll, then verifies the port. It closes the editor and verifies return to Home even when inspection fails. An uncertain scroll is never repeated.
+Add room and nested-page inspection to the Crestron Home NUnit UI automation library included in the test adapter. Tests can open a named room extension, inspect Schedule and Edit pages, and verify complete selection lists without choosing an option. Controls are scoped to the front page even when the app retains background pages with identical resource IDs.
 
-The setup guide now covers Visual Studio's Android SDK Manager, Windows acceleration, and installing the Crestron Home APK without a Google account. It also explains how to avoid conflicting ADB versions when BlueStacks and Google's emulator share a computer.
+The navigation helpers restore the original Home screen after successful checks or assertion failures. Nested pages use explicitly supplied close/cancel controls. Unknown layouts stop navigation; uncertain taps, Back commands and scrolls are never replayed. Selection inspection handles clipped viewport-edge rows while preserving the strict coordinate checks used for input.
 
-Validation: all 67 local Android tests passed. Both read-only Wiser gateway cases passed through a private packaged adapter candidate with Google's Pixel 7 Android emulator minimized. Eight screenshot/hierarchy pairs were verified; gateway state was unchanged, Home was restored and both reservations were released. These results cover a logged-in Windows session and an already-installed Debug driver, not service-session operation or complete submission acceptance.
+Validation: all 91 Android regression tests passed, including against a private packaged adapter. Read-only checks in the minimized Google emulator verified Wiser's 16 schedule choices, seven days and 48 half-hour choices with their selected values. Editing was cancelled, Home and checked device settings were preserved, both reservations were released, and all 13 accepted capture pairs matched their retained hashes. Earlier controlled failures also restored Home and preserved checked state. This validates the helpers against an already-installed Debug driver; it is not full submission acceptance or certification.
 
 ## Updating
 
-Use **CrestronHomeNUnit.TestAdapter 1.7.1** or the matching runner/CLI archive for the portrait-screen fix. Existing processor test packages do not need redeployment for this Windows-side change. NUnit 4.6.1 and DevTools 1.4.0 remain unchanged.
+Use **CrestronHomeNUnit.TestAdapter 1.8.0** in the separate .NET 10 Android test project. Existing processor test packages do not need redeployment for these Windows-side UI helpers. NUnit 4.6.1 and the adapter's default DevTools 1.4.0 dependency remain unchanged; projects using DevTools 1.5.0 may retain that explicit dependency.
 
-See [emulator and app setup](docs/AndroidEmulatorSetup.md), [Android UI testing](docs/AndroidUiTesting.md), and [validation details](Validation.md). Crestron submission remains a separate opt-in workflow under development.
+See [room and nested-page testing](docs/AndroidUiTesting.md), [emulator and app setup](docs/AndroidEmulatorSetup.md), and [validation details](Validation.md). The Wiser NUnit fixture integration and final Crestron submission workflow remain separate work.

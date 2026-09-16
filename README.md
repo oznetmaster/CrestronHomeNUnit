@@ -12,6 +12,8 @@ The workflow reconciles a standard project's Debug build counter with the proces
 
 Version 1.7.0 adds opt-in [Android UI tests](docs/AndroidUiTesting.md) after the installed-driver checks, using your own ADB installation and emulator. The **Crestron Home NUnit UI automation library** is included in the test adapter package. It runs on Windows using .NET 10 and controls the Android app through ADB. It also supports a [pinned Release package](docs/ReleaseCandidateTesting.md) without rebuilding it, and reconciles Debug versions for renamed driver manifests. Final Crestron submission, full UI coverage and service-session emulator operation remain separate work.
 
+Room UI fixtures can inspect named room tiles, nested extension pages and complete selection lists through the adapter's [room-navigation APIs](docs/AndroidUiTesting.md#room-and-nested-page-inspection), with observed Home restoration after assertions. Selection inspection does not change a chosen value; fixtures provide reviewed navigation/cancel controls and expected state for their identified device.
+
 Successful CI workflows can also remove their own stored test packages with `removeTestPackageAfterSuccessfulRun`, preserving pre-existing/manual packages and reporting catalogue entries that remain cached until a planned reboot. Deployment retains the original package filename. See [cleanup and interrupted runs](docs/ContinuousIntegration.md#cleanup-and-interrupted-runs).
 
 Optional [installed-driver controls](docs/InstalledDriverControls.md) capture physical state through a read-only probe, verify command completion and independently observe restoration. [Artifact reuse](docs/ArtifactReuse.md) can retain verified build bytes across runs while rerunning every required test stage. Both features are opt-in. [Guarded code rollback](docs/DriverRollback.md) additionally requires a known previous package and a driver-specific configuration verifier; it preserves current settings and tokens.
@@ -20,7 +22,7 @@ To run hardware checks from GitHub Actions on your own Windows computer and proc
 
 Run NUnit tests **on a Crestron Home processor**, using a Windows runner, automation CLI or a standalone test tile in Crestron Home. This checks your code in the processor's Mono-based environment, where SDK, filesystem and networking behavior can differ from Windows.
 
-[Download the latest release](https://github.com/oznetmaster/CrestronHomeNUnit/releases/latest) · [Changelog](CHANGELOG.md) · [Full user and developer guide](docs/UserGuide.md) · [Create your own test package](docs/ProcessorTestPackages.md)
+[Download the latest release](https://github.com/oznetmaster/CrestronHomeNUnit/releases/latest) Â· [Changelog](CHANGELOG.md) Â· [Full user and developer guide](docs/UserGuide.md) Â· [Create your own test package](docs/ProcessorTestPackages.md)
 
 Copyright (c) 2026 Neil Colvin. Project-owned code is [MIT licensed](LICENSE). NUnit and other dependencies retain their own licenses and notices.
 
@@ -67,7 +69,7 @@ You need a Windows x64 computer supported by .NET 10, a compatible Crestron Home
 - **Discover** populates the test tree. **Run all** does not require discovery first; **Run selection** requires a selected fixture or test.
 - Select a different package while idle to switch connections. The runner refreshes a discovered package's current address and port before connecting. **Find packages** also updates changed endpoints.
 - After a dropped connection, the runner makes up to three rediscovery/reconnect attempts. Previous results remain visible, and interrupted tests are never rerun automatically. If the package is still restarting, use **Connect** once its Home tile is ready.
-- **Test inputs…** selects configuration files shared by all suites in the same processor package. Switching suites keeps the selection; other packages and processors have separate inputs. Existing suite selections migrate when they agree; if they conflict, choose the intended files once for the package. The runner transfers their current contents when discovering or running tests. Private device settings are not part of a published package.
+- **Test inputsâ€¦** selects configuration files shared by all suites in the same processor package. Switching suites keeps the selection; other packages and processors have separate inputs. Existing suite selections migrate when they agree; if they conflict, choose the intended files once for the package. The runner transfers their current contents when discovering or running tests. Private device settings are not part of a published package.
 - Live/manual suites run only when explicitly selected in the runner. Their fixtures may operate physical equipment; review their requirements and choose the intended devices.
 - **Use at next restart** remembers the package, suite and test selection. Restart restoration rediscovers the package's current endpoint and never starts tests automatically.
 - Window position, size and maximized state save immediately, independently of that checkbox. Minimization is ignored; restoration handles missing monitors and smaller screens.

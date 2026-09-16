@@ -37,6 +37,7 @@ $androidConsumer = @'
 // Copyright (c) 2026 Neil Colvin. Licensed under the MIT License.
 using CrestronHomeNUnit.Android;
 using NUnit.Framework;
+using System.Xml.Linq;
 namespace PackageAcceptance;
 public sealed class AndroidHelpers
 {
@@ -55,6 +56,18 @@ public sealed class AndroidHelpers
         CrestronHomePages.RequireExtensionPage(hierarchy, "Options");
         Assert.That(CrestronHomePages.ReadStatusAndButton(hierarchy, "First"), Is.EqualTo(("ON", "Turn Off", true)));
         Assert.That(CrestronHomePages.ReadStatusAndButton(hierarchy, "Second"), Is.EqualTo(("OFF", "Turn On", true)));
+        XElement Page(string id, string title) => new XElement("node",
+            new XAttribute("package", app), new XAttribute("resource-id", app + ":id/" + id),
+            new XAttribute("class", "android.widget.LinearLayout"),
+            XElement.Parse(Node("customdevices_toolbarTitle", title)), XElement.Parse(Node("customdevices_toolbarClose", "")));
+        var container = new XElement("node", new XAttribute("package", app), new XAttribute("resource-id", app + ":id/main_container"),
+            Page("customdevice_pulley", "Room"), Page("", "Schedule"));
+        var nested = new AndroidHierarchy(new XElement("hierarchy", container).ToString(), app);
+        var front = CrestronHomeExtensionPages.RequirePage(nested, new[] { "Room", "Schedule" });
+        Assert.That(front.RequireUnique(CrestronHomePages.Resource("customdevices_toolbarTitle")).Text, Is.EqualTo("Schedule"));
+        Assert.Throws<System.InvalidOperationException>(() => CrestronHomeExtensionPages.RequirePage(nested, new[] { "Room" }));
+        Assert.That(typeof(CrestronHomeNavigation).GetMethod(nameof(CrestronHomeNavigation.InspectRoomExtensionPagesAsync)), Is.Not.Null);
+        Assert.That(typeof(CrestronHomeExtensionNavigation).GetMethod(nameof(CrestronHomeExtensionNavigation.InspectSelectionAsync)), Is.Not.Null);
     }
 }
 '@
