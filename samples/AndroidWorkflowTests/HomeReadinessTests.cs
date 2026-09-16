@@ -16,6 +16,7 @@ public sealed class WorkflowSession
 	[OneTimeSetUp]
 	public async Task Open ()
 		{
+		Current = null;
 		if (string.IsNullOrWhiteSpace (Environment.GetEnvironmentVariable (AndroidWorkflowSession.CONTEXT_VARIABLE)))
 			Assert.Ignore ("Run this opt-in UI project through a processor workflow; ordinary discovery never connects to Android.");
 		Current = await AndroidWorkflowSession.OpenFromEnvironmentAsync ();
@@ -39,8 +40,7 @@ public sealed class HomeReadinessTests
 		var session = WorkflowSession.Current!;
 		await session.CaptureAsync ("home.readiness", hierarchy =>
 			{
-			var home = hierarchy.RequireUnique (new (AndroidSelectorKind.Text, session.Context.Profile.ExpectedHomeText));
-			Assert.That (home.Enabled, Is.True);
+			CrestronHomePages.RequireHome (hierarchy, session.Context.Profile.ExpectedHomeText);
 			});
 		}
 	}

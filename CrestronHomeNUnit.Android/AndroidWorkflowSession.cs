@@ -64,7 +64,10 @@ public sealed class AndroidWorkflowSession
 		try
 			{
 			var hierarchy = await session.Device.CaptureAsync (token).ConfigureAwait (false);
-			_ = hierarchy.RequireUnique (new (AndroidSelectorKind.Text, context.Profile.ExpectedHomeText));
+			if (context.Profile.Application == "com.crestron.phoenix.app")
+				CrestronHomePages.RequireHome (hierarchy, context.Profile.ExpectedHomeText);
+			else
+				_ = hierarchy.RequireUnique (new (AndroidSelectorKind.Text, context.Profile.ExpectedHomeText));
 			return session;
 			}
 		catch

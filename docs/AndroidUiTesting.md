@@ -10,7 +10,9 @@ The existing BlueStacks 5 Pie64 instance and Crestron Home Android app were used
 
 The documented BlueStacks hide shortcut did not hide the window in this setup. Normal minimization worked and the user confirmed that BlueStacks remained running minimized. This establishes operation while minimized in a logged-in Windows session, not operation after logout, from session 0 or after reboot. Unattended startup and recovery remain a separate worker-validation task.
 
-The proof used a private script. The new .NET primitives have offline coverage but still need an end-to-end Android run before their hardware behavior can be claimed verified. No hardware/UI operation runs as part of their current test project.
+The original weather proof used a private script. On 16 September 2026 a private .NET diagnostic also used the public Android library against the minimized emulator under the shared processor lease and a separate Android reservation. It closed the read-only Wiser panel, opened the selected system's saved connection details, verified the local address and port, returned to the system list, reconnected to the same Home, and verified the unobstructed Home screen. The connection/navigation sequence passed twice. No setting was changed and no physical-device command was sent; both reservations were released afterward.
+
+That verifies the .NET capture, guarded taps, scoped field assertions and page navigation in a logged-in desktop session. It was not a complete NUnit workflow run against a release candidate, and it does not establish installed-driver instance identity. Ordinary offline test projects still use simulated Android transports only.
 
 ## Library foundation
 
@@ -21,6 +23,12 @@ var hierarchy = await device.CaptureAsync(cancellationToken);
 ```
 
 Selectors use resource ID, exact text or accessibility description within the configured application package. Taps capture a new hierarchy, run a caller-supplied page assertion, require one enabled target with valid bounds, then send one input. An uncertain input outcome is never automatically retried. The caller must observe the resulting page and decide what follows.
+
+Set `AndroidSelector.AncestorResourceId` to scope a repeated control ID to its containing field. The app uses the same edit-control ID for the friendly name, local address, remote address and ports; a global text match can read the wrong field. `CrestronHomePages.RequireSavedLocalEndpoint` checks the friendly name and scoped local host/port without editing them. It compares literal IP addresses canonically and hostnames case-insensitively; it does not invent a DNS mapping between a hostname and an IP address. `RequireHome` rejects an otherwise matching Home name behind an open driver panel, menu or settings dialog. Crestron Home workflow session opening and the read-only sample use this unobstructed-page check.
+
+The observed address-verification route is Home menu, My Systems, the selected card's menu, Edit, inspect local fields, Back, then reconnect to that same named card. A private diagnostic validated that route; it is not yet an automatic step in `OpenFromEnvironmentAsync`. Card selection must be unique and visible. No input is sent to connection fields, and the diagnostic does not press Connect on the editor. Device Health requires the separate administration password and was not needed for this check.
+
+Saved connection settings and a matching visible Home are useful target evidence, not independent proof of the app's active transport, DNS resolution or a specific driver instance. Before adding physical controls, bind the intended installed instance and room to management API data and observed UI, and reject ambiguous names. Configured remote access or changing DNS needs additional active-route verification. These cases remain open; a label match must not be used to waive them.
 
 The initial interface intentionally has no credential entry or physical-device test sequence. `TapAsync` is a low-level primitive: a tile can itself trigger a physical command. Driver-specific fixtures must choose reviewed navigation controls and enforce the test policy before calling it.
 
@@ -60,7 +68,7 @@ The workflow currently records an aggregate Android stage plus the private detai
 1. Extend the private profiles and bounded home-readiness check with exact processor/installed-instance verification.
 2. Validate the combined processor and Android reservations with the actual worker, including crash recovery. The acquisition order and persistent Android marker are implemented in source.
 3. Add opt-in NUnit driver fixtures with page models, image checks, live feedback verification and starting-state restoration. All discovered cases are now required by the stage; mapping those cases to all applicable official requirements remains open.
-4. Validate the .NET implementation on the minimized emulator, then prove supervised startup/recovery from the installed GitHub runner service. A controlled interactive worker or an emulator with supported headless operation may be needed.
+4. Extend the repeated .NET minimized-emulator proof to the full NUnit workflow and prove supervised startup/recovery from the installed GitHub runner service. A controlled interactive worker or an emulator with supported headless operation may be needed.
 5. Retain candidate-bound evidence and feed it into the submission gate. Accessibility text alone does not prove icons, layout or timely device response.
 6. Cover Configure/Setup dialogs separately from the end-user Android app. Extend to outage, endurance and multiple-instance requirements only with the necessary equipment and device bindings.
 

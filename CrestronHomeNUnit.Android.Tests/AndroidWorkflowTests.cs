@@ -113,6 +113,17 @@ public sealed class AndroidWorkflowTests
 		}
 
 	[Test]
+	public void CrestronSessionRejectsHomeTextBehindAnOpenDriverPanel ()
+		{
+		using var lease = AndroidSessionLease.Acquire (_lock, _owner);
+		var context = Context ();
+		context = context with { Profile = context.Profile with { Application = "com.crestron.phoenix.app" } };
+		var xml = "<hierarchy><node package=\"com.crestron.phoenix.app\" resource-id=\"com.crestron.phoenix.app:id/home_wholeHouse_name\" text=\"Example Home\" enabled=\"true\" bounds=\"[0,0][100,100]\"/><node package=\"com.crestron.phoenix.app\" resource-id=\"com.crestron.phoenix.app:id/customdevices_toolbarClose\" enabled=\"true\" bounds=\"[0,0][20,20]\"/></hierarchy>";
+		Assert.ThrowsAsync<InvalidOperationException> (() => AndroidWorkflowSession.OpenAsync (context, new (new CaptureTransport (xml), context.Profile.Application), CancellationToken.None));
+		Assert.That (AndroidWorkflowSession.Read<AndroidRunCompletion> (Path.Combine (_directory, "completion.json")).RestorationConfirmed, Is.True);
+		}
+
+	[Test]
 	public void FailedPageAssertionKeepsCaptureButCannotCreatePassingObservation ()
 		{
 		using var lease = AndroidSessionLease.Acquire (_lock, _owner);
@@ -124,7 +135,7 @@ public sealed class AndroidWorkflowTests
 		Assert.That (AndroidWorkflowSession.Read<AndroidRunCompletion> (Path.Combine (_directory, "completion.json")).RestorationConfirmed, Is.False);
 		}
 
-	private sealed class CaptureTransport : IAndroidCommandTransport
+	private sealed class CaptureTransport (string? hierarchy = null) : IAndroidCommandTransport
 		{
 		public Task<byte[]> ExecuteAsync (IReadOnlyList<string> arguments, CancellationToken cancellationToken)
 			{
@@ -132,7 +143,7 @@ public sealed class AndroidWorkflowTests
 			if (arguments.Contains ("input")) throw new AssertionException ("Read-only evidence tests must not send input.");
 			if (arguments.Contains ("screencap")) return Task.FromResult (Convert.FromBase64String ("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aZ1cAAAAASUVORK5CYII="));
 			var text = arguments.Contains ("uiautomator") ? "UI hierarchy dumped to: fixture" : arguments.Contains ("cat") ?
-				"<hierarchy><node package=\"example.app\" text=\"Example Home\" enabled=\"true\" bounds=\"[0,0][100,100]\"/><node password=\"true\" text=\"private-sentinel\" content-desc=\"private-sentinel\"/></hierarchy>" : "";
+				(hierarchy ?? "<hierarchy><node package=\"example.app\" text=\"Example Home\" enabled=\"true\" bounds=\"[0,0][100,100]\"/><node password=\"true\" text=\"private-sentinel\" content-desc=\"private-sentinel\"/></hierarchy>") : "";
 			return Task.FromResult (Encoding.UTF8.GetBytes (text));
 			}
 		}

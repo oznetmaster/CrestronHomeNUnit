@@ -12,7 +12,10 @@ public enum AndroidSelectorKind
 	{
 	ResourceId, Text, ContentDescription
 	}
-public sealed record AndroidSelector (AndroidSelectorKind Kind, string Value);
+public sealed record AndroidSelector (AndroidSelectorKind Kind, string Value)
+	{
+	public string? AncestorResourceId { get; init; }
+	}
 public sealed record AndroidElement (string ResourceId, string Text, string Description, bool Enabled, int Left, int Top, int Right, int Bottom);
 
 /// <summary>A private, password-masked view of a captured Android accessibility hierarchy.</summary>
@@ -46,6 +49,20 @@ public sealed class AndroidHierarchy
 
 	public AndroidElement RequireUnique (AndroidSelector selector)
 		{
+		var matches = FindMatches (selector);
+		if (matches.Length != 1)
+			throw new InvalidOperationException ($"Android selector matched {matches.Length} elements; no input was sent.");
+		return ReadElement (matches[0]);
+		}
+
+	public void RequireAbsent (AndroidSelector selector)
+		{
+		if (FindMatches (selector).Length != 0)
+			throw new InvalidOperationException ("Unexpected Android element or overlay is present; no input was sent.");
+		}
+
+	private XElement[] FindMatches (AndroidSelector selector)
+		{
 		ArgumentNullException.ThrowIfNull (selector);
 		ArgumentException.ThrowIfNullOrWhiteSpace (selector.Value);
 		var attribute = selector.Kind switch
@@ -55,11 +72,15 @@ public sealed class AndroidHierarchy
 				AndroidSelectorKind.ContentDescription => "content-desc",
 				_ => throw new ArgumentException ("Unknown Android selector kind.", nameof (selector))
 				};
-		var matches = _document.Descendants ("node").Where (node =>
-			(string?)node.Attribute ("package") == _application && (string?)node.Attribute (attribute) == selector.Value).ToArray ();
-		if (matches.Length != 1)
-			throw new InvalidOperationException ($"Android selector matched {matches.Length} elements; no input was sent.");
-		var selected = matches[0];
+		if (selector.AncestorResourceId != null) ArgumentException.ThrowIfNullOrWhiteSpace (selector.AncestorResourceId);
+		return _document.Descendants ("node").Where (node =>
+			(string?)node.Attribute ("package") == _application && (string?)node.Attribute (attribute) == selector.Value &&
+			(selector.AncestorResourceId == null || node.Ancestors ("node").Any (ancestor =>
+				(string?)ancestor.Attribute ("package") == _application && (string?)ancestor.Attribute ("resource-id") == selector.AncestorResourceId))).ToArray ();
+		}
+
+	private static AndroidElement ReadElement (XElement selected)
+		{
 		if ((string?)selected.Attribute ("password") == "true")
 			throw new InvalidOperationException ("Password fields are outside this navigation interface.");
 		var bounds = Regex.Match ((string?)selected.Attribute ("bounds") ?? "", @"^\[(\d+),(\d+)\]\[(\d+),(\d+)\]$", RegexOptions.CultureInvariant, TimeSpan.FromSeconds (1));
