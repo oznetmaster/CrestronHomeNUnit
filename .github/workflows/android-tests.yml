@@ -17,6 +17,8 @@ jobs:
       - name: Test Android primitives without emulator or hardware
         shell: pwsh
         run: ./tools/Test-DiscoveredCoverage.ps1 -Stage Desktop -Project CrestronHomeNUnit.Android.Tests/CrestronHomeNUnit.Android.Tests.csproj -Framework net10.0 -Configuration Release -ResultsDirectory artifacts/android -RequiredCategories @()
+      - name: Discover opt-in UI sample without opening Android
+        run: dotnet test samples/AndroidWorkflowTests/AndroidWorkflowTests.csproj -c Release --list-tests
       - uses: actions/upload-artifact@v4
         if: always()
         with:

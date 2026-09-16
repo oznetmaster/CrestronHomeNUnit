@@ -44,11 +44,18 @@ public static class WorkflowEvidence
 			outcomes.Length > 0 && passed >= minimumPassed && outcomes.All (outcome => outcome.MeetsGate));
 		}
 
-	public static async Task<int> ProcessAsync (string executable, IEnumerable<string> arguments, string directory, string log, CancellationToken token)
+	public static Task<int> ProcessAsync (string executable, IEnumerable<string> arguments, string directory, string log, CancellationToken token)
+		=> ProcessAsync (executable, arguments, directory, log, token, null);
+
+	internal static async Task<int> ProcessAsync (string executable, IEnumerable<string> arguments, string directory, string log, CancellationToken token,
+		IReadOnlyDictionary<string, string>? environment)
 		{
 		var start = new ProcessStartInfo (executable) { WorkingDirectory = directory, UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
 		// A local test command must not recursively start another deployment workflow.
 		start.Environment["CRESTRON_HOME_WORKFLOW_ACTIVE"] = "1";
+		if (environment != null)
+			foreach (var entry in environment)
+				start.Environment[entry.Key] = entry.Value;
 		foreach (var argument in arguments)
 			start.ArgumentList.Add (argument);
 		using var process = Process.Start (start) ?? throw new IOException ("Could not start build/test process.");

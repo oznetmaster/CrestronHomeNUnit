@@ -5,6 +5,7 @@
     <DevToolsVersion Condition="'$(DevToolsVersion)' == ''">1.4.0</DevToolsVersion>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../CrestronHomeNUnit.Android/CrestronHomeNUnit.Android.csproj" />
     <ProjectReference Include="../CrestronHomeNUnit.Client/CrestronHomeNUnit.Client.csproj" />
     <ProjectReference Include="$(DevToolsProject)" Condition="'$(DevToolsProject)' != ''" />
     <PackageReference Include="CrestronHomeDevTools" Version="$(DevToolsVersion)" Condition="'$(DevToolsProject)' == ''" />

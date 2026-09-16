@@ -35,6 +35,7 @@
     <Error Condition="'$(DevToolsProject)' != ''" Text="Pack the adapter against a published DevTools package, not a private project override." />
     <ItemGroup>
       <BuildOutputInPackage Include="$(OutputPath)CrestronHomeNUnit.Workflow.dll" />
+      <BuildOutputInPackage Include="$(OutputPath)CrestronHomeNUnit.Android.dll" />
       <BuildOutputInPackage Include="$(OutputPath)CrestronHomeNUnit.Client.dll" />
       <BuildOutputInPackage Include="$(OutputPath)CrestronHomeNUnit.Transport.dll" />
     </ItemGroup>

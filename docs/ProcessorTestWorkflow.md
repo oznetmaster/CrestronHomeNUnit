@@ -2,7 +2,7 @@
 
 For the complete local-to-processor development cycle, see the [continuous integration guide](ContinuousIntegration.md), including private settings, gated actual-driver deployment, evidence and optional test-instance removal.
 
-This document records the agreed workflow. The shared execution-order/deployment-gate policy is implemented and unit-tested; the standalone NUnit CLI and configuration-management primitives have been validated on a processor. The CLI includes a build/deploy/test backend using the published CrestronHomeDevTools NuGet dependency. The Visual Studio Test Explorer adapter is not implemented yet.
+This document records the agreed workflow. The shared execution-order/deployment-gate policy is implemented and unit-tested; the standalone NUnit CLI and configuration-management primitives have been validated on a processor. The CLI includes a build/deploy/test backend using the published CrestronHomeDevTools NuGet dependency. The stable [Visual Studio Test Explorer adapter](VisualStudioTestExplorer.md) invokes the same workflow.
 
 ## Hardware validation
 
@@ -10,7 +10,7 @@ On September 13, 2026, a complete KasaTapo workflow passed 57 local tests, 57 pr
 
 An earlier run passed its tests but could not complete cleanup while Home configuration processing was stalled. Its result remains failed; recovery required a separately approved processor reboot. The underlying cause has not been established. A missing tile alone does not prove removal, and one successful repeat run does not establish that the earlier fault cannot recur. The workflow retains its lease after unconfirmed cleanup and never reboots as an unrequested cleanup fallback. V1 lifecycle reboots require the explicit policy described in the [CI guide](ContinuousIntegration.md#v1-development-and-reboot-policy).
 
-Private run plans, logs, device bindings and deployment credentials are kept outside this repository. The Visual Studio adapter remains future work.
+Private run plans, logs, device bindings and deployment credentials are kept outside this repository. Hardware history below describes particular runs; see the [CI guide](ContinuousIntegration.md) for broader validation and current limitations.
 
 ## One build, separate results
 
@@ -27,6 +27,8 @@ Test Explorer should distinguish Local, Processor, Processor Live and Deployed D
 5. For a driver project with deployment enabled, require all preceding mandatory stages to pass, then deploy and update the actual driver package built from the same source. Verify its installed/running version before continuing. Library projects stop after testing.
 6. Run required smoke/live checks against the actual installed driver: loading, connection, entities, reported state and, when configured, device control.
 7. Show and save all stage results, including restoration failures and the final installed driver version.
+
+Source development also provides an optional `androidTests` project after the installed-driver checks in step 6. It reserves the configured Android session before deployment and retains both reservations if UI restoration is unconfirmed. This addition is not in released 1.6.0 and has not completed hardware validation; see [Android setup, evidence and recovery](AndroidUiTesting.md).
 
 A suite counts as passed only when the required tests actually execute successfully. Missing, skipped, zero-test, timed-out, cancelled or incomplete required stages cannot unlock driver deployment. Optional live fixtures remain opt-in and must not silently become mandatory. An individual Run Selection result cannot masquerade as completion of the full required gate.
 

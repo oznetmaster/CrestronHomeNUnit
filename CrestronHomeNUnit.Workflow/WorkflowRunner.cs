@@ -8,6 +8,7 @@ using System.Xml.Linq;
 
 using CrestronHomeDevTools;
 
+using CrestronHomeNUnit.Android;
 using CrestronHomeNUnit.Client;
 
 namespace CrestronHomeNUnit.Workflow;
@@ -19,6 +20,7 @@ public static class WorkflowRunner
 		{
 		plan.Validate ();
 		var initialConfiguration = WorkflowConfiguration.ReadInputs (plan.ActualDriver?.InitialConfigurationFile);
+		var androidProfile = plan.AndroidTests == null ? null : AndroidWorkflowSession.Read<AndroidSessionProfile> (plan.AndroidTests.ProfilePath);
 		if (!string.IsNullOrWhiteSpace (plan.ProcessorSystemName))
 			plan = plan with
 				{
@@ -35,7 +37,22 @@ public static class WorkflowRunner
 			RunId = runId,
 			State = "Held"
 			}), token).ConfigureAwait (false);
-		await using var operations = new Operations (plan, credential, results, client, lease, initialConfiguration);
+		AndroidSessionLease? androidReservation = null;
+		try
+			{
+			// Always reserve processor first, Android second, before builds or deployment.
+			if (androidProfile != null)
+				androidReservation = AndroidSessionLease.Acquire (androidProfile.LockPath, runId);
+			}
+		catch
+			{
+			using var cleanup = new CancellationTokenSource (TimeSpan.FromSeconds (20));
+			await lease.ReleaseAsync (cleanup.Token).ConfigureAwait (false);
+			await File.WriteAllTextAsync (Path.Combine (results, "Lease.json"), JsonSerializer.Serialize (new { RunId = runId, State = "Released", Reason = "Android reservation unavailable; no build or deployment started" })).ConfigureAwait (false);
+			throw;
+			}
+		using var heldAndroidReservation = androidReservation;
+		await using var operations = new Operations (plan, credential, results, client, lease, initialConfiguration, androidProfile);
 		ProcessorWorkflowResult? result = null;
 		bool release = false;
 		var stages = new List<WorkflowStageResult> ();
@@ -62,6 +79,7 @@ public static class WorkflowRunner
 				using var cleanup = new CancellationTokenSource (TimeSpan.FromSeconds (20));
 				try
 					{
+					androidReservation?.Release ();
 					await lease.ReleaseAsync (cleanup.Token).ConfigureAwait (false);
 					await File.WriteAllTextAsync (Path.Combine (results, "Lease.json"), JsonSerializer.Serialize (new
 						{
@@ -103,7 +121,7 @@ public static class WorkflowRunner
 		=> remoteExecutionStopped && !activationUncertain && (!removalRequested || !hasTestInstance);
 
 	private sealed class Operations (WorkflowPlan plan, NetworkCredential credential, string results, ConfigurationClient initialClient, ProcessorLease lease,
-		 WorkflowConfiguration.Inputs? initialConfiguration) : IProcessorWorkflowOperations, IAsyncDisposable
+		 WorkflowConfiguration.Inputs? initialConfiguration, AndroidSessionProfile? androidProfile) : IProcessorWorkflowOperations, IAsyncDisposable
 		{
 		private readonly ConfigurationClient _initialClient = initialClient;
 		private ConfigurationClient client = initialClient;
@@ -361,9 +379,29 @@ public static class WorkflowRunner
 						break;
 					}
 				}
+			if (plan.AndroidTests != null && cases.Count == plan.DeployedChecks.Length + plan.DeployedControls.Length && cases.All (c => (string?)c.Attribute ("result") == "Passed"))
+				{
+				await CheckSource (token).ConfigureAwait (false);
+				ActivationUncertain = true;
+				await lease.BeginControlAsync (token).ConfigureAwait (false);
+				using var androidDeadline = Deadline (token);
+				var android = await WorkflowAndroid.RunAsync (plan.AndroidTests, androidProfile!, lease.Owner, _host, _actual!.DeviceId,
+					_actualPath!, _source!, Path.Combine (results, "AndroidUI"), androidDeadline.Token).ConfigureAwait (false);
+				if (android.RestorationConfirmed)
+					{
+					await lease.EndControlAsync (token).ConfigureAwait (false);
+					ActivationUncertain = false;
+					}
+				bool passed = android.RestorationConfirmed && android.Tests.MeetsGate;
+				var test = new XElement ("test-case", new XAttribute ("name", "Android UI tests"), new XAttribute ("fullname", "Android.Workflow"), new XAttribute ("result", passed ? "Passed" : "Failed"));
+				if (!passed)
+					test.Add (new XElement ("failure", new XElement ("message", "Android tests or starting-state restoration were not confirmed; inspect private AndroidUI evidence.")));
+				cases.Add (test);
+				SaveChecks (cases);
+				}
 			await client.WaitForDriverVersionAsync ([_actual!.DeviceId], _actual.Version, Timeout, token).ConfigureAwait (false);
 			await CheckSource (token).ConfigureAwait (false);
-			return new (cases.Count (c => (string?)c.Attribute ("result") == "Passed"), cases.Count (c => (string?)c.Attribute ("result") == "Failed"), 0, cases.Count == plan.DeployedChecks.Length + plan.DeployedControls.Length);
+			return new (cases.Count (c => (string?)c.Attribute ("result") == "Passed"), cases.Count (c => (string?)c.Attribute ("result") == "Failed"), 0, cases.Count == plan.DeployedChecks.Length + plan.DeployedControls.Length + (plan.AndroidTests == null ? 0 : 1));
 			}
 		private async Task<bool> BelongsToActualDriver (DeviceInfo device, CancellationToken token)
 			{

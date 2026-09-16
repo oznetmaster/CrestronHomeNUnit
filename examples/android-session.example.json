@@ -1,0 +1,7 @@
+{
+  "adbExecutable": "ABSOLUTE_ADB_EXECUTABLE",
+  "deviceSerial": "EXPLICIT_ADB_DEVICE_SERIAL",
+  "application": "com.crestron.phoenix.app",
+  "expectedHomeText": "EXACT_VISIBLE_HOME_NAME",
+  "lockPath": "ABSOLUTE_PRIVATE_ANDROID_LOCK_FILE"
+}

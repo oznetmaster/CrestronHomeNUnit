@@ -4,6 +4,8 @@
 using System.Net;
 using System.Text.Json;
 
+using CrestronHomeNUnit.Android;
+
 namespace CrestronHomeNUnit.Workflow;
 
 // Keep plans and input files outside the checkout. No credentials are serialized in results.
@@ -44,6 +46,7 @@ public sealed record WorkflowPlan
 	public SuitePlan[] LiveSuites { get; init; } = [];
 	public PropertyCheck[] DeployedChecks { get; init; } = [];
 	public InstalledControlPlan[] DeployedControls { get; init; } = [];
+	public AndroidTestPlan? AndroidTests { get; init; }
 	public ArtifactReusePlan? ArtifactReuse
 		{
 		get; init;
@@ -94,6 +97,14 @@ public sealed record WorkflowPlan
 			throw new ArgumentException ("Driver updates require processor live tests and installed-driver checks.");
 		if (DeployedControls.Length > 0 && ActualDriver == null)
 			throw new ArgumentException ("Post-deployment controls require an actual driver target.");
+		if (AndroidTests != null)
+			{
+			if (ActualDriver == null || !Path.IsPathFullyQualified (AndroidTests.Project) || !File.Exists (AndroidTests.Project) ||
+				!Path.IsPathFullyQualified (AndroidTests.ProfilePath) || !File.Exists (AndroidTests.ProfilePath) ||
+				!SourceRoots.Any (root => Path.GetFullPath (AndroidTests.Project).StartsWith (Path.GetFullPath (root).TrimEnd (Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)))
+				throw new ArgumentException ("Android tests require an actual driver, a test project within a source root and an existing private profile.");
+			AndroidWorkflowSession.Read<AndroidSessionProfile> (AndroidTests.ProfilePath).Validate ();
+			}
 		if (DeployedControls.Select (c => c.Name).Concat (DeployedChecks.Select (c => c.Name)).Distinct (StringComparer.Ordinal).Count () != DeployedControls.Length + DeployedChecks.Length)
 			throw new ArgumentException ("Installed-driver check names must be unique.");
 		foreach (var control in DeployedControls)
@@ -130,6 +141,7 @@ public sealed record WorkflowPlan
 	}
 
 public sealed record LocalTestPlan (string Project, int MinimumPassed, string? Filter = null);
+public sealed record AndroidTestPlan (string Project, string ProfilePath);
 public sealed record PackageBuildPlan (string Project, string PackagePath, string InstanceName, int LocationId, int? ExpectedDeviceId = null)
 	{
 	public int[] AdditionalRemovalRebootDeviceIds { get; init; } = [];

@@ -1,6 +1,6 @@
 # Android UI testing for driver submissions
 
-This is source development for the [Crestron submission workflow](https://github.com/oznetmaster/CrestronHomeDevTools/blob/main/docs/CrestronSubmission.md). It is not included in the published 1.6.0 tools and does not yet add UI stages to the CLI or Test Explorer workflow.
+This is source development for the [Crestron submission workflow](https://github.com/oznetmaster/CrestronHomeDevTools/blob/main/docs/CrestronSubmission.md). It is not included in the published 1.6.0 tools. The shared CLI/Test Explorer workflow now has an opt-in Android test stage in source; its orchestration has offline coverage, but its complete hardware run and submission integration remain unverified.
 
 `CrestronHomeNUnit.Android` is a .NET 10 library that uses an existing ADB installation and an explicit Android device serial. `CrestronHomeNUnit.Android.Tests` contains offline NUnit tests; discovering or running that project does not contact Android, install drivers or operate physical devices. The new library has no Android emulator or Crestron APK bundled with it and is not currently a separate NuGet package.
 
@@ -26,10 +26,35 @@ The initial interface intentionally has no credential entry or physical-device t
 
 Hierarchy output masks text and accessibility descriptions of password fields. Other personal/device information can remain. Screenshots are unredacted and must go to private evidence storage. The interface checks the PNG header, not the full image. Visual validation, redaction and evidence retention remain responsibilities of the workflow.
 
+## Opt-in workflow setup
+
+Add `androidTests` to the private workflow plan, alongside the existing actual-driver target, processor live suites and installed-driver checks:
+
+```json
+"androidTests": {
+  "project": "ABSOLUTE_PATH_TO_ANDROID_TEST_PROJECT",
+  "profilePath": "ABSOLUTE_PATH_TO_PRIVATE_ANDROID_PROFILE"
+}
+```
+
+The project must be inside a declared `sourceRoots` directory. Include its dependencies in those roots as well. Copy [the profile example](../examples/android-session.example.json) into private storage and supply an existing ADB executable, explicit serial, application package, exact visible home name and absolute lock filename in an existing private directory. All cooperating plans for one Android session must use the same lock file. This reservation coordinates workers on one computer, not independent machines or manual Android use.
+
+The workflow acquires the processor lease first and the Android reservation second, before building or deploying. If Android is reserved, it releases the untouched processor lease and stops. It runs the UI project after successful installed-driver checks and controls, while both reservations remain held. Plans without `androidTests` keep their existing behavior.
+
+The [read-only sample](../samples/AndroidWorkflowTests/HomeReadinessTests.cs) owns one session for the whole project. Ordinary test discovery does not connect to Android, and execution without the workflow context skips the sample. The project is deliberately outside ordinary solution tests. An opted-in workflow supplies `CRESTRON_HOME_ANDROID_CONTEXT` only to its child test process. Opening the session verifies the local coordinator's process identity and reservation, then requires the configured home text in the current app hierarchy. It does not start an emulator, select a Home system or sign in. The visible name is a readiness guard; it does not independently prove the app's processor address or installed driver identity. Driver-specific verification is still required before any controls.
+
+`CaptureAsync` saves a masked hierarchy, unredacted screenshot and passing observation only after the supplied assertion succeeds. These records carry the run ID, installed device ID, inspected package GUID/version, package hash, development source digest and capture hashes. Failed assertions retain their captures without a passing observation. Captures are sequential, not an atomic screenshot/hierarchy pair. Keep the entire results directory private.
+
+Call `Complete(true)` once, after all inputs have finished and the original physical state has been verified restored. The sample can do this because it only reads the UI. A fixture that adds controls must implement and verify restoration, including after failed assertions. Use `Complete(false)` when restoration cannot be confirmed. A matching completion record confirms restoration only; failed, skipped, empty or nonzero-exit tests still fail the stage. Missing or mismatched completion retains both reservations and blocks dependent recovery actions. Starting a second session in the same run is rejected even after completion.
+
+An interrupted reservation never expires or gets stolen. Before manually removing its marker, establish that the coordinator, child tests and ADB commands have stopped, reconcile physical state and any uncertain deployment, and follow the processor-lease recovery procedure. Then remove only the corresponding private Android marker. Merely closing the emulator does not prove restoration.
+
+The workflow currently records an aggregate Android stage plus the private detailed TRX and captures. Its development source digest is not a release commit identity. The current tests and captures do not satisfy the final submission gate: the approved requirement mapping, complete discovered-check comparison, exact Release candidate installation and additional environment provenance remain to be integrated.
+
 ## Work remaining before CI operation
 
-1. Add private device/session profiles, exact processor/home/installed-instance verification and bounded application readiness checks.
-2. Integrate the existing processor lease and a separate Android-session lock, acquired in a consistent order. No UI controls may run alongside conflicting hardware work.
+1. Extend the private profiles and bounded home-readiness check with exact processor/installed-instance verification.
+2. Validate the combined processor and Android reservations with the actual worker, including crash recovery. The acquisition order and persistent Android marker are implemented in source.
 3. Add opt-in NUnit driver fixtures with page models, image checks, live feedback verification and starting-state restoration. Require results from all discovered applicable checks rather than fixed expected counts.
 4. Validate the .NET implementation on the minimized emulator, then prove supervised startup/recovery from the installed GitHub runner service. A controlled interactive worker or an emulator with supported headless operation may be needed.
 5. Retain candidate-bound evidence and feed it into the submission gate. Accessibility text alone does not prove icons, layout or timely device response.
