@@ -79,7 +79,7 @@ public sealed class AndroidHierarchy
 				(string?)ancestor.Attribute ("package") == _application && (string?)ancestor.Attribute ("resource-id") == selector.AncestorResourceId))).ToArray ();
 		}
 
-	private static AndroidElement ReadElement (XElement selected)
+	internal static AndroidElement ReadElement (XElement selected)
 		{
 		if ((string?)selected.Attribute ("password") == "true")
 			throw new InvalidOperationException ("Password fields are outside this navigation interface.");

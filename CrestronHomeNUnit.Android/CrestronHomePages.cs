@@ -13,6 +13,58 @@ public static class CrestronHomePages
 	public const string ResourcePrefix = "com.crestron.phoenix.app:id/";
 	public static AndroidSelector Resource (string id) => new (AndroidSelectorKind.ResourceId, ResourcePrefix + id);
 
+	private static void RequireNoNavigationOverlay (AndroidHierarchy hierarchy)
+		{
+		foreach (var overlay in new[] { "customdevices_toolbarClose", "customdevice_selectionRecyclerView", "mobileclaimhome_content", "fragmentPulleyContainer", "bottomSheet_infoBar", "homeswitcher_title", "featureMoreActionRoot" })
+			hierarchy.RequireAbsent (Resource (overlay));
+		}
+
+	public static void RequireRooms (AndroidHierarchy hierarchy)
+		{
+		RequireNoNavigationOverlay (hierarchy);
+		hierarchy.RequireAbsent (Resource ("room_back"));
+		var heading = hierarchy.RequireUnique (Resource ("fragmentRoomsTitle"));
+		if (!heading.Enabled || heading.Text != "Rooms")
+			throw new InvalidOperationException ("The unobstructed Rooms screen is not open.");
+		}
+
+	public static void RequireRoom (AndroidHierarchy hierarchy, string roomName)
+		{
+		ArgumentException.ThrowIfNullOrWhiteSpace (roomName);
+		RequireNoNavigationOverlay (hierarchy);
+		var heading = hierarchy.RequireUnique (Resource ("room_name"));
+		if (!heading.Enabled || heading.Text != roomName || !hierarchy.RequireUnique (Resource ("room_back")).Enabled)
+			throw new InvalidOperationException ("The expected room is not open.");
+		}
+
+	// This app's two bottom tabs have no unique accessibility names. Validate the
+	// observed structure and geometry before selecting either tab; never use saved coordinates.
+	internal static AndroidElement BottomTab (AndroidHierarchy hierarchy, bool rooms)
+		{
+		var document = XDocument.Parse (hierarchy.MaskedXml);
+		bool Is (XElement node, string id) => (string?)node.Attribute ("package") == "com.crestron.phoenix.app" &&
+			(string?)node.Attribute ("resource-id") == ResourcePrefix + id;
+		var bars = document.Descendants ("node").Where (node => Is (node, "bottomNavigationView")).ToArray ();
+		if (bars.Length != 1)
+			throw new InvalidOperationException ("The bottom navigation bar is missing or ambiguous.");
+		var buttons = bars[0].Elements ("node").ToArray ();
+		if (buttons.Length != 2 || buttons.Any (node =>
+			(string?)node.Attribute ("package") != "com.crestron.phoenix.app" ||
+			(string?)node.Attribute ("class") != "android.view.ViewGroup" ||
+			(string?)node.Attribute ("clickable") != "true" ||
+			(string?)node.Attribute ("enabled") != "true" ||
+			node.Descendants ("node").Count (child => Is (child, "itemBottomNavigationIcon")) != 1))
+			throw new InvalidOperationException ("The bottom navigation layout has changed; no input was sent.");
+		var bar = AndroidHierarchy.ReadElement (bars[0]);
+		var left = AndroidHierarchy.ReadElement (buttons[0]);
+		var right = AndroidHierarchy.ReadElement (buttons[1]);
+		if (!bar.Enabled || left.Right > right.Left || left.Left < bar.Left || right.Right > bar.Right ||
+			left.Top < bar.Top || right.Top < bar.Top || left.Bottom > bar.Bottom || right.Bottom > bar.Bottom ||
+			left.Top != right.Top || left.Bottom != right.Bottom)
+			throw new InvalidOperationException ("The bottom navigation bounds are inconsistent; no input was sent.");
+		return rooms ? right : left;
+		}
+
 	public static void RequireExtensionPage (AndroidHierarchy hierarchy, string title)
 		{
 		ArgumentException.ThrowIfNullOrWhiteSpace (title);
@@ -48,6 +100,8 @@ public static class CrestronHomePages
 		ArgumentException.ThrowIfNullOrWhiteSpace (expectedName);
 		foreach (var overlay in new[] { "customdevices_toolbarClose", "mobileclaimhome_content", "fragmentPulleyContainer", "bottomSheet_infoBar", "homeswitcher_title", "featureMoreActionRoot" })
 			hierarchy.RequireAbsent (Resource (overlay));
+		hierarchy.RequireAbsent (Resource ("room_back"));
+		hierarchy.RequireAbsent (Resource ("fragmentRoomsTitle"));
 		var home = hierarchy.RequireUnique (Resource ("home_wholeHouse_name"));
 		if (!home.Enabled || home.Text != expectedName)
 			throw new InvalidOperationException ("The expected unobstructed Home screen is not selected.");

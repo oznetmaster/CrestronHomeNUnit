@@ -121,10 +121,16 @@ public sealed class AndroidDevice (IAndroidCommandTransport transport, string ap
 
 	internal async Task TapAsync (AndroidSelector selector, Action<AndroidHierarchy> validatePage, Action inputStarting, CancellationToken cancellationToken)
 		{
+		await TapAsync (hierarchy => hierarchy.RequireUnique (selector), validatePage, inputStarting, cancellationToken).ConfigureAwait (false);
+		}
+
+	internal async Task TapAsync (Func<AndroidHierarchy, AndroidElement> select, Action<AndroidHierarchy> validatePage, Action inputStarting, CancellationToken cancellationToken)
+		{
 		ArgumentNullException.ThrowIfNull (validatePage);
+		ArgumentNullException.ThrowIfNull (select);
 		var hierarchy = await CaptureAsync (cancellationToken).ConfigureAwait (false);
 		validatePage (hierarchy);
-		var element = hierarchy.RequireUnique (selector);
+		var element = select (hierarchy);
 		if (!element.Enabled)
 			throw new InvalidOperationException ("Android element is disabled; no input was sent.");
 		cancellationToken.ThrowIfCancellationRequested ();

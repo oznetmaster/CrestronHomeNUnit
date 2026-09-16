@@ -10,6 +10,7 @@ public sealed class CrestronHomeNavigation
 	private readonly TimeSpan _readinessTimeout;
 	private Action<AndroidHierarchy>? _pendingInputPage;
 	private string? _extensionTitle;
+	private string? _roomName;
 	private bool _scrolledDetails;
 	public bool HomeRestored { get; private set; }
 
@@ -31,6 +32,9 @@ public sealed class CrestronHomeNavigation
 	private void Home (AndroidHierarchy hierarchy) => CrestronHomePages.RequireHome (hierarchy, _session.Context.Profile.ExpectedHomeText);
 	private void Extension (AndroidHierarchy hierarchy) => CrestronHomePages.RequireExtensionPage (hierarchy,
 		_extensionTitle ?? throw new InvalidOperationException ("No extension page was selected by this navigation session."));
+	private static void Rooms (AndroidHierarchy hierarchy) => CrestronHomePages.RequireRooms (hierarchy);
+	private void Room (AndroidHierarchy hierarchy) => CrestronHomePages.RequireRoom (hierarchy,
+		_roomName ?? throw new InvalidOperationException ("No room was selected by this navigation session."));
 	private void Menu (AndroidHierarchy hierarchy)
 		{
 		if (hierarchy.RequireUnique (Id ("home_wholeHouse_name")).Text != _session.Context.Profile.ExpectedHomeText)
@@ -193,6 +197,51 @@ public sealed class CrestronHomeNavigation
 			}
 		}
 
+	/// <summary>Inspect one named room extension and restore Home, including after assertion failures. Sends no device control commands.</summary>
+	public async Task InspectRoomExtensionAsync (string checkId, string roomName, string tileName, string pageTitle, Action<AndroidHierarchy> verify, CancellationToken token = default)
+		{
+		ArgumentException.ThrowIfNullOrWhiteSpace (roomName);
+		ArgumentException.ThrowIfNullOrWhiteSpace (tileName);
+		ArgumentException.ThrowIfNullOrWhiteSpace (pageTitle);
+		ArgumentNullException.ThrowIfNull (verify);
+		await WaitAsync (Home, token).ConfigureAwait (false);
+		HomeRestored = true;
+		_roomName = roomName;
+		_extensionTitle = pageTitle;
+		var room = new AndroidSelector (AndroidSelectorKind.Text, roomName);
+		void RoomChoice (AndroidHierarchy hierarchy)
+			{
+			Rooms (hierarchy);
+			if (hierarchy.RequireUnique (room).ResourceId != CrestronHomePages.ResourcePrefix + "itemRoomTitle")
+				throw new InvalidOperationException ("The matching text is not a room title.");
+			}
+		try
+			{
+			await TapBottomTabAsync (true, Home, token).ConfigureAwait (false);
+			await WaitAsync (Rooms, token).ConfigureAwait (false);
+			await TapAsync (room, RoomChoice, token).ConfigureAwait (false);
+			await WaitAsync (Room, token).ConfigureAwait (false);
+			await TapAsync (new (AndroidSelectorKind.ContentDescription, "room_service_" + tileName), Room, token).ConfigureAwait (false);
+			await WaitAsync (Extension, token).ConfigureAwait (false);
+			await ConfirmDepartureAsync (token).ConfigureAwait (false);
+			await _session.CaptureAsync (checkId + ".controls", hierarchy => { Extension (hierarchy); verify (hierarchy); }, token).ConfigureAwait (false);
+			}
+		finally
+			{
+			using var cleanup = new CancellationTokenSource (TimeSpan.FromMinutes (2));
+			await RestoreHomeAsync (cleanup.Token).ConfigureAwait (false);
+			await _session.CaptureAsync (checkId + ".home-restored", Home, cleanup.Token).ConfigureAwait (false);
+			}
+		}
+
+	private async Task TapBottomTabAsync (bool rooms, Action<AndroidHierarchy> guard, CancellationToken token)
+		{
+		await ConfirmDepartureAsync (token).ConfigureAwait (false);
+		_session.VerifyActive ();
+		HomeRestored = false;
+		await _session.Device.TapAsync (hierarchy => CrestronHomePages.BottomTab (hierarchy, rooms), guard, () => _pendingInputPage = guard, token).ConfigureAwait (false);
+		}
+
 	/// <summary>Restore only recognized navigation pages of the expected Home; never dismiss an unknown screen.</summary>
 	public async Task RestoreHomeAsync (CancellationToken token = default)
 		{
@@ -201,7 +250,7 @@ public sealed class CrestronHomeNavigation
 		for (int step = 0; step < 4; step++)
 			{
 			int page = -1;
-			var guards = new Action<AndroidHierarchy>[] { Home, Details, Options, Systems, Menu, Extension };
+			var guards = new Action<AndroidHierarchy>[] { Home, Details, Options, Systems, Menu, Extension, Room, Rooms };
 			await WaitAsync (hierarchy =>
 				{
 				for (int index = 0; index < guards.Length; index++)
@@ -211,13 +260,17 @@ public sealed class CrestronHomeNavigation
 					}
 				throw new InvalidOperationException ("The current screen is not a recognized navigation page of the expected Home.");
 				}, token).ConfigureAwait (false);
-			if (page == 0) { HomeRestored = true; _extensionTitle = null; _scrolledDetails = false; return; }
+			if (page == 0) { HomeRestored = true; _extensionTitle = null; _roomName = null; _scrolledDetails = false; return; }
 			if (page == 1)
 				await TapAsync (Id ("mobileclaimhome_back"), Details, token).ConfigureAwait (false);
 			else if (page == 3)
 				await TapAsync (HomeCard, Systems, token).ConfigureAwait (false);
 			else if (page == 5)
 				await TapAsync (Id ("customdevices_toolbarClose"), Extension, token).ConfigureAwait (false);
+			else if (page == 6)
+				await TapAsync (Id ("room_back"), Room, token).ConfigureAwait (false);
+			else if (page == 7)
+				await TapBottomTabAsync (false, Rooms, token).ConfigureAwait (false);
 			else
 				{
 				_session.VerifyActive ();
