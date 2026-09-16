@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.8.1 - 2026-09-16
+
+Fix room extension inspection when a named tile is below the initial viewport. The UI automation helper searches the observed service area with bounded scrolling and recognizes the compact room title that replaces the large heading after scrolling. Tile taps remain inside the visible area, clear of the toolbar and bottom navigation.
+
+The search stops on an unchanged or repeated viewport, an ambiguous or disabled tile, an unexpected room title, or an uncertain gesture result. Scrolls are never retried after a lost response. A missing tile fails the inspection and still triggers observed Home restoration.
+
+Validation: the complete Android regression suite passed against both source and an isolated adapter package. Package restore, workflow discovery and execution guards also passed. In the minimized Google emulator, a visible room extension was inspected successfully; a missing tile stopped the search and restored Home under both large and compact heading layouts. The checked device state and inventory were preserved and reservations released. Physical control tests and end-to-end submission acceptance remain separate work; these checks do not establish certification.
+
 ## 1.8.0 - 2026-09-16
 
 Add room and nested-page inspection to the Crestron Home NUnit UI automation library included in the test adapter. Tests can open a named room extension, inspect nested extension pages and verify complete selection lists without choosing an option. Page names, navigation controls and expected values are supplied by each driver's test fixture. Controls are scoped to the front page even when the app retains background pages with identical resource IDs.
