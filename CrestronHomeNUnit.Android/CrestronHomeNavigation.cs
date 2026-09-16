@@ -10,6 +10,7 @@ public sealed class CrestronHomeNavigation
 	private readonly TimeSpan _readinessTimeout;
 	private Action<AndroidHierarchy>? _pendingInputPage;
 	private string? _extensionTitle;
+	private bool _scrolledDetails;
 	public bool HomeRestored { get; private set; }
 
 	public CrestronHomeNavigation (AndroidWorkflowSession session) : this (session, TimeSpan.FromSeconds (25)) { }
@@ -50,6 +51,15 @@ public sealed class CrestronHomeNavigation
 		}
 	private void Details (AndroidHierarchy hierarchy)
 		{
+		if (_scrolledDetails)
+			{
+			// This editor was bound to the expected Home before our single scroll.
+			// Its title/name may now be outside the viewport. Only cancel/close is permitted here.
+			_ = hierarchy.RequireUnique (Id ("mobileclaimhome_scrollView"));
+			_ = hierarchy.RequireUnique (Id ("mobileclaimhome_content"));
+			_ = hierarchy.RequireUnique (Id ("mobileclaimhome_back"));
+			return;
+			}
 		_ = hierarchy.RequireUnique (Id ("mobileclaimhome_title"));
 		var name = hierarchy.RequireUnique (Id ("commonui_animatedEditText_editText") with
 			{ AncestorResourceId = CrestronHomePages.ResourcePrefix + "mobileclaimhome_friendlyNameOrLocation" });
@@ -122,8 +132,27 @@ public sealed class CrestronHomeNavigation
 			await WaitAsync (Options, token).ConfigureAwait (false);
 			await TapAsync (new (AndroidSelectorKind.Text, "Edit"), Options, token).ConfigureAwait (false);
 			await WaitAsync (Details, token).ConfigureAwait (false);
-			await _session.CaptureAsync (checkId + ".local-endpoint", hierarchy => CrestronHomePages.RequireSavedLocalEndpoint
-				(hierarchy, _session.Context.Profile.ExpectedHomeText, _session.Context.ProcessorAddress, localPort), token).ConfigureAwait (false);
+			var current = await _session.Device.CaptureAsync (token).ConfigureAwait (false);
+			Details (current);
+			CrestronHomePages.RequireSavedLocalAddress (current, _session.Context.Profile.ExpectedHomeText, _session.Context.ProcessorAddress);
+			bool portOutsideView = false;
+			try { current.RequireAbsent (Id ("mobileclaimhome_localPort")); portOutsideView = true; }
+			catch (InvalidOperationException) { }
+			if (portOutsideView)
+				{
+				await _session.CaptureAsync (checkId + ".local-address", h => CrestronHomePages.RequireSavedLocalAddress
+					(h, _session.Context.Profile.ExpectedHomeText, _session.Context.ProcessorAddress), token).ConfigureAwait (false);
+				await ConfirmDepartureAsync (token).ConfigureAwait (false);
+				_session.VerifyActive ();
+				await _session.Device.ScrollDownAsync (Id ("mobileclaimhome_scrollView"), Details, () => _scrolledDetails = true, token).ConfigureAwait (false);
+				await WaitAsync (h => { Details (h); CrestronHomePages.RequireSavedLocalPort (h, localPort); }, token).ConfigureAwait (false);
+				}
+			await _session.CaptureAsync (checkId + ".local-endpoint", hierarchy =>
+				{
+				Details (hierarchy);
+				if (!portOutsideView) CrestronHomePages.RequireSavedLocalAddress (hierarchy, _session.Context.Profile.ExpectedHomeText, _session.Context.ProcessorAddress);
+				CrestronHomePages.RequireSavedLocalPort (hierarchy, localPort);
+				}, token).ConfigureAwait (false);
 			}
 		finally
 			{
@@ -182,7 +211,7 @@ public sealed class CrestronHomeNavigation
 					}
 				throw new InvalidOperationException ("The current screen is not a recognized navigation page of the expected Home.");
 				}, token).ConfigureAwait (false);
-			if (page == 0) { HomeRestored = true; _extensionTitle = null; return; }
+			if (page == 0) { HomeRestored = true; _extensionTitle = null; _scrolledDetails = false; return; }
 			if (page == 1)
 				await TapAsync (Id ("mobileclaimhome_back"), Details, token).ConfigureAwait (false);
 			else if (page == 3)

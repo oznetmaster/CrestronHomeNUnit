@@ -100,6 +100,27 @@ public sealed class CrestronHomeNavigationTests
 		}
 
 	[Test]
+	public async Task PortraitEditorScrollsOnceAndRetainsAddressAndPortEvidence ()
+		{
+		_transport.PortBelowFold = true;
+		await _navigation.VerifySavedEndpointAsync ("portrait", 50001);
+		Assert.That (_transport.Swipes, Is.EqualTo (1));
+		Assert.That (_navigation.HomeRestored, Is.True);
+		Assert.That (File.Exists (Path.Combine (_directory, "portrait.local-address", "observation.json")), Is.True);
+		Assert.That (File.Exists (Path.Combine (_directory, "portrait.local-endpoint", "observation.json")), Is.True);
+		}
+
+	[Test]
+	public void UncertainScrollIsNotRepeatedAndEditorIsCancelled ()
+		{
+		_transport.PortBelowFold = true;
+		_transport.ThrowAfterInput = 5;
+		Assert.ThrowsAsync<IOException> (() => _navigation.VerifySavedEndpointAsync ("uncertain-scroll", 50001));
+		Assert.That (_transport.Swipes, Is.EqualTo (1));
+		Assert.That (_navigation.HomeRestored, Is.True);
+		}
+
+	[Test]
 	public void UncertainTapIsNotReplayedAndObservedPageIsRestored ()
 		{
 		_transport.ThrowAfterInput = 4;
@@ -196,6 +217,8 @@ public sealed class CrestronHomeNavigationTests
 		public int BackInputs;
 		public bool DuplicateMenu;
 		public bool NonTileText;
+		public bool PortBelowFold;
+		public int Swipes;
 		public List<string> Inputs { get; } = [];
 		private static XElement Node (string id, string text = "", string description = "", int left = 0) => new ("node",
 			new XAttribute ("package", "com.crestron.phoenix.app"), new XAttribute ("resource-id", CrestronHomePages.ResourcePrefix + id),
@@ -231,6 +254,11 @@ public sealed class CrestronHomeNavigationTests
 					_ => [Node ("unknown")]
 					};
 				if (Page == "systems" && DuplicateMenu) nodes = nodes.Append (Node ("homeview_more"));
+				if (Page == "details" && PortBelowFold)
+					{
+					nodes = nodes.Where (node => (string?)node.Attribute ("resource-id") != CrestronHomePages.ResourcePrefix + (Swipes == 0 ? "mobileclaimhome_localPort" : "mobileclaimhome_friendlyNameOrLocation"));
+					nodes = nodes.Append (Node ("mobileclaimhome_scrollView")).Append (Node ("mobileclaimhome_content"));
+					}
 				return Task.FromResult (Encoding.UTF8.GetBytes (new XElement ("hierarchy", nodes).ToString (SaveOptions.DisableFormatting)));
 				}
 			if (arguments[1] != "input") throw new InvalidOperationException ("Unexpected test transport command.");
@@ -244,6 +272,11 @@ public sealed class CrestronHomeNavigationTests
 					{
 					Page = Page == "menu" ? "home" : "systems";
 					}
+				}
+			else if (arguments[2] == "swipe")
+				{
+				if (Page != "details") throw new InvalidOperationException ("Unexpected scroll outside editor.");
+				Swipes++;
 				}
 			else
 				{

@@ -135,6 +135,22 @@ public sealed class AndroidDevice (IAndroidCommandTransport transport, string ap
 		// Do not retry an input or silently infer a successful page transition.
 		}
 
+	internal async Task ScrollDownAsync (AndroidSelector container, Action<AndroidHierarchy> validatePage, Action inputStarting, CancellationToken token)
+		{
+		var hierarchy = await CaptureAsync (token).ConfigureAwait (false);
+		validatePage (hierarchy);
+		var element = hierarchy.RequireUnique (container);
+		if (!element.Enabled || element.Bottom - element.Top < 80)
+			throw new InvalidOperationException ("The observed scroll container is unavailable or too small.");
+		var x = ((element.Left + element.Right) / 2).ToString (CultureInfo.InvariantCulture);
+		var start = (element.Top + (element.Bottom - element.Top) * 3 / 4).ToString (CultureInfo.InvariantCulture);
+		var end = (element.Top + (element.Bottom - element.Top) / 4).ToString (CultureInfo.InvariantCulture);
+		token.ThrowIfCancellationRequested ();
+		inputStarting ();
+		await transport.ExecuteAsync (["shell", "input", "swipe", x, start, x, end, "350"], token).ConfigureAwait (false);
+		// One gesture within observed bounds. Uncertain inputs are never repeated.
+		}
+
 	public async Task<byte[]> CaptureScreenshotAsync (CancellationToken cancellationToken = default)
 		{
 		var bytes = await transport.ExecuteAsync (["exec-out", "screencap", "-p"], cancellationToken).ConfigureAwait (false);

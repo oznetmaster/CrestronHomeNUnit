@@ -55,18 +55,29 @@ public static class CrestronHomePages
 
 	public static void RequireSavedLocalEndpoint (AndroidHierarchy hierarchy, string expectedName, string expectedHost, int expectedPort)
 		{
+		RequireSavedLocalAddress (hierarchy, expectedName, expectedHost);
+		RequireSavedLocalPort (hierarchy, expectedPort);
+		}
+
+	internal static void RequireSavedLocalAddress (AndroidHierarchy hierarchy, string expectedName, string expectedHost)
+		{
 		ArgumentException.ThrowIfNullOrWhiteSpace (expectedName);
 		ArgumentException.ThrowIfNullOrWhiteSpace (expectedHost);
-		if (expectedPort is < 1 or > 65535) throw new ArgumentOutOfRangeException (nameof (expectedPort));
 		_ = hierarchy.RequireUnique (Resource ("mobileclaimhome_title"));
 		AndroidElement Field (string container) => hierarchy.RequireUnique (Resource ("commonui_animatedEditText_editText") with { AncestorResourceId = ResourcePrefix + container });
 		var name = Field ("mobileclaimhome_friendlyNameOrLocation");
 		var address = Field ("mobileclaimhome_localIpAddressOrHostName");
-		var port = Field ("mobileclaimhome_localPort");
 		bool sameHost = IPAddress.TryParse (expectedHost, out var expectedIp) && IPAddress.TryParse (address.Text, out var actualIp)
 			? expectedIp.Equals (actualIp) : string.Equals (expectedHost, address.Text, StringComparison.OrdinalIgnoreCase);
-		if (!name.Enabled || !address.Enabled || !port.Enabled || name.Text != expectedName || !sameHost ||
-			!int.TryParse (port.Text, NumberStyles.None, CultureInfo.InvariantCulture, out var number) || number != expectedPort)
+		if (!name.Enabled || !address.Enabled || name.Text != expectedName || !sameHost)
 			throw new InvalidOperationException ("The selected system's saved local endpoint does not match the private workflow target.");
+		}
+
+	internal static void RequireSavedLocalPort (AndroidHierarchy hierarchy, int expectedPort)
+		{
+		if (expectedPort is < 1 or > 65535) throw new ArgumentOutOfRangeException (nameof (expectedPort));
+		var port = hierarchy.RequireUnique (Resource ("commonui_animatedEditText_editText") with { AncestorResourceId = ResourcePrefix + "mobileclaimhome_localPort" });
+		if (!port.Enabled || !int.TryParse (port.Text, NumberStyles.None, CultureInfo.InvariantCulture, out var number) || number != expectedPort)
+			throw new InvalidOperationException ("The selected system's saved local port does not match the private workflow target.");
 		}
 	}

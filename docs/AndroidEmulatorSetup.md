@@ -37,7 +37,7 @@ You need an existing working [processor development workflow](ContinuousIntegrat
 | Choice | Current position in this project |
 | --- | --- |
 | **BlueStacks 5, Pie 64-bit** | A complete development workflow has passed with the app running minimized in a logged-in Windows session. The setup below uses this known working option. |
-| **Google Android Emulator**, available through Visual Studio or Android Studio | A promising choice for unattended CI because it supports no-window operation. Crestron Home compatibility and service-account operation have not yet been validated by this project. |
+| **Google Android Emulator**, available through Visual Studio or Android Studio | The read-only Wiser UI fixtures passed with a Pixel 7 Android 16 virtual device minimized in a logged-in Windows session, using the 1.7.1 adapter candidate. No-window and service-account operation remain unvalidated. |
 
 Microsoft's [.NET Android emulator documentation](https://learn.microsoft.com/en-us/dotnet/maui/android/emulator/?view=net-maui-10.0) describes Google's emulator integrated with Visual Studio. Our test library uses ordinary ADB and an explicit device serial, so it is not tied to BlueStacks or to a MAUI application.
 
@@ -51,7 +51,7 @@ The emulator download is managed in the **Android SDK Manager inside Visual Stud
 
 1. In Visual Studio itself, open **Tools > Android > Android SDK Manager**.
 2. On its **Tools** tab, select **Android Emulator** and apply the installation.
-3. Open **Tools > Android > Android Device Manager**, create a virtual device with **Google Play Store** enabled, and start it.
+3. Open **Tools > Android > Android Device Manager**, create a virtual device, and start it. Include **Google Play Store** only if you want to install through the store; direct APK installation does not require Google sign-in.
 4. Follow the app installation and processor connection steps below inside that virtual device.
 
 If the Android menus are missing, use Visual Studio Installer to add the **.NET Multi-platform App UI development** workload first. Microsoft documents the SDK requirements and Device Manager in [managing virtual devices](https://learn.microsoft.com/en-us/dotnet/maui/android/emulator/device-manager?view=net-maui-10.0). The workload provides development tools; our UI fixtures remain ordinary Windows NUnit tests and do not require writing a MAUI app.
@@ -71,12 +71,19 @@ An emulator instance has its own installed apps and saved settings. Creating ano
 
 Installing BlueStacks is only the first part of setup. **You must also install the Crestron Home Android app inside that BlueStacks instance.**
 
-1. Open **Google Play Store inside the running emulator**. Sign in with the Google account you intend to use for the test environment.
-2. Search for **Crestron Home**, verify that it is the app published by Crestron, and install it. This is the end-user Home app, not Configure Pro or the Setup app.
-3. Open Crestron Home inside the emulator. Add your development Home using its actual processor address or hostname. If discovery does not find it, use the manual connection option. An emulator's network behavior can differ from a physical phone.
-4. Enter the **User Interface Device Password** configured for that Home when prompted. This is separate from the SSH/admin credentials used by the processor workflow; do not assume they are interchangeable. The [Crestron password documentation](https://docs.crestron.com/en-us/8525/Content/CP4R/Installer-Settings/Sys-Config/System-Info-and-Pass.htm) identifies the UI-device password used to join the system.
-5. Record the exact Home display name, saved local address and local UI port. Use your configured port; the example below uses 50001. See [Crestron's user-interface pairing instructions](https://docs.crestron.com/en-us/8525/Content/CP4R/Appendix/Pair-User-Interfaces.htm).
-6. Connect and confirm that you can see the correct Home and driver tiles. Close menus, settings screens and driver panels, leaving the unobstructed **Home** screen visible.
+Choose an installation route:
+
+- **Google Play:** open Play Store inside the emulator, sign in, search for **Crestron Home**, verify the Crestron publisher, and install it.
+- **Direct APK installation, without a Google account:** use a legitimate Crestron-supplied installer or the original signed APK from your own existing installation. Enable ADB as described below, then run `adb -s TARGET_SERIAL install PATH_TO_APK`. If the existing app is split across several APKs, all required splits must be retained and installed together with `install-multiple`. Do not assume that one extracted base APK is sufficient. Android documents [APK installation through ADB](https://developer.android.com/tools/adb#move). Keep the installer private; this project does not redistribute the Crestron app.
+
+For transfer from another Android instance, `adb -s SOURCE_SERIAL shell pm path com.crestron.phoenix.app` lists the installed APK paths. Copy each listed file to a private Windows directory with `adb -s SOURCE_SERIAL pull REMOTE_PATH LOCAL_PATH`, then install those files on the target. This copies the app, not its saved Home connections or credentials. Verify Android version and CPU compatibility; an APK from one device may not run on another. Google sign-in can be skipped during emulator setup, although the app's own runtime dependencies still need validation.
+
+Use the end-user **Crestron Home** app, not Configure Pro or the Setup app. After either installation route:
+
+1. Open Crestron Home inside the emulator. Add your development Home using its actual processor address or hostname. If discovery does not find it, use the manual connection option. An emulator's network behavior can differ from a physical phone.
+2. Enter the **User Interface Device Password** configured for that Home when prompted. This is separate from the SSH/admin credentials used by the processor workflow; do not assume they are interchangeable. The [Crestron password documentation](https://docs.crestron.com/en-us/8525/Content/CP4R/Installer-Settings/Sys-Config/System-Info-and-Pass.htm) identifies the UI-device password used to join the system.
+3. Record the exact Home display name, saved local address and local UI port. Use your configured port; the example below uses 50001. See [Crestron's user-interface pairing instructions](https://docs.crestron.com/en-us/8525/Content/CP4R/Appendix/Pair-User-Interfaces.htm).
+4. Connect and confirm that you can see the correct Home and driver tiles. Close menus, settings screens and driver panels, leaving the unobstructed **Home** screen visible.
 
 Complete account login, permissions and any first-run dialogs manually. The supplied fixture does not enter passwords or dismiss unknown dialogs. Keep emulator data and saved logins private.
 
@@ -104,6 +111,8 @@ Check the results:
 - `pm path` returns the installed Crestron Home app's APK path. An empty result means the app is missing from this particular instance.
 
 Always select the device explicitly. Do not let a test choose the first of several connected Android devices. These checks read readiness and app installation; they do not prove that Home is connected to the intended processor. See [Android's ADB documentation](https://developer.android.com/tools/adb) for device selection and connection behavior.
+
+When using BlueStacks alongside Google's emulator, use one current Android SDK `adb.exe` for both. An older BlueStacks ADB client can conflict with the SDK client's shared server. BlueStacks may also move its active ADB port when another emulator occupies the configured port: verify the currently observed endpoint before connecting and update the private profile accordingly. Never restart a shared ADB server while tests own either instance.
 
 ## Create your private Android profile
 
@@ -186,3 +195,5 @@ No signature, Crestron submission profile or portal account is required for thes
 | Reservation remains after a failure | Inspect the retained workflow evidence and confirm its process and child commands have stopped. Reconcile UI/device state before following [interrupted-run recovery](ContinuousIntegration.md#cleanup-and-interrupted-runs). Do not simply delete the lock and retry. |
 
 The tested BlueStacks environment used Pie 64-bit and Crestron Home Android 4.6.18. This records the validation environment, not a promise that every app/emulator version behaves identically. The guide's commands and copyable sample have been checked against that environment; a clean-machine installation has not yet been repeated end to end.
+
+On 16 September 2026, Crestron Home 4.6.18 was also copied from that BlueStacks instance and installed on a Pixel 7 Android 16 (API 36.1) emulator without Google sign-in. Both read-only Wiser UI cases passed while the emulator was minimized, with return to Home and unchanged gateway state verified. This used the 1.7.1 adapter candidate, which handles the local-port field being below the portrait viewport. Version 1.7.0 can stop at that field. A prior app termination was observed; reopening restored connectivity, but its cause remains unconfirmed. The emulator's full unattended lifecycle is still separate validation work.

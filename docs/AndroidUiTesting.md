@@ -46,6 +46,8 @@ Hierarchy output masks text and accessibility descriptions of password fields. O
 
 ## Opt-in workflow setup
 
+Use **1.7.1 or later for portrait screens**. If the local-port field is below the visible editor area, the navigator records the name/address first, scrolls once within the observed editor, then verifies the port. It does not edit fields or press Connect. Missing or incorrect fields after that bounded scroll still fail, and cleanup closes the editor before verifying Home restoration. Both read-only Wiser cases passed with the Google Pixel emulator minimized using this fix; logged-out and service-session operation remain unvalidated.
+
 For your own .NET 10 NUnit UI-test project, consume the Android assembly from `CrestronHomeNUnit.TestAdapter` 1.7.0 or later alongside `NUnit`, `NUnit3TestAdapter` and `Microsoft.NET.Test.Sdk`. Mark test-tool dependencies `PrivateAssets="all"` and do not add a `Workflows.xml` to that UI-test project. The existing workflow container remains a separate project. The [copyable sample](../samples/AndroidWorkflowTests/AndroidWorkflowTests.csproj) uses the published package by default. Tool contributors can set `UseSourceAndroid=true` to test the source library in this repository; consuming driver repositories do not need a second checkout. Publish the required test adapter version before pushing dependent driver-project updates.
 
 Add `androidTests` to the private workflow plan, alongside the existing actual-driver target, processor live suites and installed-driver checks:

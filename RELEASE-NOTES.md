@@ -1,19 +1,13 @@
-# Crestron Home NUnit v1.7.0
+# Crestron Home NUnit v1.7.1
 
-This is the **first release of Android UI testing support**. A development workflow can now run NUnit tests against the real Crestron Home Android app after its desktop tests, processor tests and gated driver update.
+Fix saved-connection inspection on portrait Android screens where the local-port field is below the visible area. The navigator first verifies and records the Home name and local address, makes one guarded scroll, then verifies the port. It closes the editor and verifies return to Home even when inspection fails. An uncertain scroll is never repeated.
 
-The new **Crestron Home NUnit UI automation library** is included in the `CrestronHomeNUnit.TestAdapter` package. Its test code runs on Windows and requires .NET 10; it communicates with the Android app through ADB. It provides Home and extension-page navigation, checks against visible controls, private screenshots and test results, and verified return to the starting Home screen. The processor and Android session are reserved together so cooperating workflows cannot overlap. Developers supply their own ADB installation, emulator and Crestron Home app.
+The setup guide now covers Visual Studio's Android SDK Manager, Windows acceleration, and installing the Crestron Home APK without a Google account. It also explains how to avoid conflicting ADB versions when BlueStacks and Google's emulator share a computer.
 
-This release also introduces an optional way to test an already-built Release driver package. The workflow verifies its package hash, driver identity, version and source commit, then uses those exact bytes without rebuilding them. Ordinary workflows continue to build Debug packages.
-
-An existing Debug-version reconciliation problem is fixed: driver manifests named after the output package are now recognized alongside the project-name convention. Custom or ambiguous layouts can specify `manifestPath` explicitly.
-
-Validation: the complete Wiser development workflow passed with the packaged UI automation library, including desktop and processor tests, live reads, the actual-driver update, installed health checks and both Android UI cases. Gateway and room state was preserved, Home was restored and reservations were released. Automated workflow, Android, adapter and isolated-package checks also passed; see [validation details](Validation.md).
-
-Android hardware validation currently covers read-only gateway checks with minimized BlueStacks in a logged-in Windows session. Physical UI controls, service-session operation, exact Release-candidate hardware validation and the final Crestron submission workflow remain work in progress.
+Validation: all 67 local Android tests passed. Both read-only Wiser gateway cases passed through a private packaged adapter candidate with Google's Pixel 7 Android emulator minimized. Eight screenshot/hierarchy pairs were verified; gateway state was unchanged, Home was restored and both reservations were released. These results cover a logged-in Windows session and an already-installed Debug driver, not service-session operation or complete submission acceptance.
 
 ## Updating
 
-Use **CrestronHomeNUnit.TestAdapter 1.7.0** or the matching runner/CLI ZIP. Existing plans remain valid; Android and Release-candidate testing are opt-in. Official NUnit 4.6.1 and DevTools 1.4.0 remain unchanged. Processor test packages remain GitHub-only.
+Use **CrestronHomeNUnit.TestAdapter 1.7.1** or the matching runner/CLI archive for the portrait-screen fix. Existing processor test packages do not need redeployment for this Windows-side change. NUnit 4.6.1 and DevTools 1.4.0 remain unchanged.
 
-See [Android setup](docs/AndroidUiTesting.md), [Release candidate testing](docs/ReleaseCandidateTesting.md), and [version reconciliation](docs/ContinuousIntegration.md#readiness-and-version-identity). Keep credentials, worker settings and device evidence private.
+See [emulator and app setup](docs/AndroidEmulatorSetup.md), [Android UI testing](docs/AndroidUiTesting.md), and [validation details](Validation.md). Crestron submission remains a separate opt-in workflow under development.
