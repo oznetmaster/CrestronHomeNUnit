@@ -2,6 +2,8 @@
 
 For the complete local-to-processor development cycle, see the [continuous integration guide](docs/ContinuousIntegration.md), including private settings, gated actual-driver deployment, evidence and optional test-instance removal.
 
+These are general development and CI tools. Client and library projects use desktop and processor tests without a Crestron submission. Driver projects can additionally test an installed driver and its UI. Submission to Crestron is a separate, explicitly enabled option for driver releases; submission forms, signatures and certification evidence are not prerequisites for ordinary CI or GitHub/NuGet publication. Processor test packages are testing tools, not portal submissions.
+
 The tools include a [Visual Studio Test Explorer workflow adapter](docs/VisualStudioTestExplorer.md), available as the stable [CrestronHomeNUnit.TestAdapter NuGet package](https://www.nuget.org/packages/CrestronHomeNUnit.TestAdapter). Add it to a separate .NET 10 workflow test project to run the same gated development cycle from Visual Studio.
 
 Version 1.2.1 also supports private initial-driver configuration and health checks using newly assigned instance IDs. The tooling coordinates desktop tests, updated Home test tiles and DevTools/build operations through a shared processor reservation. Upgrade the participating tools and test packages together, using DevTools 1.1.0 or later; see [hardware CI setup and coordination](docs/GitHubHardwareCI.md). [Build deployment settings and retained package inspection](https://github.com/oznetmaster/CrestronHomeDevTools/blob/HEAD/docs/ProcessorCoordination.md) are documented in DevTools.
@@ -32,6 +34,7 @@ Copyright (c) 2026 Neil Colvin. Project-owned code is [MIT licensed](LICENSE). N
 - [Build and release](#build-and-release)
 - [Documentation and known limitations](#documentation-and-known-limitations)
 - [Android UI testing foundation and submission work](docs/AndroidUiTesting.md)
+- [Set up an Android emulator and the Crestron Home app](docs/AndroidEmulatorSetup.md)
 - [Testing an existing Release candidate without rebuilding it](docs/ReleaseCandidateTesting.md)
 - [Licenses and acknowledgments](#licenses-and-acknowledgments)
 

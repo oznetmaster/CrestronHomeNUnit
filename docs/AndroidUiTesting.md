@@ -1,6 +1,10 @@
 # Crestron Home NUnit UI automation library
 
-The optional Android stage requires **CrestronHomeNUnit 1.7.0 or later**. It extends the shared CLI/Test Explorer development workflow and is a foundation for the Crestron submission workflow described below. A combined Wiser development workflow passed on real hardware on 16 September 2026; Release-candidate submission integration remains unfinished.
+New to BlueStacks or Android test setup? Start with [setting up an Android emulator on Windows](AndroidEmulatorSetup.md), including the copyable NUnit sample and first-run checks.
+
+The optional Android stage requires **CrestronHomeNUnit 1.7.0 or later**. It extends the shared CLI/Test Explorer development workflow for ordinary driver regression testing, whether or not the driver will ever be submitted to Crestron. A combined Wiser development workflow passed on real hardware on 16 September 2026.
+
+Client and library projects can use desktop and processor tests without an Android stage or submission work. Driver UI evidence may also contribute to a separately enabled Crestron submission, whose additional requirements and integration remain unfinished. Passing development tests alone does not authorize submission, and incomplete submission work does not block ordinary CI or GitHub/NuGet publication.
 
 The **Crestron Home NUnit UI automation library** (`CrestronHomeNUnit.Android`) runs on the Windows test computer and communicates with the Crestron Home Android app through ADB. It is part of this project. Its runtime requirement is .NET 10, plus an existing ADB installation and an explicit Android device serial. `CrestronHomeNUnit.Android.Tests` contains offline NUnit tests; discovering or running that project does not contact Android, install drivers or operate physical devices. The new library has no Android emulator or Crestron APK bundled with it and is not currently a separate NuGet package.
 
@@ -42,7 +46,7 @@ Hierarchy output masks text and accessibility descriptions of password fields. O
 
 ## Opt-in workflow setup
 
-For your own .NET 10 NUnit UI-test project, consume the Android assembly from `CrestronHomeNUnit.TestAdapter` 1.7.0 or later alongside `NUnit`, `NUnit3TestAdapter` and `Microsoft.NET.Test.Sdk`. Mark test-tool dependencies `PrivateAssets="all"` and do not add a `Workflows.xml` to that UI-test project. The existing workflow container remains a separate project. The bundled sample uses a source reference to exercise the UI automation library being developed; consuming driver repositories do not need a second checkout. Publish the required test adapter version before pushing dependent driver-project updates.
+For your own .NET 10 NUnit UI-test project, consume the Android assembly from `CrestronHomeNUnit.TestAdapter` 1.7.0 or later alongside `NUnit`, `NUnit3TestAdapter` and `Microsoft.NET.Test.Sdk`. Mark test-tool dependencies `PrivateAssets="all"` and do not add a `Workflows.xml` to that UI-test project. The existing workflow container remains a separate project. The [copyable sample](../samples/AndroidWorkflowTests/AndroidWorkflowTests.csproj) uses the published package by default. Tool contributors can set `UseSourceAndroid=true` to test the source library in this repository; consuming driver repositories do not need a second checkout. Publish the required test adapter version before pushing dependent driver-project updates.
 
 Add `androidTests` to the private workflow plan, alongside the existing actual-driver target, processor live suites and installed-driver checks:
 
