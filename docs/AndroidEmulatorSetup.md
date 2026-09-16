@@ -37,13 +37,15 @@ You need an existing working [processor development workflow](ContinuousIntegrat
 | Choice | Current position in this project |
 | --- | --- |
 | **BlueStacks 5, Pie 64-bit** | A complete development workflow has passed with the app running minimized in a logged-in Windows session. The setup below uses this known working option. |
-| **Google Android Emulator**, available through Visual Studio or Android Studio | The read-only Wiser UI fixtures passed with a Pixel 7 Android 16 virtual device minimized in a logged-in Windows session, using the 1.7.1 adapter candidate. No-window and service-account operation remain unvalidated. |
+| **Google Android Emulator**, available through Visual Studio or Android Studio | The complete Wiser Debug workflow passed with the Android 16 virtual device minimized, using published CLI/TestAdapter 1.7.1 and optional DevTools 1.5.0 name binding. No-window operation and complete UI execution under a service account remain unvalidated. |
 
 Microsoft's [.NET Android emulator documentation](https://learn.microsoft.com/en-us/dotnet/maui/android/emulator/?view=net-maui-10.0) describes Google's emulator integrated with Visual Studio. Our test library uses ordinary ADB and an explicit device serial, so it is not tied to BlueStacks or to a MAUI application.
 
 For Google's emulator, choose a virtual device and system image that include the **Google Play Store** if you intend to install Crestron Home from the store. A Google APIs image is not necessarily a Play Store image. Google documents the choices in [creating virtual devices](https://developer.android.com/studio/run/managing-avds). Install and connect the Crestron Home app manually before attempting automated tests.
 
 Google documents a no-window launch option in its [emulator command-line guide](https://developer.android.com/studio/run/emulator-commandline#advanced). That capability does not by itself prove our complete workflow can run under your Windows runner service. Validate the app, graphics capture, network access and worker account first. Keep the working BlueStacks environment until the alternative passes equivalent tests.
+
+On 16 September 2026, the installed Windows GitHub runner service successfully used the same SDK ADB executable to query the existing Google emulator, its completed boot and its already-running Crestron Home app process. This was a bounded connectivity probe without UI input, app launch or processor commands. It does not establish screenshot/hierarchy access, complete fixtures, starting an emulator from the service or operation after logout. For service-driven UI testing, both accounts must also use the same accessible Android reservation path and private evidence/configuration storage; do not grant access to an entire personal profile to work around a missing shared path.
 
 ### Finding the emulator in Visual Studio
 

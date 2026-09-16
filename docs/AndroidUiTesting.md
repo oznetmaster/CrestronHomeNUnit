@@ -22,6 +22,8 @@ A subsequent isolated NuGet-consumer workflow used the driver-specific Wiser And
 
 This validates the integrated development workflow, not an exact Release candidate, all driver UI controls, the app's active network route, or its binding to a specific installed driver instance. Ordinary offline test projects still use simulated Android transports only. The real Android fixture sends navigation inputs but no configuration edits or physical-device commands.
 
+The Wiser fixture now supports a separate private `AllowNameBinding` option using DevTools 1.5.0. It temporarily renames the selected management instance, observes the fresh name on its Home tile, inspects that exact tile and restores the original name. The complete development workflow passed with this option on 16 September 2026 using the published 1.7.1 CLI and the minimized Google Android emulator: 96 desktop tests, 53 processor tests, three live hub reads, the gated Debug driver update, installed readiness checks and both discovered Android cases. Fourteen capture pairs matched their retained hashes. All original installed-device identities, checked room targets/schedules/boost state and gateway Hot Water/Away state were preserved. The temporary test instance and archive were removed and both reservations released. Home retained a cached catalogue entry until its next planned reboot. This remains Debug development validation; it is not exact Release-candidate acceptance or cryptographic route/package attestation.
+
 ## Library foundation
 
 ```csharp
@@ -38,7 +40,7 @@ Set `AndroidSelector.AncestorResourceId` to scope a repeated control ID to its c
 
 The navigator retries only page reads within a bounded readiness interval. It tracks a pending input until departure from its previous page is observed; a timeout or another cleanup attempt cannot silently replay that input or declare the old Home restored. A rejected selector is distinguished from an input that might have been sent. Cleanup navigates only recognized pages belonging to the expected Home, uses a separate bounded cancellation window, and refuses to dismiss an unknown dialog. The fixture verifies Home again before writing its restoration completion record. This restores navigation state only; future physical control fixtures must also restore their device state.
 
-Saved connection settings and a matching visible Home are useful target evidence, not independent proof of the app's active transport, DNS resolution or a specific driver instance. Before adding physical controls, bind the intended installed instance and room to management API data and observed UI, and reject ambiguous names. Configured remote access or changing DNS needs additional active-route verification. These cases remain open; a label match must not be used to waive them.
+Saved connection settings and a matching visible Home are useful target evidence, not independent proof of the app's active transport, DNS resolution or a specific driver instance. The optional Wiser name challenge provides stronger instance association; see [DevTools UI binding](https://github.com/oznetmaster/CrestronHomeDevTools/blob/main/docs/DriverUiBinding.md). Before adding physical controls, also bind the intended room and physical device and implement their restoration. Configured remote access or changing DNS needs additional route verification; a familiar label alone must not waive those checks.
 
 The initial interface intentionally has no credential entry or physical-device test sequence. `TapAsync` is a low-level primitive: a tile can itself trigger a physical command. Driver-specific fixtures must choose reviewed navigation controls and enforce the test policy before calling it.
 
@@ -79,7 +81,7 @@ The workflow currently records an aggregate Android stage plus the private detai
 
 ## Work remaining before CI operation
 
-1. Extend saved-endpoint verification to the app's active route and exact installed-instance binding.
+1. Extend the verified Wiser instance-binding pattern to other fixtures and bind their physical devices/rooms. Exact Release-candidate provenance and additional route verification remain separate requirements.
 2. Validate the combined processor and Android reservations with the installed runner service and crash recovery. The logged-in CLI workflow has passed with both reservations and confirmed release.
 3. Add opt-in NUnit driver fixtures with page models, image checks, live feedback verification and starting-state restoration. All discovered cases are now required by the stage; mapping those cases to all applicable official requirements remains open.
 4. Prove supervised startup/recovery from the installed GitHub runner service. Direct player startup and ADB capture were separately demonstrated without Windows input, but this does not establish headless, logged-out or session-0 operation. A controlled interactive worker or an emulator with supported headless operation may be needed.
@@ -90,7 +92,7 @@ ADB and the emulator must be privately configured by the developer. Use local ac
 
 The UI automation library also provides `CrestronHomeNavigation.InspectHomeExtensionAsync` for read-only inspection of a uniquely named Home tile. It verifies the extension page title, invokes the fixture's assertions and restores Home even after a failed assertion. `CrestronHomePages.ReadStatusAndButton` reads a labelled row without confusing repeated button IDs. A fresh hierarchy read may be attempted up to three times after a transient capture failure; neither taps nor Back commands are retried. These helpers require version 1.7.0 or later.
 
-The Wiser driver's separate Android test project uses these helpers to compare gateway controls with fresh management state. A unique name plus matching saved endpoint does not establish the active Android network route, so these initial fixtures send no physical device commands. Room controls, stronger instance binding and submission-contract integration remain required work.
+The Wiser driver's separate Android test project uses these helpers to compare gateway controls with fresh management state and optionally performs the restored name challenge described above. These fixtures send no physical device commands. Room controls and submission-contract integration remain required work.
 
 Build and run the offline project:
 
