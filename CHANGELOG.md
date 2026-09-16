@@ -2,26 +2,17 @@
 
 ## 1.7.0 - 2026-09-16
 
-Add optional Android UI testing to the shared CLI and Visual Studio workflow, and support testing a supplied Release driver package without rebuilding it.
+This is the **first release of Android UI testing support**. A development workflow can now run NUnit tests against the real Crestron Home Android app after its desktop tests, processor tests and gated driver update.
 
-- Include the .NET 10 Android toolkit in the TestAdapter NuGet package. Driver repositories can create ordinary NUnit UI projects without a second source checkout; no emulator or Crestron APK is bundled.
-- Hold the processor and Android reservations together, require every discovered UI test to pass, and retain private package-bound results, captures and starting-state restoration evidence.
-- Provide guarded Home navigation, saved-endpoint inspection and read-only extension checks. Scope repeated controls to their labelled rows. Retry bounded hierarchy reads, but never automatically repeat taps or Back commands.
-- Validate an optional prebuilt Release candidate against its SHA-256, driver GUID, version and clean source commit. Preserve its original filename and bytes throughout the workflow.
-- Reconcile Debug revisions when a manifest uses the output package's basename instead of the project name. Ambiguous or custom layouts can set `manifestPath` explicitly.
-- Extend release acceptance to run the Android regressions and exercise the packaged Android API alongside normal NUnit and workflow adapters in an isolated consumer.
+The new Android toolkit is included in the `CrestronHomeNUnit.TestAdapter` package for .NET 10 test projects. It provides Home and extension-page navigation, checks against visible controls, private screenshots and test results, and verified return to the starting Home screen. The processor and Android session are reserved together so cooperating workflows cannot overlap. Developers supply their own ADB installation, emulator and Crestron Home app.
 
-Validation: 240 workflow, 65 Android and 11 adapter regressions passed, together with isolated package acceptance. The packaged Wiser workflow passed 96 desktop tests, 53 processor tests, three read-only live tests, the gated Debug driver update, three installed health checks and both discovered Android cases. UI state was restored and reservations released. The temporary test instance was removed; a preserved archive from the preceding failed validation was subsequently removed with identity/hash checks and retained backups. Existing gateway and room identities, schedules and setpoints were preserved.
+This release also introduces an optional way to test an already-built Release driver package. The workflow verifies its package hash, driver identity, version and source commit, then uses those exact bytes without rebuilding them. Ordinary workflows continue to build Debug packages.
 
-The Android hardware validation used minimized BlueStacks in a logged-in Windows session. It does not establish service-session operation, the app's active network route, physical UI control coverage or Crestron certification. The pinned Release handoff has automated coverage but still needs exact-candidate hardware validation. Final submission requirements, forms and delivery remain separate work.
+An existing Debug-version reconciliation problem is fixed: driver manifests named after the output package are now recognized alongside the project-name convention. Custom or ambiguous layouts can specify `manifestPath` explicitly.
 
-## Android toolkit source development - 2026-09-16
+Validation: the complete Wiser development workflow passed with the packaged toolkit, including desktop and processor tests, live reads, the actual-driver update, installed health checks and both Android UI cases. Gateway and room state was preserved, Home was restored and reservations were released. Automated workflow, Android, adapter and isolated-package checks also passed; see [validation details](Validation.md).
 
-- Add read-only inspection of a uniquely named Home extension tile with page-title validation and observed Home restoration, including when assertions fail.
-- Read repeated status-and-button controls within their own labelled rows instead of selecting a global repeated resource ID.
-- Retry transient hierarchy reads at most three times, clean each read's temporary file, and preserve the original failure when cleanup also fails. Taps and Back commands are never automatically repeated.
-- Consume the Android library through the test adapter NuGet package and validate the isolated package with both workflow discovery and ordinary NUnit fixtures.
-- Reconcile Debug revisions for manifests named after the package as well as the project. Ambiguous layouts require an explicit `manifestPath`; unchanged custom layouts retain collision checks.
+Android hardware validation currently covers read-only gateway checks with minimized BlueStacks in a logged-in Windows session. Physical UI controls, service-session operation, exact Release-candidate hardware validation and the final Crestron submission workflow remain work in progress.
 
 ## 1.6.0 - 2026-09-16
 
