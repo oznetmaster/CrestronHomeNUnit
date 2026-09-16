@@ -4,7 +4,7 @@ New to Google Android Emulator, BlueStacks or Android test setup? Start with [se
 
 The optional Android stage requires **CrestronHomeNUnit 1.7.0 or later**. It extends the shared CLI/Test Explorer development workflow for ordinary driver regression testing, whether or not the driver will ever be submitted to Crestron. A combined Wiser development workflow passed on real hardware on 16 September 2026.
 
-Client and library projects can use desktop and processor tests without an Android stage or submission work. Driver UI evidence may also contribute to a separately enabled Crestron submission, whose additional requirements and integration remain unfinished. Passing development tests alone does not authorize submission, and incomplete submission work does not block ordinary CI or GitHub/NuGet publication.
+Client and library projects can use desktop and processor tests without an Android stage. These helpers also support ordinary driver development. Optional Crestron submission requirements and delivery are documented separately in [CrestronHomeDevTools](https://github.com/oznetmaster/CrestronHomeDevTools/blob/main/docs/CrestronSubmission.md).
 
 The **Crestron Home NUnit UI automation library** (`CrestronHomeNUnit.Android`) runs on the Windows test computer and communicates with the Crestron Home Android app through ADB. It is part of this project. Its runtime requirement is .NET 10, plus an existing ADB installation and an explicit Android device serial. `CrestronHomeNUnit.Android.Tests` contains offline NUnit tests; discovering or running that project does not contact Android, install drivers or operate physical devices. The new library has no Android emulator or Crestron APK bundled with it and is not currently a separate NuGet package.
 
@@ -79,16 +79,15 @@ Discovery receives no Android session context. Fixture constructors, static init
 
 An interrupted reservation never expires or gets stolen. Before manually removing its marker, establish that the coordinator, child tests and ADB commands have stopped, reconcile physical state and any uncertain deployment, and follow the processor-lease recovery procedure. Then remove only the corresponding private Android marker. Merely closing the emulator does not prove restoration.
 
-The workflow currently records an aggregate Android stage plus the private detailed TRX and captures. Its development source digest is not a release commit identity. The opt-in [prebuilt Release handoff](ReleaseCandidateTesting.md) also carries the verified source commit in the Android context, capture observations and coverage record. That handoff has automated coverage but has not yet passed Release hardware validation. The current tests and captures do not satisfy the final submission gate: the approved requirement mapping, exact Release candidate installation and additional environment provenance remain to be integrated. Matching discovery proves execution coverage of the configured project; it does not establish that the project implements every official submission requirement.
+The workflow records an aggregate Android stage plus the private detailed TRX and captures. Its development source digest is not a release commit identity. The opt-in [prebuilt Release handoff](ReleaseCandidateTesting.md) also carries the verified source commit in the Android context, capture observations and coverage record. That handoff has automated coverage but has not yet passed Release hardware validation. Matching discovery proves that the configured project's tests executed; each driver project remains responsible for testing all of its intended behavior.
 
-## Work remaining before CI operation
+## Remaining test coverage and worker validation
 
 1. Extend the verified Wiser instance-binding pattern to other fixtures and bind their physical devices/rooms. Exact Release-candidate provenance and additional route verification remain separate requirements.
 2. Validate the combined processor and Android reservations with the installed runner service and crash recovery. The logged-in CLI workflow has passed with both reservations and confirmed release.
-3. Add opt-in NUnit driver fixtures with page models, image checks, live feedback verification and starting-state restoration. All discovered cases are now required by the stage; mapping those cases to all applicable official requirements remains open.
+3. Extend driver-specific NUnit fixtures with page models, image checks, live feedback verification and starting-state restoration. All discovered cases are required by the stage, but the framework cannot supply missing driver-specific assertions.
 4. Prove supervised startup/recovery from the installed GitHub runner service. Direct player startup and ADB capture were separately demonstrated without Windows input, but this does not establish headless, logged-out or session-0 operation. A controlled interactive worker or an emulator with supported headless operation may be needed.
-5. Retain candidate-bound evidence and feed it into the submission gate. Accessibility text alone does not prove icons, layout or timely device response.
-6. Cover Configure/Setup dialogs separately from the end-user Android app. Extend to outage, endurance and multiple-instance requirements only with the necessary equipment and device bindings.
+5. Validate rendered icons, clipping and response timing with suitable image and timing checks. Accessibility text alone cannot establish them. Configure/Setup application testing is separate from the end-user Android app covered here.
 
 ADB and the emulator must be privately configured by the developer. Use local access where possible; the development proof left remote ADB disabled and verified loopback listeners. Do not expose an ADB port publicly. All driver-control tests must follow the existing [state restoration and deployment policy](ContinuousIntegration.md).
 
@@ -122,7 +121,7 @@ The expected labels and selected value should come from fresh state for the iden
 
 A further source-based Wiser run verified all 16 schedule labels, all seven day labels and all 48 half-hour time labels, including their selected states. It dismissed each picker, cancelled Edit Schedule and restored Home. Thirteen capture pairs matched their retained hashes; installed-device inventory and checked Wiser control settings were preserved, and both reservations were released. The list reader handles short clipped boundary fragments without relaxing input-coordinate validation. All 91 offline Android tests also passed against a private packaged adapter. These first nested checks were exercised by a private validation program. The expanded Wiser NUnit fixture subsequently passed all discovered gateway and room cases against the stable local 1.8.0 package candidate, retaining 27 verified capture pairs, matching execution coverage and confirmed name, Home and checked-state preservation. Integration into the submission evidence contract is still required.
 
-The Wiser driver's separate Android test project uses these helpers to compare gateway controls with fresh management state and optionally performs the restored name challenge described above. These fixtures send no physical device commands. Room controls and submission-contract integration remain required work.
+The Wiser driver's separate Android test project uses these helpers to compare gateway controls and room selector choices with fresh management state, and optionally performs the restored name challenge described above. These read-only fixtures do not test physical room-control commands.
 
 Build and run the offline project:
 

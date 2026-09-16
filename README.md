@@ -2,7 +2,7 @@
 
 For the complete local-to-processor development cycle, see the [continuous integration guide](docs/ContinuousIntegration.md), including private settings, gated actual-driver deployment, evidence and optional test-instance removal.
 
-These are general development and CI tools. Client and library projects use desktop and processor tests without a Crestron submission. Driver projects can additionally test an installed driver and its UI. Submission to Crestron is a separate, explicitly enabled option for driver releases; submission forms, signatures and certification evidence are not prerequisites for ordinary CI or GitHub/NuGet publication. Processor test packages are testing tools, not portal submissions.
+These tools run desktop, processor, live-device and Android UI tests, and report their results through the Windows runner, CLI or Visual Studio Test Explorer. Driver submission is a separate, optional workflow documented in [CrestronHomeDevTools](https://github.com/oznetmaster/CrestronHomeDevTools/blob/main/docs/CrestronSubmission.md); it is not required for testing or GitHub/NuGet publication.
 
 The tools include a [Visual Studio Test Explorer workflow adapter](docs/VisualStudioTestExplorer.md), available as the stable [CrestronHomeNUnit.TestAdapter NuGet package](https://www.nuget.org/packages/CrestronHomeNUnit.TestAdapter). Add it to a separate .NET 10 workflow test project to run the same gated development cycle from Visual Studio.
 
@@ -10,7 +10,7 @@ Version 1.2.1 also supports private initial-driver configuration and health chec
 
 The workflow reconciles a standard project's Debug build counter with the processor catalogue before building, including packages previously deployed manually. It preserves the three release components and verifies a fresh package version before deployment. See [version identity and custom manifest layouts](docs/ContinuousIntegration.md#readiness-and-version-identity).
 
-Version 1.7.0 adds opt-in [Android UI tests](docs/AndroidUiTesting.md) after the installed-driver checks, using your own ADB installation and emulator. The **Crestron Home NUnit UI automation library** is included in the test adapter package. It runs on Windows using .NET 10 and controls the Android app through ADB. It also supports a [pinned Release package](docs/ReleaseCandidateTesting.md) without rebuilding it, and reconciles Debug versions for renamed driver manifests. Final Crestron submission, full UI coverage and service-session emulator operation remain separate work.
+Version 1.7.0 adds opt-in [Android UI tests](docs/AndroidUiTesting.md) after the installed-driver checks, using your own ADB installation and emulator. The **Crestron Home NUnit UI automation library** is included in the test adapter package. It runs on Windows using .NET 10 and controls the Android app through ADB. It also supports a [pinned Release package](docs/ReleaseCandidateTesting.md) without rebuilding it, and reconciles Debug versions for renamed driver manifests. See the UI testing guide for verified coverage and worker-session limitations.
 
 Room UI fixtures can inspect named room tiles, nested extension pages and complete selection lists through the adapter's [room-navigation APIs](docs/AndroidUiTesting.md#room-and-nested-page-inspection), with observed Home restoration after assertions. Selection inspection does not change a chosen value; fixtures provide reviewed navigation/cancel controls and expected state for their identified device.
 
@@ -35,7 +35,7 @@ Copyright (c) 2026 Neil Colvin. Project-owned code is [MIT licensed](LICENSE). N
 - [Your own processor tests](#your-own-processor-tests)
 - [Build and release](#build-and-release)
 - [Documentation and known limitations](#documentation-and-known-limitations)
-- [Android UI testing foundation and submission work](docs/AndroidUiTesting.md)
+- [Android UI testing](docs/AndroidUiTesting.md)
 - [Set up an Android emulator and the Crestron Home app](docs/AndroidEmulatorSetup.md)
 - [Testing an existing Release candidate without rebuilding it](docs/ReleaseCandidateTesting.md)
 - [Licenses and acknowledgments](#licenses-and-acknowledgments)

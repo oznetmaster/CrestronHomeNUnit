@@ -1,6 +1,6 @@
 # Crestron Home NUnit v1.8.0
 
-Add room and nested-page inspection to the Crestron Home NUnit UI automation library included in the test adapter. Tests can open a named room extension, inspect Schedule and Edit pages, and verify complete selection lists without choosing an option. Controls are scoped to the front page even when the app retains background pages with identical resource IDs.
+Add room and nested-page inspection to the Crestron Home NUnit UI automation library included in the test adapter. Tests can open a named room extension, inspect nested extension pages and verify complete selection lists without choosing an option. Page names, navigation controls and expected values are supplied by each driver's test fixture. Controls are scoped to the front page even when the app retains background pages with identical resource IDs.
 
 The navigation helpers restore the original Home screen after successful checks or assertion failures. Nested pages use explicitly supplied close/cancel controls. Unknown layouts stop navigation; uncertain taps, Back commands and scrolls are never replayed. Selection inspection handles clipped viewport-edge rows while preserving the strict coordinate checks used for input.
 

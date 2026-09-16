@@ -1,6 +1,6 @@
 # Test an existing Release package
 
-This opt-in feature requires **CrestronHomeNUnit 1.7.0 or later** and runs the development gates against a supplied actual-driver Release package. Ordinary plans continue to build Debug packages. This handoff has automated coverage; installation of a pinned Release candidate and the final Crestron submission gate still require hardware validation and integration.
+This opt-in feature requires **CrestronHomeNUnit 1.7.0 or later** and runs the development gates against a supplied actual-driver Release package. Ordinary plans continue to build Debug packages. This handoff has automated coverage; installation and testing of a pinned Release candidate still require hardware validation.
 
 ## Prepare the candidate
 
@@ -32,6 +32,6 @@ Local tests and the processor test package continue to use Debug builds; project
 
 An equal or newer version of the same model already in the processor catalogue stops activation. The workflow does not rename, renumber or replace the candidate to bypass this conflict, and it cannot prove that an already loaded same-version driver contains these bytes. Prepare an eligible development processor before testing; do not delete installed production configuration to make a run pass. Repeating a submission uses the retained release artifact with a new results directory, but catalogue eligibility must still be resolved.
 
-## Submission boundary
+## Evidence limits
 
-These checks bind a supplied package to declared release pins and tested local source. They are not an authenticated build attestation, an approved official test policy or Crestron certification. Trusted CI must establish the pins, source/dependency provenance and worker identity. The final submission stage must independently verify the immutable candidate bundle, all applicable requirements, real Release installation, UI/device observations and restoration before producing a signed form or sending a submission. An unavailable worker leaves submission pending; ordinary GitHub/NuGet publication remains possible under the existing release policy.
+These checks bind a supplied package to declared release pins and tested local source. Trusted CI must establish the pins, source/dependency provenance and worker identity; the supplied hashes alone are not an authenticated build attestation. Optional Crestron submission has additional requirements maintained in [CrestronHomeDevTools](https://github.com/oznetmaster/CrestronHomeDevTools/blob/main/docs/CrestronSubmission.md). Ordinary GitHub/NuGet publication remains possible under the existing hardware-unavailable policy.
