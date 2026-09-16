@@ -96,7 +96,10 @@ public sealed class AndroidDevice (IAndroidCommandTransport transport, string ap
 			}
 		}
 
-	public async Task TapAsync (AndroidSelector selector, Action<AndroidHierarchy> validatePage, CancellationToken cancellationToken = default)
+	public Task TapAsync (AndroidSelector selector, Action<AndroidHierarchy> validatePage, CancellationToken cancellationToken = default)
+		=> TapAsync (selector, validatePage, static () => { }, cancellationToken);
+
+	internal async Task TapAsync (AndroidSelector selector, Action<AndroidHierarchy> validatePage, Action inputStarting, CancellationToken cancellationToken)
 		{
 		ArgumentNullException.ThrowIfNull (validatePage);
 		var hierarchy = await CaptureAsync (cancellationToken).ConfigureAwait (false);
@@ -104,6 +107,8 @@ public sealed class AndroidDevice (IAndroidCommandTransport transport, string ap
 		var element = hierarchy.RequireUnique (selector);
 		if (!element.Enabled)
 			throw new InvalidOperationException ("Android element is disabled; no input was sent.");
+		cancellationToken.ThrowIfCancellationRequested ();
+		inputStarting ();
 		await transport.ExecuteAsync (["shell", "input", "tap",
 			((element.Left + element.Right) / 2).ToString (CultureInfo.InvariantCulture),
 			((element.Top + element.Bottom) / 2).ToString (CultureInfo.InvariantCulture)], cancellationToken).ConfigureAwait (false);
@@ -116,5 +121,18 @@ public sealed class AndroidDevice (IAndroidCommandTransport transport, string ap
 		if (bytes.Length < 8 || !bytes.AsSpan (0, 8).SequenceEqual (new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }))
 			throw new InvalidDataException ("Android did not return a PNG screenshot.");
 		return bytes;
+		}
+
+	public Task BackAsync (Action<AndroidHierarchy> validatePage, CancellationToken cancellationToken = default)
+		=> BackAsync (validatePage, static () => { }, cancellationToken);
+
+	internal async Task BackAsync (Action<AndroidHierarchy> validatePage, Action inputStarting, CancellationToken cancellationToken)
+		{
+		ArgumentNullException.ThrowIfNull (validatePage);
+		validatePage (await CaptureAsync (cancellationToken).ConfigureAwait (false));
+		cancellationToken.ThrowIfCancellationRequested ();
+		inputStarting ();
+		await transport.ExecuteAsync (["shell", "input", "keyevent", "KEYCODE_BACK"], cancellationToken).ConfigureAwait (false);
+		// Like TapAsync, this never retries an input with an uncertain outcome.
 		}
 	}

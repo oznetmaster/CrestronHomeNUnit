@@ -3,5 +3,6 @@
   "deviceSerial": "EXPLICIT_ADB_DEVICE_SERIAL",
   "application": "com.crestron.phoenix.app",
   "expectedHomeText": "EXACT_VISIBLE_HOME_NAME",
+  "localPort": 50001,
   "lockPath": "ABSOLUTE_PRIVATE_ANDROID_LOCK_FILE"
 }

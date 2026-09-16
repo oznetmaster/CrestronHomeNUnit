@@ -10,12 +10,14 @@ namespace CrestronHomeNUnit.Android;
 
 public sealed record AndroidSessionProfile (string AdbExecutable, string DeviceSerial, string Application, string ExpectedHomeText, string LockPath)
 	{
+	public int LocalPort { get; init; } = 50001;
+
 	public void Validate ()
 		{
 		if (!Path.IsPathFullyQualified (AdbExecutable) || !File.Exists (AdbExecutable) ||
 			string.IsNullOrWhiteSpace (DeviceSerial) || string.IsNullOrWhiteSpace (Application) || string.IsNullOrWhiteSpace (ExpectedHomeText) ||
-			!Path.IsPathFullyQualified (LockPath) || !Directory.Exists (Path.GetDirectoryName (LockPath)))
-			throw new ArgumentException ("Android tests require an existing ADB installation, explicit device/application/home and an existing private lock directory.");
+			!Path.IsPathFullyQualified (LockPath) || !Directory.Exists (Path.GetDirectoryName (LockPath)) || LocalPort is < 1 or > 65535)
+			throw new ArgumentException ("Android tests require an existing ADB installation, explicit device/application/home, a valid local port and an existing private lock directory.");
 		}
 	}
 
@@ -93,6 +95,12 @@ public sealed class AndroidWorkflowSession
 		}
 
 	private static bool IsHash (string value) => value.Length == 64 && value.All (char.IsAsciiHexDigit);
+
+	internal void VerifyActive ()
+		{
+		if (_completed) throw new InvalidOperationException ("The Android workflow session is already complete.");
+		VerifyContext (Context);
+		}
 
 	public async Task CaptureAsync (string checkId, Action<AndroidHierarchy> verify, CancellationToken token = default)
 		{

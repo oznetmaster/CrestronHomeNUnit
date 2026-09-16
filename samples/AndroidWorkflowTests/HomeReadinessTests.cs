@@ -12,28 +12,51 @@ namespace AndroidWorkflowTests;
 public sealed class WorkflowSession
 	{
 	internal static AndroidWorkflowSession? Current { get; private set; }
+	internal static CrestronHomeNavigation? Navigation { get; private set; }
 
 	[OneTimeSetUp]
 	public async Task Open ()
 		{
 		Current = null;
+		Navigation = null;
 		if (string.IsNullOrWhiteSpace (Environment.GetEnvironmentVariable (AndroidWorkflowSession.CONTEXT_VARIABLE)))
 			Assert.Ignore ("Run this opt-in UI project through a processor workflow; ordinary discovery never connects to Android.");
 		Current = await AndroidWorkflowSession.OpenFromEnvironmentAsync ();
+		Navigation = new (Current);
 		}
 
 	[OneTimeTearDown]
-	public void Complete ()
+	public async Task Complete ()
 		{
-		// This example only reads the UI and sends no inputs or physical-device commands.
-		// A project that adds controls must verify its own state restoration before reporting true.
-		Current?.Complete (restorationConfirmed: true);
+		if (Current == null) return;
+		bool restored = false;
+		try
+			{
+			using var cleanup = new CancellationTokenSource (TimeSpan.FromMinutes (2));
+			await Navigation!.RestoreHomeAsync (cleanup.Token);
+			restored = Navigation.HomeRestored;
+			}
+		finally
+			{
+			// This project navigates but never edits settings or operates physical devices.
+			Current.Complete (restorationConfirmed: restored);
+			}
 		}
 	}
 
 [TestFixture]
+[NonParallelizable]
 public sealed class HomeReadinessTests
 	{
+	[TestCase (1)]
+	[TestCase (2)]
+	public async Task SavedLocalEndpointMatchesAndHomeIsRestored (int repetition)
+		{
+		using var timeout = new CancellationTokenSource (TimeSpan.FromMinutes (4));
+		await WorkflowSession.Navigation!.VerifySavedEndpointAsync ($"connection-{repetition}", WorkflowSession.Current!.Context.Profile.LocalPort, timeout.Token);
+		Assert.That (WorkflowSession.Navigation.HomeRestored, Is.True);
+		}
+
 	[Test]
 	public async Task ExpectedHomeIsVisibleAndEvidenceCanBeCaptured ()
 		{
