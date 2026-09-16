@@ -29,9 +29,24 @@ internal static class WorkflowAndroid
 			source, profile, Path.GetFullPath (directory));
 		var contextPath = Path.Combine (directory, "context.json");
 		await File.WriteAllTextAsync (contextPath, JsonSerializer.Serialize (context), token).ConfigureAwait (false);
-		var arguments = new[] { "test", plan.Project, "--configuration", "Debug", "-p:DeployAfterBuild=false", "-p:BuildForTests=true",
-			"--logger", "trx;LogFilePrefix=TestResult", "--results-directory", directory };
+		var assemblyDirectory = Path.Combine (directory, "assembly");
+		var common = new[] { "test", plan.Project, "--configuration", "Debug", "--framework", "net10.0", "--output", assemblyDirectory,
+			"-p:DeployAfterBuild=false", "-p:BuildForTests=true" };
 		runProcess ??= WorkflowEvidence.ProcessAsync;
+		int discoveryExit = await runProcess ("dotnet", common.Concat (["--list-tests", "--", "NUnit.DumpXmlTestDiscovery=true"]),
+			Path.GetDirectoryName (plan.Project)!, Path.Combine (directory, "Discovery.log"), token,
+			new Dictionary<string, string> { [AndroidWorkflowSession.CONTEXT_VARIABLE] = "" }).ConfigureAwait (false);
+		if (discoveryExit != 0)
+			throw new InvalidDataException ("Android test discovery failed; execution was not started.");
+		var dumps = Directory.GetFiles (Path.Combine (assemblyDirectory, "Dump"), "D_*.dll.dump");
+		if (dumps.Length != 1)
+			throw new InvalidDataException ("Android tests require exactly one NUnit discovery assembly.");
+		var discoveryPath = Path.Combine (directory, "discovery.dump");
+		File.Copy (dumps[0], discoveryPath, overwrite: false);
+		var inventory = AndroidTestCoverage.ReadDiscovery (discoveryPath);
+		AndroidSessionLease.VerifyOwner (profile.LockPath, owner);
+		var arguments = common.Concat (new[] { "--no-build", "--no-restore",
+			"--logger", "trx;LogFilePrefix=TestResult", "--results-directory", directory });
 		int exit = await runProcess ("dotnet", arguments, Path.GetDirectoryName (plan.Project)!, Path.Combine (directory, "Tests.log"), token,
 			new Dictionary<string, string> { [AndroidWorkflowSession.CONTEXT_VARIABLE] = contextPath }).ConfigureAwait (false);
 		AndroidSessionLease.VerifyOwner (profile.LockPath, owner);
@@ -42,7 +57,13 @@ internal static class WorkflowAndroid
 			var completion = AndroidWorkflowSession.Read<AndroidRunCompletion> (completionPath);
 			restored = CompletionMatches (completion, context);
 			}
-		return new (WorkflowEvidence.ReadLocalResults (directory, exit, 1), restored);
+		var coverage = AndroidTestCoverage.Evaluate (inventory, Directory.GetFiles (directory, "TestResult*.trx"), exit);
+		await File.WriteAllTextAsync (Path.Combine (directory, "coverage.json"), JsonSerializer.Serialize (new
+			{
+			context.RunId, context.PackageSha256, DiscoverySha256 = Convert.ToHexString (SHA256.HashData (await File.ReadAllBytesAsync (discoveryPath, token).ConfigureAwait (false))),
+			ExpectedTests = inventory, Results = coverage
+			}), token).ConfigureAwait (false);
+		return new (coverage, restored);
 		}
 
 	internal static bool CompletionMatches (AndroidRunCompletion completion, AndroidRunContext context) =>
