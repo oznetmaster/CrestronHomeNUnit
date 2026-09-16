@@ -1,6 +1,6 @@
 # Crestron Home NUnit UI automation library
 
-New to BlueStacks or Android test setup? Start with [setting up an Android emulator on Windows](AndroidEmulatorSetup.md), including the copyable NUnit sample and first-run checks.
+New to Google Android Emulator, BlueStacks or Android test setup? Start with [setting up an Android emulator on Windows](AndroidEmulatorSetup.md), including the copyable NUnit sample and first-run checks.
 
 The optional Android stage requires **CrestronHomeNUnit 1.7.0 or later**. It extends the shared CLI/Test Explorer development workflow for ordinary driver regression testing, whether or not the driver will ever be submitted to Crestron. A combined Wiser development workflow passed on real hardware on 16 September 2026.
 
@@ -23,6 +23,8 @@ A subsequent isolated NuGet-consumer workflow used the driver-specific Wiser And
 This validates the integrated development workflow, not an exact Release candidate, all driver UI controls, the app's active network route, or its binding to a specific installed driver instance. Ordinary offline test projects still use simulated Android transports only. The real Android fixture sends navigation inputs but no configuration edits or physical-device commands.
 
 The Wiser fixture now supports a separate private `AllowNameBinding` option using DevTools 1.5.0. It temporarily renames the selected management instance, observes the fresh name on its Home tile, inspects that exact tile and restores the original name. The complete development workflow passed with this option on 16 September 2026 using the published 1.7.1 CLI and the minimized Google Android emulator: 96 desktop tests, 53 processor tests, three live hub reads, the gated Debug driver update, installed readiness checks and both discovered Android cases. Fourteen capture pairs matched their retained hashes. All original installed-device identities, checked room targets/schedules/boost state and gateway Hot Water/Away state were preserved. The temporary test instance and archive were removed and both reservations released. Home retained a cached catalogue entry until its next planned reboot. This remains Debug development validation; it is not exact Release-candidate acceptance or cryptographic route/package attestation.
+
+The Windows GitHub runner service also passed both Wiser gateway UI fixture cases against the already-running Google emulator on 16 September 2026. NUnit executed directly as NETWORK SERVICE, with matching completion/restoration evidence and both reservations released. This run included temporary name binding but no deployment or heating/Away commands. It validates those UI fixtures from the service account; complete deployment workflow execution under that account, emulator startup after reboot/logout and crash recovery remain separate work. See the [emulator setup guide](AndroidEmulatorSetup.md#daily-use-and-ci) for the shared reservation and private-file requirements.
 
 ## Library foundation
 
