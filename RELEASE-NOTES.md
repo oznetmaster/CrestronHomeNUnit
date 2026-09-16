@@ -10,4 +10,4 @@ Validation: all 91 Android regression tests passed, including against a private 
 
 Use **CrestronHomeNUnit.TestAdapter 1.8.0** in the separate .NET 10 Android test project. Existing processor test packages do not need redeployment for these Windows-side UI helpers. NUnit 4.6.1 and the adapter's default DevTools 1.4.0 dependency remain unchanged; projects using DevTools 1.5.0 may retain that explicit dependency.
 
-See [room and nested-page testing](docs/AndroidUiTesting.md), [emulator and app setup](docs/AndroidEmulatorSetup.md), and [validation details](Validation.md). The Wiser NUnit fixture integration and final Crestron submission workflow remain separate work.
+See [room and nested-page testing](docs/AndroidUiTesting.md), [emulator and app setup](docs/AndroidEmulatorSetup.md), and [validation details](Validation.md). The expanded Wiser NUnit fixture also passed its gateway and room checks against the local stable package candidate, with matching discovery coverage and confirmed restoration. The final Crestron submission workflow remains separate work.
