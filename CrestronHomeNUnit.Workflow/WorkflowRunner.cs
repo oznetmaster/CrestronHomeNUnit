@@ -487,7 +487,8 @@ public static class WorkflowRunner
 			})
 				{
 				RebootAfterInstall = target.RebootAfterInstall,
-				RebootAfterRemoval = target.RebootAfterRemoval
+				RebootAfterRemoval = target.RebootAfterRemoval,
+				AdditionalRemovalRebootDeviceIds = target.AdditionalRemovalRebootDeviceIds
 				};
 			}
 

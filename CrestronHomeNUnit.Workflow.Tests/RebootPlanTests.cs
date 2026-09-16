@@ -18,6 +18,7 @@ public sealed class RebootPlanTests
             """)!;
 		Assert.That (plan.AllowProcessorReboot, Is.False);
 		Assert.That (plan.TestPackage.RebootAfterInstall || plan.TestPackage.RebootAfterRemoval, Is.False);
+		Assert.That (plan.TestPackage.AdditionalRemovalRebootDeviceIds, Is.Empty);
 		}
 
 	[TestCase (true, false)]
@@ -40,7 +41,42 @@ public sealed class RebootPlanTests
 	public void UnknownActivationAfterRebootRetainsLease () =>
 		 Assert.That (WorkflowRunner.CanReleaseLease (true, true, false, true), Is.False);
 
+	[TestCase (new[] { 18 }, false)]
+	[TestCase (new[] { 18, 18 }, true)]
+	[TestCase (new[] { 0 }, true)]
+	[TestCase (new[] { 17 }, true)]
+	public void SharedRemovalRequiresReviewedDistinctExistingIds (int[] scope, bool removal)
+		{
+		var plan = Plan () with
+			{
+			AllowProcessorReboot = true,
+			TestPackage = Package () with
+				{
+				ExpectedDeviceId = 17,
+				RebootAfterRemoval = removal,
+				AdditionalRemovalRebootDeviceIds = scope
+				}
+			};
+		Assert.That (Assert.Throws<ArgumentException> (plan.Validate)!.Message, Does.Contain ("Additional removal reboot scope"));
+		}
+
 	private static PackageBuildPlan Package () => new ("missing-project", "missing-output", "Tests", 1);
+	[Test]
+	public void ReviewedSharedScopeSurvivesPlanSerialization ()
+		{
+		var plan = Plan () with
+			{
+			AllowProcessorReboot = true,
+			TestPackage = new (typeof (RebootPlanTests).Assembly.Location, Path.Combine (Path.GetTempPath (), "example.pkg"), "Tests", 1)
+				{
+				RebootAfterRemoval = true,
+				AdditionalRemovalRebootDeviceIds = [18]
+				}
+			};
+		var restored = JsonSerializer.Deserialize<WorkflowPlan> (JsonSerializer.Serialize (plan))!;
+		Assert.DoesNotThrow (restored.Validate);
+		Assert.That (restored.TestPackage.AdditionalRemovalRebootDeviceIds, Is.EqualTo (new[] { 18 }));
+		}
 	private static WorkflowPlan Plan () => new ()
 		{
 		Host = "example.invalid",

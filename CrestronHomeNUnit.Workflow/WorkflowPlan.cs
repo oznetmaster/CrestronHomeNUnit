@@ -86,6 +86,10 @@ public sealed record WorkflowPlan
 			throw new ArgumentException ("Automatic package cleanup requires confirmed test-instance removal.");
 		if (!AllowProcessorReboot && new[] { TestPackage, ActualDriver }.OfType<PackageBuildPlan> ().Any (p => p.RebootAfterInstall || p.RebootAfterRemoval))
 			throw new ArgumentException ("Explicit install/removal reboots require allowProcessorReboot.");
+		if (new[] { TestPackage, ActualDriver }.OfType<PackageBuildPlan> ().Any (p => p.AdditionalRemovalRebootDeviceIds == null
+			|| p.AdditionalRemovalRebootDeviceIds.Length > 0 && (!p.RebootAfterRemoval || p.AdditionalRemovalRebootDeviceIds.Any (id => id <= 0 || id == p.ExpectedDeviceId)
+			|| p.AdditionalRemovalRebootDeviceIds.Distinct ().Count () != p.AdditionalRemovalRebootDeviceIds.Length)))
+			throw new ArgumentException ("Additional removal reboot scope requires explicit reboot policy and distinct existing device IDs.");
 		if (ActualDriver != null && (LiveSuites.Length == 0 || DeployedChecks.Length == 0))
 			throw new ArgumentException ("Driver updates require processor live tests and installed-driver checks.");
 		if (DeployedControls.Length > 0 && ActualDriver == null)
@@ -128,6 +132,7 @@ public sealed record WorkflowPlan
 public sealed record LocalTestPlan (string Project, int MinimumPassed, string? Filter = null);
 public sealed record PackageBuildPlan (string Project, string PackagePath, string InstanceName, int LocationId, int? ExpectedDeviceId = null)
 	{
+	public int[] AdditionalRemovalRebootDeviceIds { get; init; } = [];
 	public string? InitialConfigurationFile
 		{
 		get; init;
