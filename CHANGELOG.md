@@ -6,7 +6,7 @@ Add room and nested-page inspection to the Crestron Home NUnit UI automation lib
 
 The navigation helpers restore the original Home screen after successful checks or assertion failures. Nested pages use explicitly supplied close/cancel controls. Unknown layouts stop navigation; uncertain taps, Back commands and scrolls are never replayed. Selection inspection handles clipped viewport-edge rows while preserving the strict coordinate checks used for input.
 
-Validation: all 91 Android regression tests passed, including against a private packaged adapter. Read-only checks in the minimized Google emulator verified Wiser's 16 schedule choices, seven days and 48 half-hour choices with their selected values. Editing was cancelled, Home and checked device settings were preserved, both reservations were released, and all 13 accepted capture pairs matched their retained hashes. Earlier controlled failures also restored Home and preserved checked state. This validates the helpers against an already-installed Debug driver; it is not full submission acceptance or certification.
+Validation: all 91 Android regression tests passed, including against a private packaged adapter. Read-only checks in the minimized Google emulator verified complete selection lists and their selected values for the exercised fixture. Editing was cancelled, Home and checked device settings were preserved, both reservations were released, and all 13 accepted capture pairs matched their retained hashes. Earlier controlled failures also restored Home and preserved checked state. This validates the helpers against an already-installed Debug driver; it is not full submission acceptance or certification.
 
 ## 1.7.1 - 2026-09-16
 
@@ -14,7 +14,7 @@ Fix saved-connection inspection on portrait Android screens where the local-port
 
 The setup guide now covers Visual Studio's Android SDK Manager, Windows acceleration, and installing the Crestron Home APK without a Google account. It also explains how to avoid conflicting ADB versions when BlueStacks and Google's emulator share a computer.
 
-Validation: all 67 local Android tests passed. Both read-only Wiser gateway cases passed through a private packaged adapter candidate with Google's Pixel 7 Android emulator minimized. Eight screenshot/hierarchy pairs were verified; gateway state was unchanged, Home was restored and both reservations were released. These results cover a logged-in Windows session and an already-installed Debug driver, not service-session operation or complete submission acceptance.
+Validation: all 67 local Android tests passed. Both read-only sample driver gateway cases passed through a private packaged adapter candidate with Google's Pixel 7 Android emulator minimized. Eight screenshot/hierarchy pairs were verified; gateway state was unchanged, Home was restored and both reservations were released. These results cover a logged-in Windows session and an already-installed Debug driver, not service-session operation or complete submission acceptance.
 
 ## 1.7.0 - 2026-09-16
 
@@ -26,7 +26,7 @@ This release also introduces an optional way to test an already-built Release dr
 
 An existing Debug-version reconciliation problem is fixed: driver manifests named after the output package are now recognized alongside the project-name convention. Custom or ambiguous layouts can specify `manifestPath` explicitly.
 
-Validation: the complete Wiser development workflow passed with the packaged UI automation library, including desktop and processor tests, live reads, the actual-driver update, installed health checks and both Android UI cases. Gateway and room state was preserved, Home was restored and reservations were released. Automated workflow, Android, adapter and isolated-package checks also passed; see [validation details](Validation.md).
+Validation: the complete sample driver development workflow passed with the packaged UI automation library, including desktop and processor tests, live reads, the actual-driver update, installed health checks and both Android UI cases. Gateway and room state was preserved, Home was restored and reservations were released. Automated workflow, Android, adapter and isolated-package checks also passed; see [validation details](Validation.md).
 
 Android hardware validation currently covers read-only gateway checks with minimized BlueStacks in a logged-in Windows session. Physical UI controls, service-session operation, exact Release-candidate hardware validation and the final Crestron submission workflow remain work in progress.
 
@@ -37,9 +37,9 @@ Add explicit shared-driver reboot scope for removing temporary V1 instances. Exi
 - Allow `testPackage.additionalRemovalRebootDeviceIds` only with explicitly authorized removal reboots. The reported scope must exactly match the selected instance and reviewed additional IDs.
 - Remove only the selected temporary instance. Require the additional instances to retain their identities, room assignments, versions, loading state and reported configuration after reboot.
 - Use published DevTools 1.4.0 for the workflow and Test Explorer adapter.
-- Document successful Wiser installed-room Auto/Manual/Auto restoration and the complete deliberately failing production-driver workflow with verified previous-code restoration. The original failed result remains failed.
+- Document successful sample driver installed-room Auto/Manual/Auto restoration and the complete deliberately failing production-driver workflow with verified previous-code restoration. The original failed result remains failed.
 
-Validation: plan validation, serialization and preservation guards have automated coverage. Apple TV V1 initial installation and removal were verified on the development MC4-R with two configuration-aware reboots and existing instances preserved. Initial startup verification was resumed read-only after a timeout; no install or reboot command was repeated. This is hardware evidence with assisted verification, not a claim that that complete cycle ran unattended.
+Validation: plan validation, serialization and preservation guards have automated coverage. V1 driver initial installation and removal were verified on the development MC4-R with two configuration-aware reboots and existing instances preserved. Initial startup verification was resumed read-only after a timeout; no install or reboot command was repeated. This is hardware evidence with assisted verification, not a claim that that complete cycle ran unattended.
 
 ## 1.5.0 - 2026-09-15
 
@@ -62,7 +62,7 @@ Add optional installed-device control testing with independent physical observat
 - `artifactReuse` verifies a successful previous run, released lease, source identity, build inputs, driver identity and retained package SHA-256. Every required test stage runs again. An equal/newer catalogue version causes a fresh Debug build; corrupt evidence stops the run.
 - Resolve DevTools 1.3.0 from NuGet. Official NUnit 4.6.1 remains unchanged.
 
-Validation: 151 workflow regressions passed, including a retained-artifact path that succeeds with a deliberately unbuildable project. The KasaTapo hardware workflow passed 71 local tests, 71 processor tests, three processor live tests and four installed checks, including physical outlet control and restoration. The temporary instance and archive were removed and the reservation released. Cross-processor reuse has not yet been hardware-validated. Automatic rollback is not enabled by this release.
+Validation: 151 workflow regressions passed, including a retained-artifact path that succeeds with a deliberately unbuildable project. The sample outlet driver hardware workflow passed 71 local tests, 71 processor tests, three processor live tests and four installed checks, including physical outlet control and restoration. The temporary instance and archive were removed and the reservation released. Cross-processor reuse has not yet been hardware-validated. Automatic rollback is not enabled by this release.
 
 ## Offline release workflow support - 2026-09-15 (no binary release)
 
@@ -111,7 +111,6 @@ Validation: 73 desktop workflow regressions passed. A complete MC4-R test-only r
 - Record successful GitHub runner service executions through the published adapter, including temporary-instance cleanup and lease release.
 - Document service account provisioning, pinned helper sources, short packaging paths, Debug revision persistence and target-specific test filters.
 
-
 ## 1.2.1 — 2026-09-15
 
 - Preserve separate local TRX files for every target framework, combine their required outcomes and show every framework's results in Test Explorer. A passing target cannot hide another target's failure or overwrite its evidence.
@@ -127,7 +126,7 @@ Validation: 73 desktop workflow regressions passed. A complete MC4-R test-only r
 - Add a .NET 10 VSTest adapter for running the gated processor workflow from Visual Studio Test Explorer. Discovery reads a public manifest offline; execution uses private settings and the shared workflow backend, reports individual local/processor/live/installed-driver results, and requests cooperative cancellation.
 - Reject recursive workflow execution from a workflow's own local test stage.
 - Add a sample workflow container and [Test Explorer setup guide](docs/VisualStudioTestExplorer.md).
-- Validate the adapter through VSTest and a real MC4-R KasaTapo workflow: 148 individual tests passed, actual driver updated, test host removed and lease released.
+- Validate the adapter through VSTest and a real MC4-R sample outlet driver workflow: 148 individual tests passed, actual driver updated, test host removed and lease released.
 - Document self-hosted GitHub Actions hardware testing for other developers, with a private-repository example and checkout-relative private plan wrapper.
 - Share processor lease protection with standalone CLI test runs, the Windows runner, updated Home tile execution and DevTools mutations/build deployment. Add bounded workflow busy waits and explicit CLI reservation/release commands for manual Configure sessions; reject release during active tests.
 - Validate desktop/tile exclusion on MC4-R with 69 processor and 35 tile lifecycle test passes, temporary-instance removal, and a build deployment that refused a held reservation then verified import without changing installed instances.
@@ -140,15 +139,14 @@ Validation: 73 desktop workflow regressions passed. A complete MC4-R test-only r
 
 ### Development workflow
 
-- Add opt-in processor reboot authorization, durable reboot evidence, fresh authenticated connections, discovery refresh and lease revalidation for V1 development. Never replay updates or use reboot as a timeout fallback. Add explicit per-package installation/removal reboot policies and simulated regression coverage; the Apple TV V1 update/reboot cycle has now passed unattended hardware validation; initial-install/removal reboot paths remain hardware-unverified.
+- Add opt-in processor reboot authorization, durable reboot evidence, fresh authenticated connections, discovery refresh and lease revalidation for V1 development. Never replay updates or use reboot as a timeout fallback. Add explicit per-package installation/removal reboot policies and simulated regression coverage; the V1 driver update/reboot cycle has now passed unattended hardware validation; initial-install/removal reboot paths remain hardware-unverified.
 
 - Document the complete CI development cycle, LAN agents, private configuration, retained artifacts, live-test gates, installation/update readiness and cleanup, with reusable example plans in [ContinuousIntegration.md](docs/ContinuousIntegration.md).
 
 - Added the optional CLI workflow backend: local tests, immutable Debug packages, SFTP import, install/update readiness, processor/live gates, actual-driver update and read-only installed-device checks.
 - Preserve per-stage evidence and retain uncertain executions, activations and requested cleanup under a processor workflow lease.
 - Close the deployment gate if stage evidence cannot be saved.
-- Validate a complete gated KasaTapo processor workflow, including automatic test-instance removal, without manual intervention.
-
+- Validate a complete gated sample outlet driver processor workflow, including automatic test-instance removal, without manual intervention.
 
 - CLI readiness waits for a newly installed/restarted test service and rediscovers changed ports before connecting, without replaying test runs.
 
@@ -171,7 +169,7 @@ Validation: 73 desktop workflow regressions passed. A complete MC4-R test-only r
 ### Validation and documentation
 
 - Add regression coverage for endpoint changes and recovery, including ambiguous/missing packages, retained results and explicit disconnect.
-- Validate the merge corrections with 233 offline and six live OverkizClient tests passing on a processor.
+- Validate the merge corrections with 233 offline and six live a client library tests passing on a processor.
 - Update runner behavior and upgrade instructions; include this changelog and validation history in the documentation archive.
 
 ## [1.0.0] — 2026-09-11

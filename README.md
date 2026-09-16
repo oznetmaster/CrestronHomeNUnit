@@ -69,7 +69,7 @@ You need a Windows x64 computer supported by .NET 10, a compatible Crestron Home
 - **Discover** populates the test tree. **Run all** does not require discovery first; **Run selection** requires a selected fixture or test.
 - Select a different package while idle to switch connections. The runner refreshes a discovered package's current address and port before connecting. **Find packages** also updates changed endpoints.
 - After a dropped connection, the runner makes up to three rediscovery/reconnect attempts. Previous results remain visible, and interrupted tests are never rerun automatically. If the package is still restarting, use **Connect** once its Home tile is ready.
-- **Test inputsâ€¦** selects configuration files shared by all suites in the same processor package. Switching suites keeps the selection; other packages and processors have separate inputs. Existing suite selections migrate when they agree; if they conflict, choose the intended files once for the package. The runner transfers their current contents when discovering or running tests. Private device settings are not part of a published package.
+- **Test inputs...** selects configuration files shared by all suites in the same processor package. Switching suites keeps the selection; other packages and processors have separate inputs. Existing suite selections migrate when they agree; if they conflict, choose the intended files once for the package. The runner transfers their current contents when discovering or running tests. Private device settings are not part of a published package.
 - Live/manual suites run only when explicitly selected in the runner. Their fixtures may operate physical equipment; review their requirements and choose the intended devices.
 - **Use at next restart** remembers the package, suite and test selection. Restart restoration rediscovers the package's current endpoint and never starts tests automatically.
 - Window position, size and maximized state save immediately, independently of that checkbox. Minimization is ignored; restoration handles missing monitors and smaller screens.
@@ -126,8 +126,6 @@ The Crestron SDK is obtained separately under Crestron's terms. Its proprietary 
 
 A standalone .NET 10 CLI shares the Windows runner's TCP and authentication code. It supports package discovery, suite selection, private input transfer, NUnit XML results and CI exit codes. See [Command-line processor tests](docs/CommandLineRunner.md).
 
-
-The CLI also runs the [gated development workflow](docs/ProcessorTestWorkflow.md): local tests, processor package installation, processor/live tests, actual-driver update and checks, then test-instance cleanup. Complete KasaTapo, Overkiz, WeatherLink and Apple TV V1 runs have been validated on hardware, including the explicitly authorized V1 reboot. The [Visual Studio adapter](docs/VisualStudioTestExplorer.md) uses the same backend.
-
+The CLI also runs the [gated development workflow](docs/ProcessorTestWorkflow.md): local tests, processor package installation, processor/live tests, actual-driver update and checks, then test-instance cleanup. Representative Entity V2 and V1 runs have been validated on hardware, including the explicitly authorized V1 reboot. The [Visual Studio adapter](docs/VisualStudioTestExplorer.md) uses the same backend.
 
 For source and package CI checks without duplicated test totals, see [discovery-based coverage validation](docs/ProcessorTestPackages.md#validate-coverage-without-duplicated-counts).

@@ -2,7 +2,7 @@
 
 New to Google Android Emulator, BlueStacks or Android test setup? Start with [setting up an Android emulator on Windows](AndroidEmulatorSetup.md), including the copyable NUnit sample and first-run checks.
 
-The optional Android stage requires **CrestronHomeNUnit 1.7.0 or later**. It extends the shared CLI/Test Explorer development workflow for ordinary driver regression testing, whether or not the driver will ever be submitted to Crestron. A combined Wiser development workflow passed on real hardware on 16 September 2026.
+The optional Android stage requires **CrestronHomeNUnit 1.7.0 or later**. It extends the shared CLI/Test Explorer development workflow for ordinary driver regression testing, whether or not the driver will ever be submitted to Crestron. A combined sample driver development workflow passed on real hardware on 16 September 2026.
 
 Client and library projects can use desktop and processor tests without an Android stage. These helpers also support ordinary driver development. Optional Crestron submission requirements and delivery are documented separately in [CrestronHomeDevTools](https://github.com/oznetmaster/CrestronHomeDevTools/blob/main/docs/CrestronSubmission.md).
 
@@ -10,21 +10,11 @@ The **Crestron Home NUnit UI automation library** (`CrestronHomeNUnit.Android`) 
 
 ## Verified development behavior
 
-The existing BlueStacks 5 Pie64 instance and Crestron Home Android app were used for a read-only proof on the development processor. An ADB script opened WeatherLink, checked the current-conditions title, section labels and a numeric temperature, then closed the detail screen and verified return to Home. The same proof passed after the BlueStacks window was minimized. Desktop input is not required for Android navigation or screenshots.
+Representative Debug workflows have exercised desktop and processor tests, an actual-driver update, installed health checks and Android inspection through the published packages. Retained discovery and TRX inventories matched, capture digests were checked, starting navigation and checked device settings were restored, temporary test storage was removed and reservations were released.
 
-The documented BlueStacks hide shortcut did not hide the window in this setup. Normal minimization worked and the user confirmed that BlueStacks remained running minimized. This establishes operation while minimized in a logged-in Windows session, not operation after logout, from session 0 or after reboot. Unattended startup and recovery remain a separate worker-validation task.
+Read-only inspection also passed with Google Android Emulator and BlueStacks minimized in a logged-in Windows session. A Windows runner service executed inspection fixtures against an already-running Google emulator as NETWORK SERVICE. That service test did not deploy a driver or operate physical controls. Full service-driven deployment, emulator startup after logout/reboot and interrupted-run recovery remain separate validation work.
 
-The original weather proof used a private script. On 16 September 2026 a private .NET diagnostic also used the public Android library against the minimized emulator under the shared processor lease and a separate Android reservation. It closed the read-only Wiser panel, opened the selected system's saved connection details, verified the local address and port, returned to the system list, reconnected to the same Home, and verified the unobstructed Home screen. The connection/navigation sequence passed twice. No setting was changed and no physical-device command was sent; both reservations were released afterward.
-
-That diagnostic verified .NET capture, guarded taps, scoped field assertions and page navigation in a logged-in desktop session. A subsequent complete CLI development workflow passed 96 desktop tests, 53 processor tests and three read-only live hub tests, verified the gated Wiser driver update, then passed all three discovered Android NUnit tests. The Android tests checked Home readiness and repeated saved-endpoint inspection/Home restoration twice. Their TRX, seven capture observations, discovery coverage and matching restoration record were retained under the actual workflow run/package identity. Both reservations were released. The temporary test instance and package file were removed; Home retained a cached catalogue entry until its next planned reboot.
-
-A subsequent isolated NuGet-consumer workflow used the driver-specific Wiser Android project with no UI automation library source reference. It passed 96 desktop, 53 processor and three live tests, updated the actual Debug driver, passed three installed health checks and both discovered gateway UI cases, and confirmed Home restoration. The tests compared Hot Water and Away row status, action labels and enabled state with fresh management observations. The workflow removed its temporary instance and released both reservations; an archive preserved from the earlier failed validation was separately removed after verifying the run receipts, identity and package hash. Gateway and room identities, schedules and setpoints were preserved.
-
-This validates the integrated development workflow, not an exact Release candidate, all driver UI controls, the app's active network route, or its binding to a specific installed driver instance. Ordinary offline test projects still use simulated Android transports only. The real Android fixture sends navigation inputs but no configuration edits or physical-device commands.
-
-The Wiser fixture now supports a separate private `AllowNameBinding` option using DevTools 1.5.0. It temporarily renames the selected management instance, observes the fresh name on its Home tile, inspects that exact tile and restores the original name. The complete development workflow passed with this option on 16 September 2026 using the published 1.7.1 CLI and the minimized Google Android emulator: 96 desktop tests, 53 processor tests, three live hub reads, the gated Debug driver update, installed readiness checks and both discovered Android cases. Fourteen capture pairs matched their retained hashes. All original installed-device identities, checked room targets/schedules/boost state and gateway Hot Water/Away state were preserved. The temporary test instance and archive were removed and both reservations released. Home retained a cached catalogue entry until its next planned reboot. This remains Debug development validation; it is not exact Release-candidate acceptance or cryptographic route/package attestation.
-
-The Windows GitHub runner service also passed both Wiser gateway UI fixture cases against the already-running Google emulator on 16 September 2026. NUnit executed directly as NETWORK SERVICE, with matching completion/restoration evidence and both reservations released. This run included temporary name binding but no deployment or heating/Away commands. It validates those UI fixtures from the service account; complete deployment workflow execution under that account, emulator startup after reboot/logout and crash recovery remain separate work. See the [emulator setup guide](AndroidEmulatorSetup.md#daily-use-and-ci) for the shared reservation and private-file requirements.
+These are bounded integration checks of the shared helpers. They do not establish every driver's behavior, exact Release-candidate acceptance, complete visual correctness or certification. Page names, control expectations, fixture settings and per-driver results belong in the consuming project's documentation.
 
 ## Library foundation
 
@@ -42,7 +32,7 @@ Set `AndroidSelector.AncestorResourceId` to scope a repeated control ID to its c
 
 The navigator retries only page reads within a bounded readiness interval. It tracks a pending input until departure from its previous page is observed; a timeout or another cleanup attempt cannot silently replay that input or declare the old Home restored. A rejected selector is distinguished from an input that might have been sent. Cleanup navigates only recognized pages belonging to the expected Home, uses a separate bounded cancellation window, and refuses to dismiss an unknown dialog. The fixture verifies Home again before writing its restoration completion record. This restores navigation state only; future physical control fixtures must also restore their device state.
 
-Saved connection settings and a matching visible Home are useful target evidence, not independent proof of the app's active transport, DNS resolution or a specific driver instance. The optional Wiser name challenge provides stronger instance association; see [DevTools UI binding](https://github.com/oznetmaster/CrestronHomeDevTools/blob/main/docs/DriverUiBinding.md). Before adding physical controls, also bind the intended room and physical device and implement their restoration. Configured remote access or changing DNS needs additional route verification; a familiar label alone must not waive those checks.
+Saved connection settings and a matching visible Home are useful target evidence, not independent proof of the app's active transport, DNS resolution or a specific driver instance. An optional temporary-name challenge provides stronger instance association; see [DevTools UI binding](https://github.com/oznetmaster/CrestronHomeDevTools/blob/main/docs/DriverUiBinding.md). Before adding physical controls, also bind the intended room and physical device and implement their restoration. Configured remote access or changing DNS needs additional route verification; a familiar label alone must not waive those checks.
 
 The initial interface intentionally has no credential entry or physical-device test sequence. `TapAsync` is a low-level primitive: a tile can itself trigger a physical command. Driver-specific fixtures must choose reviewed navigation controls and enforce the test policy before calling it.
 
@@ -50,7 +40,7 @@ Hierarchy output masks text and accessibility descriptions of password fields. O
 
 ## Opt-in workflow setup
 
-Use **1.7.1 or later for portrait screens**. If the local-port field is below the visible editor area, the navigator records the name/address first, scrolls once within the observed editor, then verifies the port. It does not edit fields or press Connect. Missing or incorrect fields after that bounded scroll still fail, and cleanup closes the editor before verifying Home restoration. Both read-only Wiser cases passed with the Google Pixel emulator minimized using this fix; logged-out and service-session operation remain unvalidated.
+Use **1.7.1 or later for portrait screens**. If the local-port field is below the visible editor area, the navigator records the name/address first, scrolls once within the observed editor, then verifies the port. It does not edit fields or press Connect. Missing or incorrect fields after that bounded scroll still fail, and cleanup closes the editor before verifying Home restoration. Read-only inspection passed with the Google Pixel emulator minimized using this fix. See the service-session limits above; logged-out emulator operation remains unvalidated.
 
 For your own .NET 10 NUnit UI-test project, consume the Android assembly from `CrestronHomeNUnit.TestAdapter` 1.7.0 or later alongside `NUnit`, `NUnit3TestAdapter` and `Microsoft.NET.Test.Sdk`. Mark test-tool dependencies `PrivateAssets="all"` and do not add a `Workflows.xml` to that UI-test project. The existing workflow container remains a separate project. The [copyable sample](../samples/AndroidWorkflowTests/AndroidWorkflowTests.csproj) uses the published package by default. Tool contributors can set `UseSourceAndroid=true` to test the source library in this repository; consuming driver repositories do not need a second checkout. Publish the required test adapter version before pushing dependent driver-project updates.
 
@@ -83,7 +73,7 @@ The workflow records an aggregate Android stage plus the private detailed TRX an
 
 ## Remaining test coverage and worker validation
 
-1. Extend the verified Wiser instance-binding pattern to other fixtures and bind their physical devices/rooms. Exact Release-candidate provenance and additional route verification remain separate requirements.
+1. Implement reviewed instance binding in consuming fixtures and bind their physical devices/rooms. Exact Release-candidate provenance and additional route verification remain separate requirements.
 2. Validate the combined processor and Android reservations with the installed runner service and crash recovery. The logged-in CLI workflow has passed with both reservations and confirmed release.
 3. Extend driver-specific NUnit fixtures with page models, image checks, live feedback verification and starting-state restoration. All discovered cases are required by the stage, but the framework cannot supply missing driver-specific assertions.
 4. Prove supervised startup/recovery from the installed GitHub runner service. Direct player startup and ADB capture were separately demonstrated without Windows input, but this does not establish headless, logged-out or session-0 operation. A controlled interactive worker or an emulator with supported headless operation may be needed.
@@ -99,29 +89,27 @@ The UI automation library also provides `CrestronHomeNavigation.InspectHomeExten
 
 These APIs require `CrestronHomeNUnit.TestAdapter` 1.8.0 or later. The single-page helper inspects the initial room extension page. For nested pages, `InspectRoomExtensionPagesAsync` supplies a `CrestronHomeExtensionNavigation` session: use `OpenPageAsync` with an explicitly reviewed navigation control and a non-saving close/cancel control, `InspectAsync` for assertions scoped to the front page, and `InspectSelectionAsync` to read an entire selection list without choosing an option. The latter checks the complete expected labels and selected state, captures each viewport, and dismisses the picker. Navigation controls must be selected by the fixture author; the library cannot infer whether an arbitrary driver command changes physical state. Offscreen room/tile scrolling and physical device operations still require additional helpers. A room retained behind an extension does not count as the current page. Failed assertions still trigger bounded Home restoration, and uncertain navigation inputs are never replayed.
 
-The room helper passed two consecutive read-only runs against the Wiser Upstairs Hall thermostat in the minimized Google emulator on 16 September 2026. A third run deliberately failed its control assertion and still restored Home. Final checks confirmed the installed-device inventory and selected Wiser control settings were unchanged, and both reservations were released. This was source-level development validation, not a published adapter or an exact Release-candidate submission.
+The room helper was exercised repeatedly, including an intentional assertion failure, with observed Home restoration and preserved checked state. This validates the tested navigation paths; the consuming fixture must still establish device identity and its own restoration requirements.
 
-A nested read-only inspection can be written as:
+A nested read-only inspection can be written as follows. The captions and page title are illustrative; supply those defined by the consuming driver:
 
 ```csharp
 await navigation.InspectRoomExtensionPagesAsync(
-    "schedule-inspection", roomName, tileName, roomPageTitle,
+    "details-inspection", roomName, tileName, roomPageTitle,
     async (pages, token) =>
     {
         await pages.OpenPageAsync(
-            new(AndroidSelectorKind.Text, "Open"), "Schedule",
+            new(AndroidSelectorKind.Text, "Open details"), "Details",
             CrestronHomePages.Resource("customdevices_toolbarClose"), token);
         await pages.InspectSelectionAsync(
-            "schedule-options", new(AndroidSelectorKind.Text, "SELECT SCHEDULE"),
-            expectedScheduleLabels, expectedSelectedSchedule, token);
+            "device-options", new(AndroidSelectorKind.Text, "SELECT OPTION"),
+            expectedOptionLabels, expectedSelectedOption, token);
     }, cancellationToken);
 ```
 
-The expected labels and selected value should come from fresh state for the identified device. Each check ID must be unique in the workflow evidence directory. The helper validates the entire expected page stack because background fragments retain repeated resource IDs. Unknown pages or uncertain navigation prevent further inputs; cleanup failures retain the original inspection failure. Leaving the callback restores nested pages using the supplied close/cancel controls before restoring Home. This does not itself establish physical-device identity, schedule persistence or submission compliance.
+The expected labels and selected value should come from fresh state for the identified device. Each check ID must be unique in the workflow evidence directory. The helper validates the entire expected page stack because background fragments retain repeated resource IDs. Unknown pages or uncertain navigation prevent further inputs; cleanup failures retain the original inspection failure. Leaving the callback restores nested pages using the supplied close/cancel controls before restoring Home. This does not itself establish physical-device identity, persistence of changed settings or submission compliance.
 
-A further source-based Wiser run verified all 16 schedule labels, all seven day labels and all 48 half-hour time labels, including their selected states. It dismissed each picker, cancelled Edit Schedule and restored Home. Thirteen capture pairs matched their retained hashes; installed-device inventory and checked Wiser control settings were preserved, and both reservations were released. The list reader handles short clipped boundary fragments without relaxing input-coordinate validation. All 91 offline Android tests also passed against a private packaged adapter. These first nested checks were exercised by a private validation program. The expanded Wiser NUnit fixture subsequently passed all discovered gateway and room cases against the stable local 1.8.0 package candidate, retaining 27 verified capture pairs, matching execution coverage and confirmed name, Home and checked-state preservation. Integration into the submission evidence contract is still required.
-
-The Wiser driver's separate Android test project uses these helpers to compare gateway controls and room selector choices with fresh management state, and optionally performs the restored name challenge described above. These read-only fixtures do not test physical room-control commands.
+Nested-page and selection inspection passed in a development integration, including full list enumeration, selected-value checks, editor cancellation and Home restoration. All 91 offline Android regressions also passed against a private packaged adapter. These checks cover the exercised helper paths, not every consuming fixture or submission requirement.
 
 Build and run the offline project:
 

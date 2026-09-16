@@ -16,11 +16,11 @@ The selected child must expose its stable physical identity and a single JSON-st
 
 `Pending` must increment synchronously before dispatching asynchronous work and remain positive through every retry. `Completed` increments exactly once after that work ends, whether it succeeds or fails. Publish the counters together atomically. A new entity/process gets a new epoch. The workflow requires precisely one new completion and no pending work for each submitted command. A restart or another overlapping command prevents successful attribution. These diagnostics establish completion; only the independent probe establishes physical success.
 
-KasaTapo outlet entities provide `controlDeviceId` and `controlStatus`. The identity is the discovered device ID, followed by `/childDeviceId` for a power-strip outlet. Use the absolute `outletOn` and `outletOff` commands; `outletIsOn` supplies the additional Home check. This pair has passed physical control/restoration validation on an MC4-R development processor. The same processor rejected the parameterized `setOutletIsOn` request internally despite returning an HTTP success response, so that setter is not the validated KasaTapo route. The completion and independent observation checks catch this distinction.
+Define the physical-identity format and advertised commands in the consuming driver. Validate absolute true/false commands or a parameterized setter against that driver; an HTTP success response alone does not prove execution. The completion counter and independent observation must both confirm the operation.
 
 ## Private plan example
 
-The IDs below are placeholders. Resolve the current installed device, model and ancestry under the workflow's actual driver before filling them in. The runner rechecks those identities before every command and observation.
+The IDs, command/property names and probe assembly below are illustrative placeholders, not built-in driver interfaces. Resolve the current installed device, model and ancestry under the workflow's actual driver before filling them in. The runner rechecks those identities before every command and observation.
 
 ```json
 "deployedControls": [
@@ -29,16 +29,16 @@ The IDs below are placeholders. Resolve the current installed device, model and 
     "deviceId": 12345,
     "model": "EXACT_INSTALLED_MODEL",
     "physicalIdentity": "DEVICE_ID/CHILD_ID",
-    "booleanCommands": {"true": "outletOn", "false": "outletOff"},
-    "stateProperty": "outletIsOn",
+    "booleanCommands": {"true": "powerOn", "false": "powerOff"},
+    "stateProperty": "isOn",
     "invertBoolean": true,
     "timeoutSeconds": 120,
     "restoreTimeoutSeconds": 120,
     "probe": {
       "executable": "C:/Program Files/dotnet/dotnet.exe",
       "workingDirectory": "C:/Private/TestTools",
-      "arguments": ["C:/Private/TestTools/KasaTapoCrestronDriver.ControlProbe.dll",
-                    "--settings", "C:/Private/LiveTestSettings.json", "--role", "strip"]
+      "arguments": ["C:/Private/TestTools/ExampleDriver.ControlProbe.dll",
+                    "--settings", "C:/Private/LiveTestSettings.json"]
     }
   }
 ]
@@ -57,6 +57,6 @@ The runner launches the configured executable without a shell, appending `--requ
 Values must be scalars in command units; for this contract `Value` and `RestoreValue` must agree. The response is limited to 64 KiB, its nonce and identity must match, and the process must exit successfully. A previous response cannot satisfy another observation. Two consecutive independent readings plus matching Home readings are required. The probe must honor process termination and must never send control commands or background work.
 
 Store plans, settings, request/response files and probe logs privately outside tracked source and public artifacts. Credentials belong in private settings files, not command-line arguments. The public NUnit result includes the named test and fixed diagnostics; private transition files preserve original state, control intent, restore intent, last observed activity counters, command mapping and confirmed restoration. A `RecoveryRequired` result or an interrupted intent requires inspection before releasing the processor lock.
-## Additional validated route
+## Driver-specific restoration
 
-The Wiser driver now has a read-only room probe for Auto → Manual → Auto. Hardware validation used the existing installed room tile, confirmed the hub’s `FromManualMode` origin and unchanged manual setpoint, then independently verified restoration to its assigned schedule with guarded settings unchanged. Rooms without an existing restorable manual setpoint are refused before control. See [Wiser installed-room controls](https://github.com/oznetmaster/WiserHeatCrestronDriver/blob/master/docs/InstalledRoomControls.md). Existing user tiles are retained; commissioning a platform room does not create an independent test thermostat.
+Keep each device's transition rules, independent probe implementation and validated command routes in its driver repository. Capture all settings affected by a command, not just the displayed value. A mode transition may initialize previously absent settings; report that separately rather than silently treating it as exact restoration. Existing user tiles are retained, and another tile for the same physical device is not an independent test target.

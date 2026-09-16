@@ -10,7 +10,7 @@ Validated 10 September 2026 on Windows .NET Framework and on the Crestron Home p
 - Compatibility suite: **34 passed, 0 skipped, 0 failed**.
 - Packaged test discovery succeeds.
 - Package contains no local `System.*` type definitions, no external NUnit assembly references, and no NUnitLite AutoRun type.
-- Root EditorConfig is byte-for-byte identical to the Apple TV driver project's EditorConfig. Whitespace formatting verification passes.
+- Root EditorConfig is byte-for-byte identical to the V1 driver project's EditorConfig. Whitespace formatting verification passes.
 
 The 60 self-test skips comprise 55 tests requiring UNIX, two existing upstream ignores, and three explicitly marked demonstrations. They are retained for reporting; the UNIX tests can become runnable on the processor. The first suite covers the imported assertion, constraint and syntax tests, not the full NUnit repository.
 
@@ -33,13 +33,13 @@ The Windows runner saves diagnostics for incomplete operations, preserves comple
 
 The current TCP server and test execution share a process. Fatal process failures cannot preserve its TCP connection. Separate driver packages are not sufficient to guarantee process isolation under Crestron's documented driver grouping rules. Automatic reconnection has not been added.
 
-## Driver processor package and package switching â€” 11 September 2026
+## Driver processor package and package switching - 11 September 2026
 
-The user reports that both KasaTapoCrestronDriver suites passed on the Crestron Home processor: Unit Tests (34 cases) and Processor lifecycle (20 cases). This is user-reported processor validation; the runner result XML was not collected in this task.
+The user reports that both example driver suites passed on the Crestron Home processor: Unit Tests (34 cases) and Processor lifecycle (20 cases). This is user-reported processor validation; the runner result XML was not collected in this task.
 
 Windows regression validation passed for switching between two local TCP test packages while connected, refreshing discovery without losing an active connection, replacing the suite catalog, clearing stale selections, and disabling package switching during an active operation. Existing runner recovery, restart preferences, secure inputs, transport, cancellation and reconnect checks also passed.
 
-## Windows runner .NET 10 migration â€” 11 September 2026
+## Windows runner .NET 10 migration - 11 September 2026
 
 The Windows runner and UI/transport regression harness now target `net10.0-windows`. Shared transport and host libraries multi-target `net472;net10.0`. Processor packages and the validator that directly loads merged processor assemblies remain on `net472`; loading those Framework assemblies under .NET 10 is not used as a substitute for Framework validation.
 
@@ -47,13 +47,13 @@ The Windows runner and UI/transport regression harness now target `net10.0-windo
 - All local runner regressions passed: settings migration, read-only legacy files, preservation of newer settings, restart restoration, changed endpoints, package switching, incomplete results, secure input transfer, authentication, discovery, cancellation, rerun and reconnect.
 - The manually pumped Windows Forms validation harness now explicitly retains its UI synchronization context across successive forms on .NET 10.
 - Local mDNS checks passed for two packages using dynamically assigned ports, authentication and independent advertisement shutdown.
-- The .NET 10 client discovered and authenticated with an existing processor over SFTP, discovered the KasaTapo driver unit suite and ran all **34 tests successfully**, with 34 streamed starts and finishes. No processor update was required. Captured result XML remains local and is not included in release assets.
-- Framework validation of an existing merged KasaTapoClient package passed input reload/clear/opt-in checks and all **97 ordinary unit tests** over local TCP. Live physical-device tests were not run. This check now belongs to `CrestronHomeNUnit.DesktopValidation --package-inputs <merged-assembly> <work-directory>`.
+- The .NET 10 client discovered and authenticated with an existing processor over SFTP, discovered the sample outlet driver driver unit suite and ran all **34 tests successfully**, with 34 streamed starts and finishes. No processor update was required. Captured result XML remains local and is not included in release assets.
+- Framework validation of an existing merged example client package passed input reload/clear/opt-in checks and all **97 ordinary unit tests** over local TCP. Live physical-device tests were not run. This check now belongs to `CrestronHomeNUnit.DesktopValidation --package-inputs <merged-assembly> <work-directory>`.
 - The self-contained Windows x64 release includes Microsoft.NETCore.App and Microsoft.WindowsDesktop.App **10.0.12**. Its executable constructed its Windows Forms window and closed normally. The ZIP contains the runtime, application dependencies and full runtime/dependency notices; private settings are absent.
 - Connection defaults and input-file selections now use LocalAppData. Legacy import preserves original files and newer destination settings; the existing protected credential and restart-preference stores remain in place.
 
 This migration does not fix or suppress the previously documented upstream NUnit repeated-run stream-comparison issue. GitHub publication remains pending README approval.
-## Window placement persistence â€” 11 September 2026
+## Window placement persistence - 11 September 2026
 
 The runner now saves normal bounds and maximized state immediately on location/size changes, independently of saved test selections. Minimized transitions and minimized shutdown do not change the saved placement. Writes use a temporary file followed by replacement, so an interrupted write retains the previous complete settings. The private file is `Runner.window.local.json` under the runner's LocalAppData directory.
 
@@ -63,7 +63,7 @@ The full runner regression harness passed, including new checks for persistence 
 The first hosted run exposed a placement-test assumption about monitor width; the test now moves inward and the complete runner suite passes on the hosted Windows desktop. The second run exposed 24 stack-trace assertions in the optimized merged Release self-test package. The same 24 failures reproduced locally. Disabling optimization on the primary self-test host preserves the stack frames after ILRepack merges its already-unoptimized fixture sources. No NUnit assertion was changed or skipped. The corrected Release package passed **2,406 self-tests, 60 skipped, zero failed**, plus **34 compatibility tests, zero failed**, locally. This setting applies to the supplied self-test host; generic processor packages keep their normal optimization settings.
 Runner endpoint recovery is covered by the transport validation harness (`--runner-endpoints` for the focused check): new ports and addresses for an existing package, dropped connections, Find packages refresh, missing/ambiguous identities, retained results, explicit disconnect and no test replay. All peers are synthetic loopback servers.
 
-## Shared runner inputs â€” 12 September 2026
+## Shared runner inputs - 12 September 2026
 
 The runner and transport regression suite passed with shared inputs across suites in the same processor package. Coverage includes processor/package isolation, changed ports, migration of compatible selections, conflicting legacy paths, explicit clearing, settings persistence, recovery and secure transfer. The processor host implementation is unchanged.
 
@@ -71,13 +71,13 @@ The runner and transport regression suite passed with shared inputs across suite
 
 The local 1.7.0 TestAdapter candidate restored into an isolated NuGet consumer and passed workflow discovery, ordinary NUnit Android API use and missing-private-configuration rejection. Workflow, Android and adapter regressions passed (240, 65 and 11 respectively).
 
-The Wiser workflow then used that package without a UI automation library source checkout. It passed 96 desktop tests, 53 processor tests and three read-only live tests, updated the installed Debug driver and passed three installed health checks plus both discovered gateway UI cases. Seven private capture pairs matched their recorded hashes. Home restoration, released processor/Android reservations, unchanged gateway/room identities and unchanged room schedules/setpoints were independently checked. Its temporary test instance was removed. A test archive introduced by the preceding failed run was removed separately after checking the original baseline and the successful run's exact package identity/hash, retaining a backup; the cached catalogue entry awaits a planned reboot.
+The sample driver workflow then used that package without a UI automation library source checkout. It passed 96 desktop tests, 53 processor tests and three read-only live tests, updated the installed Debug driver and passed three installed health checks plus both discovered gateway UI cases. Seven private capture pairs matched their recorded hashes. Home restoration, released processor/Android reservations, unchanged gateway/room identities and unchanged room schedules/setpoints were independently checked. Its temporary test instance was removed. A test archive introduced by the preceding failed run was removed separately after checking the original baseline and the successful run's exact package identity/hash, retaining a backup; the cached catalogue entry awaits a planned reboot.
 
 The initial attempt exposed a renamed-manifest version-reconciliation gap and stopped before updating the actual driver. The corrected workflow recognizes the package basename or an explicit manifest path and verifies a fresh Debug revision before import. This is development-package validation in a logged-in BlueStacks session, not exact Release-candidate, full UI, service-session or certification validation.
 
 ## Portrait Android emulator validation - 16 September 2026
 
-The 1.7.1 adapter candidate passed both read-only Wiser gateway NUnit cases with Google's Pixel 7 Android 16 (API 36.1) emulator minimized. The app was Crestron Home 4.6.18, installed by transferring its original APK from the existing BlueStacks installation without Google sign-in. The fixtures checked the already-installed Debug gateway, verified saved local connection details and compared Hot Water/Away controls against fresh processor state. They did not deploy a driver or operate heating controls. Eight screenshot/hierarchy pairs matched their retained hashes, Home restoration was confirmed and both reservations were released.
+The 1.7.1 adapter candidate passed both read-only sample driver gateway NUnit cases with Google's Pixel 7 Android 16 (API 36.1) emulator minimized. The app was Crestron Home 4.6.18, installed by transferring its original APK from the existing BlueStacks installation without Google sign-in. The fixtures checked the already-installed Debug gateway, verified saved local connection details and compared displayed controls against fresh processor state. They did not deploy a driver or operate heating controls. Eight screenshot/hierarchy pairs matched their retained hashes, Home restoration was confirmed and both reservations were released.
 
 The first run with 1.7.0 failed because the local-port field was below the portrait viewport. The fix retains name/address evidence before a single guarded scroll and then checks the port. All 67 local Android tests passed, including portrait navigation and uncertain-scroll restoration. A separate earlier app termination remains unexplained; reopening restored connectivity. No-window mode, service-account operation and complete submission acceptance have not been validated.
 
@@ -85,10 +85,10 @@ The first run with 1.7.0 failed because the local-port field was below the portr
 
 The Android helper suite passed all 91 offline tests from source and from a private adapter package. An isolated consumer also verified ordinary NUnit use and workflow discovery without runtime project references.
 
-Against the already-installed Wiser Debug driver on the development processor, the room helper completed two inspections and returned Home after an intentional assertion failure. Nested-page validation then compared all 16 schedule labels, seven literal day labels and 48 half-hour labels, including selected values. It dismissed the lists, cancelled the editor and restored Home. All 13 accepted screenshot/hierarchy pairs matched their retained hashes; installed identities/locations and checked target, boost, schedule, hot-water and Away settings were preserved, and both reservations were released.
+Against the already-installed sample driver Debug driver on the development processor, the room helper completed two inspections and returned Home after an intentional assertion failure. Nested-page validation then compared all 16 schedule labels, seven literal day labels and 48 half-hour labels, including selected values. It dismissed the lists, cancelled the editor and restored Home. All 13 accepted screenshot/hierarchy pairs matched their retained hashes; installed identities/locations and checked target, boost, schedule, hot-water and Away settings were preserved, and both reservations were released.
 
 Two earlier time-list runs exposed clipped Android row fragments: missing child controls at the lower edge and inverted offscreen child bounds at the upper edge. Both failed checks restored Home and released their reservations. Regression tests now distinguish these short boundary fragments from invalid full-size or interior rows, without relaxing tap-coordinate validation.
 
-These checks used a private validation program with Google's emulator minimized, rather than the Wiser NUnit fixture. They prove the tested helper paths, not exact Release-candidate acceptance, physical heating response, complete visual correctness or Crestron certification.
+These checks used a private validation program with Google's emulator minimized, rather than the sample driver NUnit fixture. They prove the tested helper paths, not exact Release-candidate acceptance, physical heating response, complete visual correctness or Crestron certification.
 
-The actual Wiser NUnit project then passed all discovered gateway and room cases against the local stable 1.8.0 adapter candidate with its published dependencies. Discovery and execution inventories matched; all 27 capture pairs matched their hashes, original names/checked control settings and Home were preserved, and both reservations were released. The final source also compiled and skipped all cases without a hardware context. This was fixture integration against an already-installed Debug driver, not a new full deployment or submission run.
+The actual sample driver NUnit project then passed all discovered gateway and room cases against the local stable 1.8.0 adapter candidate with its published dependencies. Discovery and execution inventories matched; all 27 capture pairs matched their hashes, original names/checked control settings and Home were preserved, and both reservations were released. The final source also compiled and skipped all cases without a hardware context. This was fixture integration against an already-installed Debug driver, not a new full deployment or submission run.

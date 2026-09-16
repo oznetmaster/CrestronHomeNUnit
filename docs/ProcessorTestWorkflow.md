@@ -6,7 +6,7 @@ This document records the agreed workflow. The shared execution-order/deployment
 
 ## Hardware validation
 
-On September 13, 2026, a complete KasaTapo workflow passed 57 local tests, 57 processor unit/lifecycle tests, three read-only processor live tests and seven checks of the updated installed driver. The run built and installed its test package, updated the actual driver only after the required test gates passed, automatically removed the test instance and released its processor lease. Independent API and SSH host-manager checks confirmed removal. This run required no reboot or manual intervention.
+On September 13, 2026, a complete sample outlet driver workflow passed 57 local tests, 57 processor unit/lifecycle tests, three read-only processor live tests and seven checks of the updated installed driver. The run built and installed its test package, updated the actual driver only after the required test gates passed, automatically removed the test instance and released its processor lease. Independent API and SSH host-manager checks confirmed removal. This run required no reboot or manual intervention.
 
 An earlier run passed its tests but could not complete cleanup while Home configuration processing was stalled. Its result remains failed; recovery required a separately approved processor reboot. The underlying cause has not been established. A missing tile alone does not prove removal, and one successful repeat run does not establish that the earlier fault cannot recur. The workflow retains its lease after unconfirmed cleanup and never reboots as an unrequested cleanup fallback. V1 lifecycle reboots require the explicit policy described in the [CI guide](ContinuousIntegration.md#v1-development-and-reboot-policy).
 
@@ -49,13 +49,11 @@ A post-deployment failure occurs after the new driver is already installed and m
 
 The first hardware target is the designated development processor. Actual-driver deployment requires a private opt-in setting with the exact processor and installed driver target. No public configuration includes real credentials, device addresses or personal paths.
 
-
 ## Optional test-instance cleanup
 
 Private workflow configuration provides an opt-in `removeTestInstanceAfterRun` setting. Cleanup runs after results are preserved and every requested test stage that needs the host has finished, including deployed-driver live checks. Remove only the explicitly identified test instance; never infer it from a display name alone and never remove the actual driver under development. Match its recorded device ID, model and version and refuse a dependency scope that includes other devices.
 
 Cleanup also runs after completed test failures. A hung or disconnected run first requires confirmation that execution has stopped. Preserve test outcomes and report cleanup errors separately. A cleanup failure does not convert failed tests into a pass. The shared workflow policy implements and tests these cleanup decisions. The lower-level configuration `remove` command was validated by removing a completed test instance and automatically reinstalling it. The CLI wires these decisions to the verified configuration-management lifecycle APIs. The stable Test Explorer adapter uses this same backend; see [Test Explorer integration](VisualStudioTestExplorer.md).
-
 
 ## Version identity
 
@@ -85,12 +83,11 @@ An atomic SFTP directory `/user/CrestronHomeNUnit-WorkflowLease` coordinates coo
 
 An unconfirmed test-instance removal retains the processor workflow lease. A cleared room assignment alone does not prove that Home has removed the instance. Inspect the retained instance and lease before another run; do not automatically remove the lease or create a replacement test host.
 
-## Apple TV V1 hardware validation
+## V1 driver hardware validation
 
-A complete unattended Apple TV V1 workflow subsequently passed on the development MC4-R: 116 local tests, 105 processor driver tests, 11 processor SDK lifecycle tests and three read-only installed-driver health checks. It installed a fresh Entity V2 test host, staged the V1 update, received the matching swap-completion event, requested one Home configuration reboot, reconnected and verified lease ownership, verified the new driver version was Loaded, online, ready and configured, then removed the test host and released the lease. Independent checks confirmed the other 19 driver instances retained their identities and versions and were Loaded. The first V1 attempt exposed an incorrect assumption that swap initiates reboot; it required one separately recorded assisted reboot and was not counted as an unattended pass. A second attempt confirmed swap completion but an immediate SSH reboot returned with the previous version; it was stopped, reconciled and retained as a failed validation. The passing run used Home configuration reboot instead. V1 initial-install/removal reboot paths still have simulated coverage only. The SDK lifecycle tests and read-only health checks do not establish playback or device-control behavior.
+A complete unattended V1 driver workflow subsequently passed on the development MC4-R: 116 local tests, 105 processor driver tests, 11 processor SDK lifecycle tests and three read-only installed-driver health checks. It installed a fresh Entity V2 test host, staged the V1 update, received the matching swap-completion event, requested one Home configuration reboot, reconnected and verified lease ownership, verified the new driver version was Loaded, online, ready and configured, then removed the test host and released the lease. Independent checks confirmed the other 19 driver instances retained their identities and versions and were Loaded. The first V1 attempt exposed an incorrect assumption that swap initiates reboot; it required one separately recorded assisted reboot and was not counted as an unattended pass. A second attempt confirmed swap completion but an immediate SSH reboot returned with the previous version; it was stopped, reconciled and retained as a failed validation. The passing run used Home configuration reboot instead. Initial-install/removal validation is described separately in [the V1 lifecycle guide](https://github.com/oznetmaster/CrestronHomeDevTools/blob/main/docs/V1DriverRemoval.md); its startup verification needed a read-only resume. The SDK lifecycle tests and read-only health checks do not establish playback or device-control behavior.
 
 Initial-installation configuration and health checks using the assigned actual-driver ID are documented in the [CI plan guide](ContinuousIntegration.md). These additions are available from version 1.2.1.
-
 
 ## Successful CI package cleanup
 

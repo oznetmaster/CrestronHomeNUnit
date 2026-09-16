@@ -131,25 +131,9 @@ The generic Actions example must be validated on each developer's runner account
 
 ## Recorded service validation
 
-On 2026-09-15, a Windows GitHub Actions service running as NETWORK SERVICE completed all six driver and seven library test-only workflows using published 1.2.1 tooling on a development MC4-R. All 3,977 test executions passed. Local counts include both frameworks where the library targets net472 and .NET 10.
+On 2026-09-15, a Windows GitHub Actions service running as NETWORK SERVICE completed six driver and seven library test-only workflows using published 1.2.1 tooling on a development MC4-R. All 3,977 test executions passed. Local counts include both frameworks where the library targets net472 and .NET 10.
 
-| Suite | Local test executions | Processor test executions |
-|---|---:|---:|
-| AppleTVControlLibrary | 458 | 229 |
-| AppleTVCrestronDriver | 116 | 116 |
-| KasaTapoClient | 194 | 97 |
-| KasaTapoCrestronDriver | 69 | 69 |
-| OverkizClient | 466 | 233 |
-| OverkizCrestronDriver | 47 | 47 |
-| SimpleWeatherClient | 234 | 117 |
-| TeslaPowerwallCrestronDriver | 73 | 73 |
-| TeslaPowerwallLibrary | 236 | 118 |
-| WeatherLinkLiveCrestronDriver | 56 | 56 |
-| WeatherLinkLiveLibrary | 254 | 127 |
-| WiserHeatAPIv2 | 276 | 138 |
-| WiserHeatCrestronDriver | 39 | 39 |
-
-Every workflow built its package, activated a temporary test instance, executed the processor suites, confirmed instance removal and released the processor lease. These runs did not operate live devices or update production drivers. Apple TV's synthetic lifecycle suite is automatic from processor test package 1.0.2.
+Each tested workflow built its package, activated a temporary test instance, executed the processor suites, confirmed instance removal and released the processor lease. These runs did not operate live devices or update production drivers. Project-specific counts and suite inventories belong in their own repositories; gate against each build's discovered inventory rather than copying totals from this guide.
 
 The jobs were manually dispatched with exact source commits in a private orchestration repository and then ran unattended. This does not establish an automatic public-PR trigger or a cross-repository required-check bridge. Source identities and raw results remain in the private evidence; the reusable example must be validated on each developer's own machine and network.
 
@@ -176,7 +160,6 @@ Account for release workflows before enforcing branch rules. During this rollout
 The release preflight can require passing hardware checks while branch checks remain informational. That is a release gate, not a pre-merge gate. It checks the source before version preparation and does not certify independently rebuilt Release bytes. Preserve existing protections, and activate additional branch requirements only after the publishing identity/workflow and a real App-reported hardware run have been validated.
 
 The template's offline policy tests cover source identity, approvals, library/package pairing, collection pins, interruption recovery and check reporting. On 2026-09-15 the reference installation completed App-reported current-source runs for all six drivers and seven libraries using adapter 1.3.0, including successful test-instance and archive cleanup. Each installation must also validate its configured collection revisions and release gates before enabling its schedule; copying the template does not enable a schedule or repository protections.
-
 
 ## Successful CI package cleanup
 

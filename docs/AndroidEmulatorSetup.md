@@ -37,7 +37,7 @@ You need an existing working [processor development workflow](ContinuousIntegrat
 
 | Choice | Current position in this project |
 | --- | --- |
-| **Google Android Emulator**, available through Visual Studio or Android Studio | The complete Wiser Debug workflow passed with an Android 16 virtual device minimized. Both Wiser UI cases also passed from the Windows GitHub runner service against that existing emulator. |
+| **Google Android Emulator**, available through Visual Studio or Android Studio | A Debug workflow passed with an Android 16 virtual device minimized. Inspection fixtures also passed from the Windows GitHub runner service against that existing emulator. |
 | **BlueStacks 5, Pie 64-bit** | A complete development workflow passed with the app running minimized in a logged-in Windows session. |
 
 Choose one emulator and follow its installation section below. BlueStacks is not required for Google's emulator. Both use the shared app-installation, processor-connection and NUnit instructions that follow.
@@ -217,7 +217,7 @@ This is a connectivity/navigation starter. Extend it with driver-specific assert
 
 Both Google Android Emulator and BlueStacks can remain **minimized** during the validated workflow; the test library does not need the Windows mouse or keyboard. Leave the emulator running and avoid manually using the same Android instance during a test. After tests confirm restoration and release their reservations, you can use or close it normally.
 
-The complete development workflow has been validated with an emulator already running in a logged-in Windows session. On 16 September 2026, the Windows GitHub runner service also passed both Wiser UI fixture cases against the existing Google emulator. The worker ran NUnit directly as **NETWORK SERVICE**, captured Android evidence, temporarily renamed and restored the selected gateway, verified Home restoration and unchanged checked gateway/inventory state, and released both reservations. It did not deploy a driver or send heating/Away commands. This proves service execution of those fixtures, not the complete deployment workflow under that account.
+The development workflow has been exercised with an emulator already running in a logged-in Windows session. Read-only fixture execution also passed as NETWORK SERVICE against the existing Google emulator, with capture evidence, restored temporary name and Home, preserved checked state and released reservations. That service run did not deploy a driver or send physical controls. Complete deployment under that account still requires separate validation.
 
 For service-driven tests, interactive and service accounts must use the same accessible Android reservation path and appropriate private configuration/evidence storage. Provision only the required files; do not grant access to an entire personal profile. Starting the emulator from the service, operation after logout/reboot and crash recovery remain separate validation work.
 
@@ -243,4 +243,4 @@ No signature, Crestron submission profile or portal account is required for thes
 
 The tested BlueStacks environment used Pie 64-bit and Crestron Home Android 4.6.18. This records the validation environment, not a promise that every app/emulator version behaves identically. A clean-machine installation has not yet been repeated end to end for either emulator.
 
-On 16 September 2026, Crestron Home 4.6.18 was also copied from that BlueStacks instance and installed on a Pixel 7 Android 16 (API 36.1) emulator without Google sign-in. Both read-only Wiser UI cases passed while the emulator was minimized, with return to Home and unchanged gateway state verified. Use the published 1.7.1 adapter, which handles the local-port field being below the portrait viewport. Version 1.7.0 can stop at that field. A prior app termination was observed; reopening restored connectivity, but its cause remains unconfirmed. The emulator's full unattended lifecycle is still separate validation work.
+On 16 September 2026, Crestron Home 4.6.18 was also copied from that BlueStacks instance and installed on a Pixel 7 Android 16 (API 36.1) emulator without Google sign-in. Both read-only sample driver UI cases passed while the emulator was minimized, with return to Home and unchanged gateway state verified. Use the published 1.7.1 adapter, which handles the local-port field being below the portrait viewport. Version 1.7.0 can stop at that field. A prior app termination was observed; reopening restored connectivity, but its cause remains unconfirmed. The emulator's full unattended lifecycle is still separate validation work.

@@ -386,7 +386,7 @@ Verified development results include:
 - 34 language compatibility tests passing on the processor.
 - A selected NUnit framework run with 2,407 passed, no failures, 55 skipped and four performance warnings.
 - External library unit and live suites operating through the same package host and runner.
-- User-reported success for the KasaTapoCrestronDriver package's 34 unit cases and 20 processor lifecycle cases.
+- User-reported success for the example driver package's 34 unit cases and 20 processor lifecycle cases.
 - Local TCP regression checks for package switching, saved selections, secure inputs, cancellation, interrupted runs and reconnecting.
 
 These are recorded development results, not a claim that every later build, processor model or firmware release has been validated. See [Validation history](../Validation.md) for the observed versions and limitations.
