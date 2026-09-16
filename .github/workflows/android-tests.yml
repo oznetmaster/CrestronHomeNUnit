@@ -1,0 +1,25 @@
+# Copyright (c) 2026 Neil Colvin. Licensed under the MIT License; see LICENSE.
+name: Android UI tooling tests
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  offline-tests:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.401
+      - name: Test Android primitives without emulator or hardware
+        shell: pwsh
+        run: ./tools/Test-DiscoveredCoverage.ps1 -Stage Desktop -Project CrestronHomeNUnit.Android.Tests/CrestronHomeNUnit.Android.Tests.csproj -Framework net10.0 -Configuration Release -ResultsDirectory artifacts/android -RequiredCategories @()
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-offline-test-results
+          path: artifacts/android/**/*.trx
+          if-no-files-found: error

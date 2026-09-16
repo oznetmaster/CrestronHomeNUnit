@@ -1,0 +1,5 @@
+<!-- Copyright (c) 2026 Neil Colvin. Licensed under the MIT License. See LICENSE. -->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings></PropertyGroup>
+  <ItemGroup><InternalsVisibleTo Include="CrestronHomeNUnit.Android.Tests" /></ItemGroup>
+</Project>
