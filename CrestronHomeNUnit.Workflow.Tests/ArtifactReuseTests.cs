@@ -289,7 +289,7 @@ public sealed class ArtifactReuseTests
 		await using var client = new ConfigurationClient (new CatalogueConnection ());
 		var type = typeof (WorkflowRunner).GetNestedType ("Operations", BindingFlags.NonPublic)!;
 		await using var operations = (IAsyncDisposable)Activator.CreateInstance (type, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
-			null, [plan, new NetworkCredential (), results, client, null, null, null], null)!;
+			null, [plan, new NetworkCredential (), results, client, null, null, null, null], null)!;
 		type.GetField ("_source", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue (operations, sourceHash);
 		var path = await (Task<string>)type.GetMethod ("Build", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke (operations, [target, true, timeout.Token])!;
 		Assert.That (File.ReadAllBytes (path), Is.EqualTo (File.ReadAllBytes (_package)));

@@ -29,6 +29,8 @@ public static class WorkflowRunner
 		results = Path.GetFullPath (results);
 		Directory.CreateDirectory (results);
 		await using var exclusive = new FileStream (Path.Combine (results, "Workflow.json"), FileMode.CreateNew, FileAccess.Write, FileShare.Read);
+		using var releasePackage = plan.ReleaseCandidate == null ? null : await WorkflowReleasePackage.PrepareAsync
+			(plan.ReleaseCandidate, plan.ActualDriver!, results, token).ConfigureAwait (false);
 		var runId = Guid.NewGuid ().ToString ("N");
 		await using var client = await ConfigurationClient.ConnectAsync (ConnectionOptions (plan, plan.Host), credential, token).ConfigureAwait (false);
 		using var lease = await ProcessorLease.AcquireAsync (plan.Host, credential, plan.SshFingerprint, runId, TimeSpan.FromSeconds (plan.LeaseWaitSeconds), token).ConfigureAwait (false);
@@ -52,7 +54,7 @@ public static class WorkflowRunner
 			throw;
 			}
 		using var heldAndroidReservation = androidReservation;
-		await using var operations = new Operations (plan, credential, results, client, lease, initialConfiguration, androidProfile);
+		await using var operations = new Operations (plan, credential, results, client, lease, initialConfiguration, androidProfile, releasePackage);
 		ProcessorWorkflowResult? result = null;
 		bool release = false;
 		var stages = new List<WorkflowStageResult> ();
@@ -121,7 +123,7 @@ public static class WorkflowRunner
 		=> remoteExecutionStopped && !activationUncertain && (!removalRequested || !hasTestInstance);
 
 	private sealed class Operations (WorkflowPlan plan, NetworkCredential credential, string results, ConfigurationClient initialClient, ProcessorLease lease,
-		 WorkflowConfiguration.Inputs? initialConfiguration, AndroidSessionProfile? androidProfile) : IProcessorWorkflowOperations, IAsyncDisposable
+		 WorkflowConfiguration.Inputs? initialConfiguration, AndroidSessionProfile? androidProfile, WorkflowReleasePackage? releasePackage) : IProcessorWorkflowOperations, IAsyncDisposable
 		{
 		private readonly ConfigurationClient _initialClient = initialClient;
 		private ConfigurationClient client = initialClient;
@@ -152,16 +154,21 @@ public static class WorkflowRunner
 			}
 		private async Task CheckSource (CancellationToken token)
 			{
+			if (releasePackage != null) await releasePackage.VerifySourceCommitAsync (token).ConfigureAwait (false);
 			if (_source != await WorkflowEvidence.SourceDigestAsync (plan.SourceRoots, token).ConfigureAwait (false))
 				throw new InvalidOperationException ("Source changed during the workflow; rebuild and rerun tests.");
 			}
 		public async Task<WorkflowTestOutcome> RunLocalTestsAsync (CancellationToken token)
 			{
+			if (releasePackage != null) await releasePackage.VerifyPristineSourceAsync (token).ConfigureAwait (false);
 			_source = await WorkflowEvidence.SourceDigestAsync (plan.SourceRoots, token).ConfigureAwait (false);
+			if (releasePackage != null) await releasePackage.VerifyPristineSourceAsync (token).ConfigureAwait (false);
 			await File.WriteAllTextAsync (Path.Combine (results, "BuildIdentity.json"), JsonSerializer.Serialize (new
 				{
 				SourceSha256 = _source,
 				Configuration = "Debug",
+				ActualDriverMode = releasePackage == null ? "BuildDebug" : "PrebuiltRelease",
+				ReleaseSourceCommit = releasePackage?.SourceCommit,
 				StartedUtc = DateTimeOffset.UtcNow
 				}), token).ConfigureAwait (false);
 			int passed = 0, failed = 0, skipped = 0;
@@ -236,11 +243,18 @@ public static class WorkflowRunner
 				_artifactInputs.Add (path, inputs);
 			return path;
 			}
+		private async Task<string> PrepareActualPackageAsync (CancellationToken token)
+			{
+			// A pinned release was copied before connection. Never rebuild or reconcile its version.
+			if (releasePackage == null) return await Build (plan.ActualDriver!, false, token).ConfigureAwait (false);
+			await CheckSource (token).ConfigureAwait (false);
+			await File.WriteAllTextAsync (Path.Combine (results, "actual-package.json"), JsonSerializer.Serialize (new PackageReceipt
+				(releasePackage.Identity, null, releasePackage.Sha256, _source!, ReleaseSourceCommit: releasePackage.SourceCommit)), token).ConfigureAwait (false);
+			return releasePackage.Path;
+			}
 		public async Task PrepareTestInstanceAsync (CancellationToken token)
 			{
-			// Build once and retain the actual package before any processor stage. Both use the same source identity.
-			if (plan.ActualDriver != null)
-				_actualPath = await Build (plan.ActualDriver, false, token).ConfigureAwait (false);
+			if (plan.ActualDriver != null) _actualPath = await PrepareActualPackageAsync (token).ConfigureAwait (false);
 			_testPath = await Build (plan.TestPackage, true, token).ConfigureAwait (false);
 			if (_actualPath != null && DriverDeployment.Inspect (_actualPath).DriverId == DriverDeployment.Inspect (_testPath).DriverId)
 				throw new InvalidDataException ("Actual and test packages have the same driver identity.");
@@ -260,7 +274,9 @@ public static class WorkflowRunner
 			var catalogue = await client.GetDriversAsync (info.Model, deadline.Token).ConfigureAwait (false);
 			if (catalogue.Any (d => string.Equals (d.Model?.Trim (), info.Model.Trim (), StringComparison.OrdinalIgnoreCase)
 				 && WorkflowDebugVersion.ParseVersion (d.Version) >= WorkflowDebugVersion.ParseVersion (info.Version)))
-				throw new InvalidOperationException ("An equal or newer model version is already in the catalogue. Rerun the workflow to reconcile its Debug revision before deployment.");
+				throw new InvalidOperationException (prefix == "actual" && releasePackage != null
+					? "An equal or newer model version is already in the catalogue. Reconcile the test processor before verifying this immutable release; its bytes and version will not be changed."
+					: "An equal or newer model version is already in the catalogue. Rerun the workflow to reconcile its Debug revision before deployment.");
 			ActivationUncertain = true;
 			var imported = await DriverDeployment.DeployAsync (client, _host, credential, plan.SshFingerprint, package, Timeout, deadline.Token).ConfigureAwait (false);
 			await File.WriteAllTextAsync (Path.Combine (results, prefix + "-import.json"), JsonSerializer.Serialize (imported), deadline.Token).ConfigureAwait (false);
@@ -386,7 +402,7 @@ public static class WorkflowRunner
 				await lease.BeginControlAsync (token).ConfigureAwait (false);
 				using var androidDeadline = Deadline (token);
 				var android = await WorkflowAndroid.RunAsync (plan.AndroidTests, androidProfile!, lease.Owner, _host, _actual!.DeviceId,
-					_actualPath!, _source!, Path.Combine (results, "AndroidUI"), androidDeadline.Token).ConfigureAwait (false);
+					_actualPath!, _source!, Path.Combine (results, "AndroidUI"), androidDeadline.Token, releaseSourceCommit: releasePackage?.SourceCommit).ConfigureAwait (false);
 				if (android.RestorationConfirmed)
 					{
 					await lease.EndControlAsync (token).ConfigureAwait (false);

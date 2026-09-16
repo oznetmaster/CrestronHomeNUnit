@@ -17,6 +17,7 @@ Post-deployment checks of the installed production driver currently read propert
 - [Run locally or in CI](#run-locally-or-in-ci)
 - [Live tests and installed drivers](#live-tests-and-installed-drivers)
 - [Readiness and version identity](#readiness-and-version-identity)
+- [Testing an existing Release package](ReleaseCandidateTesting.md)
 - [Results and deployment gates](#results-and-deployment-gates)
 - [V1 development and reboot policy](#v1-development-and-reboot-policy)
 - [Cleanup and interrupted runs](#cleanup-and-interrupted-runs)
@@ -43,7 +44,7 @@ The two discovery mechanisms are separate. DevTools discovers processors using n
 
 1. Acquire an exclusive cooperating-workflow lease on the selected processor and identify the current source state.
 2. Run every required local test stage and check actual result counts.
-3. Build the test package and, if configured, the actual driver package in Debug with direct deployment disabled. Retain the exact resulting package bytes and hashes.
+3. Build the test package and, if configured, the actual driver package in Debug with direct deployment disabled. Retain the exact resulting package bytes and hashes. The opt-in source `releaseCandidate` path instead verifies and retains a supplied actual-driver Release package; see [Release candidate testing](ReleaseCandidateTesting.md).
 4. Upload/import the test package; install if absent or upgrade the intended existing instance. Wait for catalogue eligibility and the expected Loaded version, then discover and connect to its test service.
 5. Run required processor unit/lifecycle suites and any required processor live suites, supplying their private input files.
 6. Only after all required gates pass, deploy/activate the retained actual driver package when an `actualDriver` target is configured. Library/test-only plans omit this stage.
@@ -70,7 +71,7 @@ Use the self-contained CLI release, or check out `CrestronHomeNUnit` and the rel
 dotnet build CrestronHomeNUnit.Cli/CrestronHomeNUnit.Cli.csproj -c Release -p:EnableProcessorWorkflow=true
 ```
 
-`DevToolsProject` optionally selects a local library project for joint development. Normal builds restore CrestronHomeDevTools 1.1.0 from NuGet and include workflow support. The additional `CrestronHomeNUnit.Workflow.Tests` project tests the backend.
+`DevToolsProject` optionally selects a local library project for joint development. Normal builds restore CrestronHomeDevTools 1.4.0 from NuGet and include workflow support. The additional `CrestronHomeNUnit.Workflow.Tests` project tests the backend.
 
 Some real Crestron SDK desktop lifecycle harnesses need `Newtonsoft.Json.Compact.dll` to read the production manifest. Supply the verified SDK/runtime copy via their `CompactJsonPath` property. This also applies to Entity V2 tests; it is not specific to V1 video servers. The processor already supplies it. It is not a dependency of DevTools or the NUnit transport. Maintainer CI can restore an authorized copy from encrypted secrets, verify its checksum and keep it in the agent's temporary directory. Never include that private runtime copy in source or processor packages. Fork jobs do not receive maintainer secrets.
 
@@ -92,6 +93,7 @@ The plan is deserialized into [WorkflowPlan](../CrestronHomeNUnit.Workflow/Workf
 | `processorSuites` | Required suite IDs and positive minimum counts. Use package metadata/discovery, not assumed generic IDs. |
 | `liveSuites` | Required explicitly selected live suites, each with private input paths and a positive minimum. Empty for a test-only plan without live tests. |
 | `actualDriver` | Optional production driver build/instance target. Omit when only validating a library or test suite. |
+| `releaseCandidate` | Optional source feature for a prebuilt actual-driver Release artifact, pinned by package hash, GUID/version and clean source commit. See [requirements and limitations](ReleaseCandidateTesting.md). |
 | `deployedChecks` | Named read-only checks against exact installed device IDs/models/properties; expected JSON value or numeric bounds. Set `useActualDriver: true` and `deviceId: 0` to use the actual driver's verified instance ID. |
 | `removeTestInstanceAfterRun` | Explicit choice to remove the test host after tests and evidence preservation. |
 | `removeTestPackageAfterSuccessfulRun` | Opt-in CI storage cleanup after a completely successful run. Requires instance removal; false by default to retain manual deployments. |

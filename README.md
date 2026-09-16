@@ -30,6 +30,7 @@ Copyright (c) 2026 Neil Colvin. Project-owned code is [MIT licensed](LICENSE). N
 - [Build and release](#build-and-release)
 - [Documentation and known limitations](#documentation-and-known-limitations)
 - [Android UI testing foundation and submission work](docs/AndroidUiTesting.md)
+- [Testing an existing Release candidate without rebuilding it](docs/ReleaseCandidateTesting.md)
 - [Licenses and acknowledgments](#licenses-and-acknowledgments)
 
 ## What you install

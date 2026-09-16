@@ -47,6 +47,7 @@ public sealed record WorkflowPlan
 	public PropertyCheck[] DeployedChecks { get; init; } = [];
 	public InstalledControlPlan[] DeployedControls { get; init; } = [];
 	public AndroidTestPlan? AndroidTests { get; init; }
+	public ReleaseCandidatePlan? ReleaseCandidate { get; init; }
 	public ArtifactReusePlan? ArtifactReuse
 		{
 		get; init;
@@ -95,6 +96,14 @@ public sealed record WorkflowPlan
 			throw new ArgumentException ("Additional removal reboot scope requires explicit reboot policy and distinct existing device IDs.");
 		if (ActualDriver != null && (LiveSuites.Length == 0 || DeployedChecks.Length == 0))
 			throw new ArgumentException ("Driver updates require processor live tests and installed-driver checks.");
+		if (ReleaseCandidate != null)
+			{
+			if (ActualDriver == null) throw new ArgumentException ("A release candidate requires an actual driver target.");
+			ReleaseCandidate.Validate (ActualDriver);
+			if (!SourceRoots.Any (root => Path.TrimEndingDirectorySeparator (Path.GetFullPath (ReleaseCandidate.SourceRepository)).Equals
+				(Path.TrimEndingDirectorySeparator (Path.GetFullPath (root)), StringComparison.OrdinalIgnoreCase)))
+				throw new ArgumentException ("Declare the release source repository itself as a source root so its files, including submodule worktrees, are checked directly.");
+			}
 		if (DeployedControls.Length > 0 && ActualDriver == null)
 			throw new ArgumentException ("Post-deployment controls require an actual driver target.");
 		if (AndroidTests != null)

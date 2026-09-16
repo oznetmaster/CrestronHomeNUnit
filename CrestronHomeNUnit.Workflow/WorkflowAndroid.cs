@@ -18,7 +18,7 @@ internal delegate Task<int> AndroidTestProcess (string executable, IEnumerable<s
 internal static class WorkflowAndroid
 	{
 	public static async Task<AndroidTestOutcome> RunAsync (AndroidTestPlan plan, AndroidSessionProfile profile, string owner,
-		string host, int deviceId, string package, string source, string directory, CancellationToken token, AndroidTestProcess? runProcess = null)
+		string host, int deviceId, string package, string source, string directory, CancellationToken token, AndroidTestProcess? runProcess = null, string? releaseSourceCommit = null)
 		{
 		WorkflowEvidence.PrepareLocalResults (directory);
 		AndroidSessionLease.VerifyOwner (profile.LockPath, owner);
@@ -26,7 +26,7 @@ internal static class WorkflowAndroid
 		using var coordinator = Process.GetCurrentProcess ();
 		var context = new AndroidRunContext (1, owner, Environment.MachineName, coordinator.Id, coordinator.StartTime.ToUniversalTime ().Ticks,
 			host, deviceId, identity.DriverId, identity.Version, Convert.ToHexString (SHA256.HashData (await File.ReadAllBytesAsync (package, token).ConfigureAwait (false))),
-			source, profile, Path.GetFullPath (directory));
+			source, profile, Path.GetFullPath (directory)) { ReleaseSourceCommit = releaseSourceCommit };
 		var contextPath = Path.Combine (directory, "context.json");
 		await File.WriteAllTextAsync (contextPath, JsonSerializer.Serialize (context), token).ConfigureAwait (false);
 		var assemblyDirectory = Path.Combine (directory, "assembly");
@@ -60,7 +60,7 @@ internal static class WorkflowAndroid
 		var coverage = AndroidTestCoverage.Evaluate (inventory, Directory.GetFiles (directory, "TestResult*.trx"), exit);
 		await File.WriteAllTextAsync (Path.Combine (directory, "coverage.json"), JsonSerializer.Serialize (new
 			{
-			context.RunId, context.PackageSha256, DiscoverySha256 = Convert.ToHexString (SHA256.HashData (await File.ReadAllBytesAsync (discoveryPath, token).ConfigureAwait (false))),
+			context.RunId, context.PackageSha256, context.ReleaseSourceCommit, DiscoverySha256 = Convert.ToHexString (SHA256.HashData (await File.ReadAllBytesAsync (discoveryPath, token).ConfigureAwait (false))),
 			ExpectedTests = inventory, Results = coverage
 			}), token).ConfigureAwait (false);
 		return new (coverage, restored);

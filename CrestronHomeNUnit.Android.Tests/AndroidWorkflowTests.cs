@@ -68,18 +68,20 @@ public sealed class AndroidWorkflowTests
 		Assert.Throws<IOException> (() => AndroidWorkflowSession.VerifyContext (context with { CoordinatorStartUtcTicks = 1 }));
 		Assert.Throws<InvalidDataException> (() => AndroidWorkflowSession.VerifyContext (context with { PackageSha256 = "invalid" }));
 		Assert.Throws<InvalidDataException> (() => AndroidWorkflowSession.VerifyContext (context with { Machine = "another-worker" }));
+		Assert.Throws<InvalidDataException> (() => AndroidWorkflowSession.VerifyContext (context with { ReleaseSourceCommit = "branch-name" }));
 		}
 
 	[Test]
 	public async Task CapturedEvidenceUsesActualRunIdentityAndMasksPasswordHierarchy ()
 		{
 		using var lease = AndroidSessionLease.Acquire (_lock, _owner);
-		var context = Context ();
+		var context = Context () with { ReleaseSourceCommit = new ('d', 40) };
 		var session = new AndroidWorkflowSession (context, new (new CaptureTransport (), "example.app"));
 		await session.CaptureAsync ("home", hierarchy => Assert.That (hierarchy.RequireUnique (new (AndroidSelectorKind.Text, "Example Home")).Enabled, Is.True));
 		using var record = JsonDocument.Parse (File.ReadAllText (Path.Combine (_directory, "home", "observation.json")));
 		Assert.That (record.RootElement.GetProperty ("RunId").GetString (), Is.EqualTo (_owner));
 		Assert.That (record.RootElement.GetProperty ("PackageSha256").GetString (), Is.EqualTo (context.PackageSha256));
+		Assert.That (record.RootElement.GetProperty ("ReleaseSourceCommit").GetString (), Is.EqualTo (context.ReleaseSourceCommit));
 		Assert.That (File.ReadAllText (Path.Combine (_directory, "home", "hierarchy.xml")), Does.Not.Contain ("private-sentinel"));
 		Assert.ThrowsAsync<IOException> (() => session.CaptureAsync ("home", _ => { }));
 		session.Complete (restorationConfirmed: true);

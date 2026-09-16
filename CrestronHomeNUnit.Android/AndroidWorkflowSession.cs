@@ -23,7 +23,10 @@ public sealed record AndroidSessionProfile (string AdbExecutable, string DeviceS
 
 public sealed record AndroidRunContext (int SchemaVersion, string RunId, string Machine, int CoordinatorPid, long CoordinatorStartUtcTicks,
 	string ProcessorAddress, int InstalledDriverId, string DriverGuid, string DriverVersion, string PackageSha256, string SourceSha256,
-	AndroidSessionProfile Profile, string EvidenceDirectory);
+	AndroidSessionProfile Profile, string EvidenceDirectory)
+	{
+	public string? ReleaseSourceCommit { get; init; }
+	}
 public sealed record AndroidRunCompletion (int SchemaVersion, string RunId, string PackageSha256, bool RestorationConfirmed);
 
 /// <summary>A workflow-owned session; ordinary desktop tests have no implicit Android connection.</summary>
@@ -86,6 +89,7 @@ public sealed class AndroidWorkflowSession
 		if (context.SchemaVersion != 1 || context.Machine != Environment.MachineName || context.InstalledDriverId <= 0 ||
 			!Guid.TryParse (context.DriverGuid, out _) || !Version.TryParse (context.DriverVersion, out _) ||
 			!IsHash (context.PackageSha256) || !IsHash (context.SourceSha256) ||
+			context.ReleaseSourceCommit != null && (context.ReleaseSourceCommit.Length is not (40 or 64) || !context.ReleaseSourceCommit.All (char.IsAsciiHexDigit)) ||
 			!Path.IsPathFullyQualified (context.EvidenceDirectory) || !Directory.Exists (context.EvidenceDirectory))
 			throw new InvalidDataException ("Invalid Android workflow identity.");
 		using var coordinator = Process.GetProcessById (context.CoordinatorPid);
@@ -120,7 +124,7 @@ public sealed class AndroidWorkflowSession
 		VerifyContext (Context);
 		var record = new
 			{
-			SchemaVersion = 1, Context.RunId, Context.PackageSha256, Context.SourceSha256, Context.InstalledDriverId,
+			SchemaVersion = 1, Context.RunId, Context.PackageSha256, Context.SourceSha256, Context.ReleaseSourceCommit, Context.InstalledDriverId,
 			Context.DriverGuid, Context.DriverVersion, CheckId = checkId, StartedUtc = started, FinishedUtc = DateTimeOffset.UtcNow,
 			HierarchySha256 = Convert.ToHexString (SHA256.HashData (await File.ReadAllBytesAsync (Path.Combine (directory, "hierarchy.xml"), token).ConfigureAwait (false))),
 			ScreenshotSha256 = Convert.ToHexString (SHA256.HashData (screenshot)), Outcome = "Passed"

@@ -16,7 +16,8 @@ namespace CrestronHomeNUnit.Workflow;
 public sealed record ArtifactReusePlan (string? PreviousResults, string[] BuildInputFiles);
 
 internal sealed record PackageReceipt (DriverPackageInfo Package, string? DebugRevisionBaseline, string Sha256,
-	string SourceSha256, string? BuildInputsSha256 = null, string? ReusedFromRunId = null);
+	string SourceSha256, string? BuildInputsSha256 = null, string? ReusedFromRunId = null,
+	string? ReleaseSourceCommit = null);
 
 internal sealed record ReusedArtifact (string Path, string RunId, PackageReceipt Receipt);
 

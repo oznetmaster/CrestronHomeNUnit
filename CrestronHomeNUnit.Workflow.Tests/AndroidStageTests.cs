@@ -69,6 +69,7 @@ public sealed class AndroidStageTests
 				Assert.That (context.DriverVersion, Is.EqualTo ("1.2.3.8"));
 				Assert.That (context.PackageSha256, Is.EqualTo (Convert.ToHexString (SHA256.HashData (File.ReadAllBytes (_package)))));
 				Assert.That (context.SourceSha256, Is.EqualTo (new string ('B', 64)));
+				Assert.That (context.ReleaseSourceCommit, Is.EqualTo (new string ('d', 40)));
 				Assert.That (context.EvidenceDirectory, Is.EqualTo (output));
 				if (completionMode != "missing")
 					await File.WriteAllTextAsync (Path.Combine (output, "completion.json"), JsonSerializer.Serialize (new AndroidRunCompletion
@@ -76,7 +77,7 @@ public sealed class AndroidStageTests
 				await File.WriteAllTextAsync (Path.Combine (output, "TestResult.trx"),
 					"<TestRun><ResultSummary outcome=\"Completed\"><Counters total=\"1\" passed=\"1\" failed=\"0\" /></ResultSummary><Results><UnitTestResult testId=\"1\" executionId=\"unique\" outcome=\"Passed\" /></Results><TestDefinitions><UnitTest id=\"1\" name=\"Home\"><TestMethod className=\"Example\" adapterTypeName=\"executor://nunit3testexecutor/\" /></UnitTest></TestDefinitions></TestRun>", token);
 				return exit;
-				});
+				}, releaseSourceCommit: new ('d', 40));
 		Assert.That (outcome.Tests.MeetsGate, Is.EqualTo (passes));
 		Assert.That (outcome.RestorationConfirmed, Is.EqualTo (restored));
 		Assert.That (File.Exists (_profile.LockPath), Is.True, "Only the coordinator may release after all workflow cleanup.");
