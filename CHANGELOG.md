@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.6.0 - 2026-09-16
+
+Add explicit shared-driver reboot scope for removing temporary V1 instances. Existing plans retain their previous behavior.
+
+- Allow `testPackage.additionalRemovalRebootDeviceIds` only with explicitly authorized removal reboots. The reported scope must exactly match the selected instance and reviewed additional IDs.
+- Remove only the selected temporary instance. Require the additional instances to retain their identities, room assignments, versions, loading state and reported configuration after reboot.
+- Use published DevTools 1.4.0 for the workflow and Test Explorer adapter.
+- Document successful Wiser installed-room Auto/Manual/Auto restoration and the complete deliberately failing production-driver workflow with verified previous-code restoration. The original failed result remains failed.
+
+Validation: plan validation, serialization and preservation guards have automated coverage. Apple TV V1 initial installation and removal were verified on the development MC4-R with two configuration-aware reboots and existing instances preserved. Initial startup verification was resumed read-only after a timeout; no install or reboot command was repeated. This is hardware evidence with assisted verification, not a claim that that complete cycle ran unattended.
+
 ## 1.5.0 - 2026-09-15
 
 Add an opt-in, guarded code rollback policy for completed failed installed-driver checks. Current configuration is preserved; saved settings and refresh tokens are never replayed.
