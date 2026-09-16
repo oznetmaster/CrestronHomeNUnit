@@ -14,7 +14,10 @@ public enum AndroidSelectorKind
 	}
 public sealed record AndroidSelector (AndroidSelectorKind Kind, string Value)
 	{
-	public string? AncestorResourceId { get; init; }
+	public string? AncestorResourceId
+		{
+		get; init;
+		}
 	}
 public sealed record AndroidElement (string ResourceId, string Text, string Description, bool Enabled, int Left, int Top, int Right, int Bottom);
 
@@ -47,6 +50,8 @@ public sealed class AndroidHierarchy
 
 	public string MaskedXml => _document.ToString (SaveOptions.DisableFormatting);
 
+	internal AndroidElement[] Find (AndroidSelector selector) => FindMatches (selector).Select (ReadElement).ToArray ();
+
 	public AndroidElement RequireUnique (AndroidSelector selector)
 		{
 		var matches = FindMatches (selector);
@@ -72,7 +77,8 @@ public sealed class AndroidHierarchy
 				AndroidSelectorKind.ContentDescription => "content-desc",
 				_ => throw new ArgumentException ("Unknown Android selector kind.", nameof (selector))
 				};
-		if (selector.AncestorResourceId != null) ArgumentException.ThrowIfNullOrWhiteSpace (selector.AncestorResourceId);
+		if (selector.AncestorResourceId != null)
+			ArgumentException.ThrowIfNullOrWhiteSpace (selector.AncestorResourceId);
 		return _document.Descendants ("node").Where (node =>
 			(string?)node.Attribute ("package") == _application && (string?)node.Attribute (attribute) == selector.Value &&
 			(selector.AncestorResourceId == null || node.Ancestors ("node").Any (ancestor =>

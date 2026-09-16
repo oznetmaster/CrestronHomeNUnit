@@ -32,9 +32,48 @@ public static class CrestronHomePages
 		{
 		ArgumentException.ThrowIfNullOrWhiteSpace (roomName);
 		RequireNoNavigationOverlay (hierarchy);
-		var heading = hierarchy.RequireUnique (Resource ("room_name"));
-		if (!heading.Enabled || heading.Text != roomName || !hierarchy.RequireUnique (Resource ("room_back")).Enabled)
+		// Scrolling replaces the large heading with a compact, fixed toolbar title.
+		var large = hierarchy.Find (Resource ("room_name"));
+		var compact = hierarchy.Find (Resource ("room_toolbarTitle"));
+		var headings = large.Concat (compact).ToArray ();
+		if (large.Length > 1 || compact.Length > 1 || headings.Length == 0 || headings.Any (heading => !heading.Enabled || heading.Text != roomName) ||
+			!hierarchy.RequireUnique (Resource ("room_back")).Enabled)
 			throw new InvalidOperationException ("The expected room is not open.");
+		}
+
+	internal static AndroidElement RoomViewport (AndroidHierarchy hierarchy)
+		{
+		var container = hierarchy.RequireUnique (Resource ("room_scrollView"));
+		var back = hierarchy.RequireUnique (Resource ("room_back"));
+		var bar = hierarchy.RequireUnique (Resource ("bottomNavigationView"));
+		int top = Math.Max (container.Top, back.Bottom);
+		int bottom = Math.Min (container.Bottom, bar.Top);
+		if (!container.Enabled || !back.Enabled || !bar.Enabled || bottom - top < 80)
+			throw new InvalidOperationException ("The room's visible scrolling area is unavailable.");
+		return container with
+			{
+			Top = top,
+			Bottom = bottom
+			};
+		}
+
+	internal static bool RoomTileVisible (AndroidHierarchy hierarchy, AndroidElement tile)
+		{
+		var viewport = RoomViewport (hierarchy);
+		return tile.Left >= viewport.Left && tile.Right <= viewport.Right && tile.Top >= viewport.Top && tile.Bottom <= viewport.Bottom;
+		}
+
+	internal static string RoomViewportSignature (AndroidHierarchy hierarchy)
+		{
+		var document = XDocument.Parse (hierarchy.MaskedXml);
+		var container = document.Descendants ("node").Single (node =>
+			(string?)node.Attribute ("package") == "com.crestron.phoenix.app" &&
+			(string?)node.Attribute ("resource-id") == ResourcePrefix + "room_scrollView");
+		// Ignore changing sensor text; progress is movement of the service cards, not a temperature update.
+		return string.Join ("\n", container.Descendants ("node").Where (node =>
+			(string?)node.Attribute ("package") == "com.crestron.phoenix.app" &&
+			((string?)node.Attribute ("content-desc"))?.StartsWith ("room_service_", StringComparison.Ordinal) == true)
+			.Select (node => (string?)node.Attribute ("content-desc") + "|" + (string?)node.Attribute ("bounds")));
 		}
 
 	// This app's two bottom tabs have no unique accessibility names. Validate the
@@ -85,7 +124,8 @@ public static class CrestronHomePages
 			(string?)node.Attribute ("resource-id") == ResourcePrefix + id;
 		var labels = document.Descendants ("node").Where (node => Is (node, "titleSubtitle_title") && (string?)node.Attribute ("text") == label &&
 			node.Parent != null && Is (node.Parent, "customdevice_statusAndButtonTitleSubtitle")).ToArray ();
-		if (labels.Length != 1) throw new InvalidOperationException ("Status-and-button label is missing or ambiguous.");
+		if (labels.Length != 1)
+			throw new InvalidOperationException ("Status-and-button label is missing or ambiguous.");
 		var titleGroup = labels[0].Parent!;
 		var row = titleGroup.Parent ?? throw new InvalidOperationException ("Status-and-button row is missing.");
 		var statuses = titleGroup.Elements ("node").Where (node => Is (node, "titleSubtitle_subtitle")).ToArray ();
@@ -118,7 +158,10 @@ public static class CrestronHomePages
 		ArgumentException.ThrowIfNullOrWhiteSpace (expectedName);
 		ArgumentException.ThrowIfNullOrWhiteSpace (expectedHost);
 		_ = hierarchy.RequireUnique (Resource ("mobileclaimhome_title"));
-		AndroidElement Field (string container) => hierarchy.RequireUnique (Resource ("commonui_animatedEditText_editText") with { AncestorResourceId = ResourcePrefix + container });
+		AndroidElement Field (string container) => hierarchy.RequireUnique (Resource ("commonui_animatedEditText_editText") with
+			{
+			AncestorResourceId = ResourcePrefix + container
+			});
 		var name = Field ("mobileclaimhome_friendlyNameOrLocation");
 		var address = Field ("mobileclaimhome_localIpAddressOrHostName");
 		bool sameHost = IPAddress.TryParse (expectedHost, out var expectedIp) && IPAddress.TryParse (address.Text, out var actualIp)
@@ -129,8 +172,12 @@ public static class CrestronHomePages
 
 	internal static void RequireSavedLocalPort (AndroidHierarchy hierarchy, int expectedPort)
 		{
-		if (expectedPort is < 1 or > 65535) throw new ArgumentOutOfRangeException (nameof (expectedPort));
-		var port = hierarchy.RequireUnique (Resource ("commonui_animatedEditText_editText") with { AncestorResourceId = ResourcePrefix + "mobileclaimhome_localPort" });
+		if (expectedPort is < 1 or > 65535)
+			throw new ArgumentOutOfRangeException (nameof (expectedPort));
+		var port = hierarchy.RequireUnique (Resource ("commonui_animatedEditText_editText") with
+			{
+			AncestorResourceId = ResourcePrefix + "mobileclaimhome_localPort"
+			});
 		if (!port.Enabled || !int.TryParse (port.Text, NumberStyles.None, CultureInfo.InvariantCulture, out var number) || number != expectedPort)
 			throw new InvalidOperationException ("The selected system's saved local port does not match the private workflow target.");
 		}

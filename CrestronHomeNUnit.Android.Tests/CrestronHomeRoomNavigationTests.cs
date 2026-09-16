@@ -115,6 +115,82 @@ public sealed class CrestronHomeRoomNavigationTests
 		CrestronHomePages.RequireExtensionPage (hierarchy, "Room Controls");
 		}
 
+	[TestCase (1)]
+	[TestCase (3)]
+	public async Task OffscreenTileIsRevealedWithCompactRoomHeading (int scrolls)
+		{
+		_transport.TileViewport = scrolls;
+		await Inspect ();
+		Assert.That (_transport.Swipes, Is.EqualTo (scrolls));
+		Assert.That (_transport.ExtensionOpens, Is.EqualTo (1));
+		Assert.That (_navigation.HomeRestored, Is.True);
+		}
+
+	[TestCase ("top")]
+	[TestCase ("bottom")]
+	public async Task TileUnderNavigationChromeIsNotTapped (string edge)
+		{
+		_transport.ClippedTile = edge;
+		await Inspect ();
+		Assert.That (_transport.Swipes, Is.EqualTo (1));
+		Assert.That (_transport.ExtensionOpens, Is.EqualTo (1));
+		Assert.That (_navigation.HomeRestored, Is.True);
+		}
+
+	[Test]
+	public void StationaryViewportStopsAfterOneGestureAndRestoresHome ()
+		{
+		_transport.TileViewport = 2;
+		_transport.StationaryScroll = true;
+		Assert.ThrowsAsync<InvalidOperationException> (() => Inspect ());
+		Assert.That (_transport.Swipes, Is.EqualTo (1));
+		Assert.That (_transport.ExtensionOpens, Is.Zero);
+		Assert.That (_navigation.HomeRestored, Is.True);
+		}
+
+	[Test]
+	public void LostScrollResponseIsNotReplayed ()
+		{
+		_transport.TileViewport = 1;
+		_transport.ThrowAfterSwipe = true;
+		Assert.ThrowsAsync<IOException> (() => Inspect ());
+		Assert.That (_transport.Swipes, Is.EqualTo (1));
+		Assert.That (_transport.ExtensionOpens, Is.Zero);
+		Assert.That (_navigation.HomeRestored, Is.True);
+		}
+
+	[TestCase (true)]
+	[TestCase (false)]
+	public void AmbiguousOrDisabledTileAfterScrollIsNeverTapped (bool duplicate)
+		{
+		_transport.TileViewport = 1;
+		_transport.TileCount = duplicate ? 2 : 1;
+		_transport.DisabledTile = !duplicate;
+		Assert.ThrowsAsync<InvalidOperationException> (() => Inspect ());
+		Assert.That (_transport.Swipes, Is.EqualTo (1));
+		Assert.That (_transport.ExtensionOpens, Is.Zero);
+		Assert.That (_navigation.HomeRestored, Is.True);
+		}
+
+	[Test]
+	public void AbsentTileSearchHasFiniteGestureBudget ()
+		{
+		_transport.TileViewport = 100;
+		Assert.ThrowsAsync<InvalidOperationException> (() => Inspect ());
+		Assert.That (_transport.Swipes, Is.EqualTo (12));
+		Assert.That (_transport.ExtensionOpens, Is.Zero);
+		Assert.That (_navigation.HomeRestored, Is.True);
+		}
+
+	[Test]
+	public void ConflictingCompactTitleIsRejected ()
+		{
+		var document = XDocument.Parse (_transport.Xml ("room"));
+		document.Root!.Add (RoomTransport.Node ("room_toolbarTitle", "Another Room"));
+		Assert.Throws<InvalidOperationException> (() => CrestronHomePages.RequireRoom (
+			new (document.ToString (), RoomTransport.Application), "Example Room"));
+		}
+
 	private sealed class RoomTransport : IAndroidCommandTransport
 		{
 		internal const string Application = "com.crestron.phoenix.app";
@@ -124,8 +200,16 @@ public sealed class CrestronHomeRoomNavigationTests
 		internal string? InvalidTab;
 		internal int TileCount = 1;
 		internal int ThrowAfterInput;
+		internal int TileViewport;
+		internal int Swipes;
+		internal int ExtensionOpens;
+		internal bool StationaryScroll;
+		internal bool ThrowAfterSwipe;
+		internal bool DisabledTile;
+		internal string? ClippedTile;
+		private int _viewport;
 		internal List<string> Inputs = [];
-		private static XElement Node (string id, string text = "", string description = "", string bounds = "[0,0][100,100]") => new ("node",
+		internal static XElement Node (string id, string text = "", string description = "", string bounds = "[0,0][100,100]") => new ("node",
 			new XAttribute ("package", Application), new XAttribute ("resource-id", CrestronHomePages.ResourcePrefix + id),
 			new XAttribute ("text", text), new XAttribute ("content-desc", description), new XAttribute ("enabled", "true"), new XAttribute ("bounds", bounds));
 
@@ -159,10 +243,24 @@ public sealed class CrestronHomeRoomNavigationTests
 					}
 				else
 					{
-					nodes.Add (Node ("room_name", "Example Room"));
+					nodes.Add (Node (_viewport == 0 ? "room_name" : "room_toolbarTitle", "Example Room"));
 					nodes.Add (Node ("room_back", bounds: "[200,0][300,100]"));
-					for (int i = 0; i < TileCount; i++)
-						nodes.Add (Node ("service", description: "room_service_Example Thermostat", bounds: "[400,0][500,100]"));
+					var scroll = Node ("room_scrollView", bounds: "[0,0][600,1000]");
+					scroll.Add (Node ("service", description: "room_service_Other " + _viewport, bounds: "[0,200][100,300]"));
+					for (int i = 0; i < (_viewport >= TileViewport ? TileCount : 0); i++)
+						{
+						string bounds = _viewport == 0 ? ClippedTile switch
+							{
+								"top" => "[400,50][500,150]",
+								"bottom" => "[400,850][500,950]",
+								_ => "[400,200][500,300]"
+								} : "[400,200][500,300]";
+						var tile = Node ("service", description: "room_service_Example Thermostat", bounds: bounds);
+						if (DisabledTile)
+							tile.SetAttributeValue ("enabled", "false");
+						scroll.Add (tile);
+						}
+					nodes.Add (scroll);
 					if (page == "extension")
 						{
 						nodes.Add (Node ("customdevices_toolbarTitle", "Room Controls"));
@@ -185,19 +283,32 @@ public sealed class CrestronHomeRoomNavigationTests
 				return Task.FromResult (Array.Empty<byte> ());
 			if (arguments[1] == "cat")
 				return Task.FromResult (Encoding.UTF8.GetBytes (Xml (Page)));
+			if (arguments[1] == "input" && arguments[2] == "swipe")
+				{
+				if (Page != "room" || arguments[3] != "300" || int.Parse (arguments[4]) >= 900 || int.Parse (arguments[6]) <= 100)
+					throw new InvalidOperationException ("Swipe must stay inside the observed room viewport.");
+				Swipes++;
+				if (!StationaryScroll && (TileCount > 0 || TileViewport > 0))
+					_viewport++;
+				if (ThrowAfterSwipe)
+					throw new IOException ("Scroll completed but response was lost.");
+				return Task.FromResult (Array.Empty<byte> ());
+				}
 			if (arguments[1] != "input" || arguments[2] != "tap")
 				throw new InvalidOperationException ("Unexpected command: only observed navigation taps are permitted.");
 			Inputs.Add (Page);
 			Page = (Page, arguments[3], arguments[4]) switch
 				{
-				("home", "150", "950") => "rooms",
-				("rooms", "50", "50") => "room",
-				("room", "450", "50") => "extension",
-				("extension", "50", "50") => "room",
-				("room", "250", "50") => "rooms",
-				("rooms", "50", "950") => "home",
-				_ => throw new InvalidOperationException ("Unexpected navigation target.")
-				};
+					("home", "150", "950") => "rooms",
+					("rooms", "50", "50") => "room",
+					("room", "450", "250") => "extension",
+					("extension", "50", "50") => "room",
+					("room", "250", "50") => "rooms",
+					("rooms", "50", "950") => "home",
+					_ => throw new InvalidOperationException ("Unexpected navigation target.")
+					};
+			if (Page == "extension")
+				ExtensionOpens++;
 			if (Inputs.Count == ThrowAfterInput)
 				throw new IOException ("Input completed but response was lost.");
 			return Task.FromResult (Array.Empty<byte> ());

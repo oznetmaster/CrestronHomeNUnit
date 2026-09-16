@@ -12,7 +12,10 @@ public sealed class CrestronHomeNavigation
 	private string? _extensionTitle;
 	private string? _roomName;
 	private bool _scrolledDetails;
-	public bool HomeRestored { get; private set; }
+	public bool HomeRestored
+		{
+		get; private set;
+		}
 
 	public CrestronHomeNavigation (AndroidWorkflowSession session) : this (session, TimeSpan.FromSeconds (25)) { }
 
@@ -66,7 +69,9 @@ public sealed class CrestronHomeNavigation
 			}
 		_ = hierarchy.RequireUnique (Id ("mobileclaimhome_title"));
 		var name = hierarchy.RequireUnique (Id ("commonui_animatedEditText_editText") with
-			{ AncestorResourceId = CrestronHomePages.ResourcePrefix + "mobileclaimhome_friendlyNameOrLocation" });
+			{
+			AncestorResourceId = CrestronHomePages.ResourcePrefix + "mobileclaimhome_friendlyNameOrLocation"
+			});
 		if (name.Text != _session.Context.Profile.ExpectedHomeText)
 			throw new InvalidOperationException ("The connection editor belongs to a different Home.");
 		}
@@ -108,12 +113,16 @@ public sealed class CrestronHomeNavigation
 
 	private async Task ConfirmDepartureAsync (CancellationToken token)
 		{
-		if (_pendingInputPage is not Action<AndroidHierarchy> previous) return;
+		if (_pendingInputPage is not Action<AndroidHierarchy> previous)
+			return;
 		await WaitAsync (hierarchy =>
 			{
-			try { previous (hierarchy); }
-			catch (Exception exception) when (exception is InvalidOperationException or InvalidDataException) { return; }
-			throw new InvalidOperationException ("A navigation command is still pending on the previous page.");
+				try
+					{
+					previous (hierarchy);
+					}
+				catch (Exception exception) when (exception is InvalidOperationException or InvalidDataException) { return; }
+				throw new InvalidOperationException ("A navigation command is still pending on the previous page.");
 			}, token).ConfigureAwait (false);
 		_pendingInputPage = null;
 		}
@@ -121,7 +130,8 @@ public sealed class CrestronHomeNavigation
 	/// <summary>Inspect saved local settings without editing them. This is not active-route or installed-instance proof.</summary>
 	public async Task VerifySavedEndpointAsync (string checkId, int localPort, CancellationToken token = default)
 		{
-		if (localPort is < 1 or > 65535) throw new ArgumentOutOfRangeException (nameof (localPort));
+		if (localPort is < 1 or > 65535)
+			throw new ArgumentOutOfRangeException (nameof (localPort));
 		await WaitAsync (Home, token).ConfigureAwait (false);
 		HomeRestored = true;
 		try
@@ -140,7 +150,11 @@ public sealed class CrestronHomeNavigation
 			Details (current);
 			CrestronHomePages.RequireSavedLocalAddress (current, _session.Context.Profile.ExpectedHomeText, _session.Context.ProcessorAddress);
 			bool portOutsideView = false;
-			try { current.RequireAbsent (Id ("mobileclaimhome_localPort")); portOutsideView = true; }
+			try
+				{
+				current.RequireAbsent (Id ("mobileclaimhome_localPort"));
+				portOutsideView = true;
+				}
 			catch (InvalidOperationException) { }
 			if (portOutsideView)
 				{
@@ -153,9 +167,10 @@ public sealed class CrestronHomeNavigation
 				}
 			await _session.CaptureAsync (checkId + ".local-endpoint", hierarchy =>
 				{
-				Details (hierarchy);
-				if (!portOutsideView) CrestronHomePages.RequireSavedLocalAddress (hierarchy, _session.Context.Profile.ExpectedHomeText, _session.Context.ProcessorAddress);
-				CrestronHomePages.RequireSavedLocalPort (hierarchy, localPort);
+					Details (hierarchy);
+					if (!portOutsideView)
+						CrestronHomePages.RequireSavedLocalAddress (hierarchy, _session.Context.Profile.ExpectedHomeText, _session.Context.ProcessorAddress);
+					CrestronHomePages.RequireSavedLocalPort (hierarchy, localPort);
 				}, token).ConfigureAwait (false);
 			}
 		finally
@@ -212,19 +227,25 @@ public sealed class CrestronHomeNavigation
 		ArgumentNullException.ThrowIfNull (inspect);
 		return InspectRoomCoreAsync (checkId, roomName, tileName, pageTitle, async () =>
 			{
-			var pages = new CrestronHomeExtensionNavigation (_session, pageTitle);
-			Exception? failure = null;
-			try { await inspect (pages, token).ConfigureAwait (false); }
-			catch (Exception e) { failure = e; throw; }
-			finally
-				{
-				using var cleanup = new CancellationTokenSource (TimeSpan.FromMinutes (2));
-				try { await pages.RestoreRootAsync (cleanup.Token).ConfigureAwait (false); }
-				catch (Exception cleanupError) when (failure != null)
+				var pages = new CrestronHomeExtensionNavigation (_session, pageTitle);
+				Exception? failure = null;
+				try
 					{
-					throw new AggregateException ("Extension inspection and restoration both failed.", failure, cleanupError);
+					await inspect (pages, token).ConfigureAwait (false);
 					}
-				}
+				catch (Exception e) { failure = e; throw; }
+				finally
+					{
+					using var cleanup = new CancellationTokenSource (TimeSpan.FromMinutes (2));
+					try
+						{
+						await pages.RestoreRootAsync (cleanup.Token).ConfigureAwait (false);
+						}
+					catch (Exception cleanupError) when (failure != null)
+						{
+						throw new AggregateException ("Extension inspection and restoration both failed.", failure, cleanupError);
+						}
+					}
 			}, token);
 		}
 
@@ -251,7 +272,14 @@ public sealed class CrestronHomeNavigation
 			await WaitAsync (Rooms, token).ConfigureAwait (false);
 			await TapAsync (room, RoomChoice, token).ConfigureAwait (false);
 			await WaitAsync (Room, token).ConfigureAwait (false);
-			await TapAsync (new (AndroidSelectorKind.ContentDescription, "room_service_" + tileName), Room, token).ConfigureAwait (false);
+			var tile = new AndroidSelector (AndroidSelectorKind.ContentDescription, "room_service_" + tileName);
+			await RevealRoomTileAsync (tile, token).ConfigureAwait (false);
+			await TapAsync (tile, hierarchy =>
+				{
+					Room (hierarchy);
+					if (!CrestronHomePages.RoomTileVisible (hierarchy, hierarchy.RequireUnique (tile)))
+						throw new InvalidOperationException ("The room tile moved outside the visible area; no input was sent.");
+				}, token).ConfigureAwait (false);
 			await WaitAsync (Extension, token).ConfigureAwait (false);
 			await ConfirmDepartureAsync (token).ConfigureAwait (false);
 			await inspect ().ConfigureAwait (false);
@@ -268,6 +296,45 @@ public sealed class CrestronHomeNavigation
 			catch (Exception cleanupError) when (failure != null)
 				{
 				throw new AggregateException ("Room inspection and Home restoration both failed.", failure, cleanupError);
+				}
+			}
+		}
+
+	private async Task RevealRoomTileAsync (AndroidSelector tile, CancellationToken token)
+		{
+		await ConfirmDepartureAsync (token).ConfigureAwait (false);
+		var seen = new HashSet<string> (StringComparer.Ordinal);
+		for (int viewport = 0; viewport <= 12; viewport++)
+			{
+			_session.VerifyActive ();
+			var hierarchy = await _session.Device.CaptureAsync (token).ConfigureAwait (false);
+			Room (hierarchy);
+			var matches = hierarchy.Find (tile);
+			if (matches.Length > 1 || matches.Length == 1 && !matches[0].Enabled)
+				throw new InvalidOperationException ("The room tile is ambiguous or disabled; no input was sent.");
+			if (matches.Length == 1 && CrestronHomePages.RoomTileVisible (hierarchy, matches[0]))
+				return;
+			_ = CrestronHomePages.RoomViewport (hierarchy);
+			string signature = CrestronHomePages.RoomViewportSignature (hierarchy);
+			if (viewport == 12 || !seen.Add (signature))
+				throw new InvalidOperationException ("The requested room tile was not found within the bounded observed scroll.");
+			await _session.Device.ScrollDownAsync (CrestronHomePages.RoomViewport, current =>
+				{
+					Room (current);
+					if (CrestronHomePages.RoomViewportSignature (current) != signature)
+						throw new InvalidOperationException ("The room viewport changed before scrolling; no input was sent.");
+				}, static () => { }, token).ConfigureAwait (false);
+			// Each gesture requests the next observed viewport. A failed gesture is never replayed.
+			// Allow the animation to settle using reads only, never another swipe.
+			for (int read = 0; read < 3; read++)
+				{
+				_session.VerifyActive ();
+				var after = await _session.Device.CaptureAsync (token).ConfigureAwait (false);
+				Room (after);
+				if (CrestronHomePages.RoomViewportSignature (after) != signature)
+					break;
+				if (read < 2)
+					await Task.Delay (100, token).ConfigureAwait (false);
 				}
 			}
 		}
@@ -291,14 +358,26 @@ public sealed class CrestronHomeNavigation
 			var guards = new Action<AndroidHierarchy>[] { Home, Details, Options, Systems, Menu, Extension, Room, Rooms };
 			await WaitAsync (hierarchy =>
 				{
-				for (int index = 0; index < guards.Length; index++)
-					{
-					try { guards[index] (hierarchy); page = index; return; }
-					catch (Exception exception) when (exception is InvalidOperationException or InvalidDataException) { }
-					}
-				throw new InvalidOperationException ("The current screen is not a recognized navigation page of the expected Home.");
+					for (int index = 0; index < guards.Length; index++)
+						{
+						try
+							{
+							guards[index] (hierarchy);
+							page = index;
+							return;
+							}
+						catch (Exception exception) when (exception is InvalidOperationException or InvalidDataException) { }
+						}
+					throw new InvalidOperationException ("The current screen is not a recognized navigation page of the expected Home.");
 				}, token).ConfigureAwait (false);
-			if (page == 0) { HomeRestored = true; _extensionTitle = null; _roomName = null; _scrolledDetails = false; return; }
+			if (page == 0)
+				{
+				HomeRestored = true;
+				_extensionTitle = null;
+				_roomName = null;
+				_scrolledDetails = false;
+				return;
+				}
 			if (page == 1)
 				await TapAsync (Id ("mobileclaimhome_back"), Details, token).ConfigureAwait (false);
 			else if (page == 3)

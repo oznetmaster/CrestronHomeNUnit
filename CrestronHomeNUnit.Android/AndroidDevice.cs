@@ -81,7 +81,10 @@ public sealed class AndroidDevice (IAndroidCommandTransport transport, string ap
 		{
 		for (int attempt = 0; ; attempt++)
 			{
-			try { return await CaptureOnceAsync (cancellationToken).ConfigureAwait (false); }
+			try
+				{
+				return await CaptureOnceAsync (cancellationToken).ConfigureAwait (false);
+				}
 			catch (Exception exception) when (attempt < 2 && !cancellationToken.IsCancellationRequested && exception is IOException or TimeoutException)
 				{
 				// Only the read is repeated. Input operations remain outside this loop.
@@ -107,7 +110,10 @@ public sealed class AndroidDevice (IAndroidCommandTransport transport, string ap
 			{
 			using var cleanup = new CancellationTokenSource (TimeSpan.FromSeconds (3));
 			// Only this capture's unique temporary XML can be removed.
-			try { await transport.ExecuteAsync (["shell", "rm", "-f", path], cleanup.Token).ConfigureAwait (false); }
+			try
+				{
+				await transport.ExecuteAsync (["shell", "rm", "-f", path], cleanup.Token).ConfigureAwait (false);
+				}
 			catch (Exception exception) when (failed && exception is IOException or TimeoutException or OperationCanceledException)
 				{
 				// Preserve the capture failure; a missing dump must not replace it
@@ -142,10 +148,13 @@ public sealed class AndroidDevice (IAndroidCommandTransport transport, string ap
 		}
 
 	internal async Task ScrollDownAsync (AndroidSelector container, Action<AndroidHierarchy> validatePage, Action inputStarting, CancellationToken token)
+		=> await ScrollDownAsync (hierarchy => hierarchy.RequireUnique (container), validatePage, inputStarting, token).ConfigureAwait (false);
+
+	internal async Task ScrollDownAsync (Func<AndroidHierarchy, AndroidElement> select, Action<AndroidHierarchy> validatePage, Action inputStarting, CancellationToken token)
 		{
 		var hierarchy = await CaptureAsync (token).ConfigureAwait (false);
 		validatePage (hierarchy);
-		var element = hierarchy.RequireUnique (container);
+		var element = select (hierarchy);
 		if (!element.Enabled || element.Bottom - element.Top < 80)
 			throw new InvalidOperationException ("The observed scroll container is unavailable or too small.");
 		var x = ((element.Left + element.Right) / 2).ToString (CultureInfo.InvariantCulture);

@@ -1,13 +1,13 @@
-# Crestron Home NUnit v1.8.0
+# Crestron Home NUnit v1.8.1
 
-Add room and nested-page inspection to the Crestron Home NUnit UI automation library included in the test adapter. Tests can open a named room extension, inspect nested extension pages and verify complete selection lists without choosing an option. Page names, navigation controls and expected values are supplied by each driver's test fixture. Controls are scoped to the front page even when the app retains background pages with identical resource IDs.
+Fix room extension inspection when a named tile is below the initial viewport. The UI automation helper searches the observed service area with bounded scrolling and recognizes the compact room title that replaces the large heading after scrolling. Tile taps remain inside the visible area, clear of the toolbar and bottom navigation.
 
-The navigation helpers restore the original Home screen after successful checks or assertion failures. Nested pages use explicitly supplied close/cancel controls. Unknown layouts stop navigation; uncertain taps, Back commands and scrolls are never replayed. Selection inspection handles clipped viewport-edge rows while preserving the strict coordinate checks used for input.
+The search stops on an unchanged or repeated viewport, an ambiguous or disabled tile, an unexpected room title, or an uncertain gesture result. Scrolls are never retried after a lost response. A missing tile fails the inspection and still triggers observed Home restoration.
 
-Validation: all 91 Android regression tests passed, including against a private packaged adapter. Read-only checks in the minimized Google emulator verified complete selection lists and their selected values for the exercised fixture. Editing was cancelled, Home and checked device settings were preserved, both reservations were released, and all 13 accepted capture pairs matched their retained hashes. Earlier controlled failures also restored Home and preserved checked state. This validates the helpers against an already-installed Debug driver; it is not full submission acceptance or certification.
+Validation: the complete Android regression suite passed against both source and an isolated adapter package. Package restore, workflow discovery and execution guards also passed. In the minimized Google emulator, a visible room extension was inspected successfully; a missing tile stopped the search and restored Home under both large and compact heading layouts. The checked device state and inventory were preserved and reservations released. Physical control tests and end-to-end submission acceptance remain separate work; these checks do not establish certification.
 
 ## Updating
 
-Use **CrestronHomeNUnit.TestAdapter 1.8.0** in the separate .NET 10 Android test project. Existing processor test packages do not need redeployment for these Windows-side UI helpers. NUnit 4.6.1 and the adapter's default DevTools 1.4.0 dependency remain unchanged; projects using DevTools 1.5.0 may retain that explicit dependency.
+These are prepared notes for the next patch release; use the GitHub release and NuGet version to determine publication status. Upgrade the separate .NET 10 Android test project to **CrestronHomeNUnit.TestAdapter 1.8.1** when published. Processor test packages do not need redeployment for this Windows-side fix. NUnit and DevTools dependency versions are unchanged.
 
-See [room and nested-page testing](docs/AndroidUiTesting.md), [emulator and app setup](docs/AndroidEmulatorSetup.md), and [validation details](Validation.md). The expanded sample driver NUnit fixture also passed its gateway and room checks against the local stable package candidate, with matching discovery coverage and confirmed restoration. The final Crestron submission workflow remains separate work.
+See [room and nested-page testing](docs/AndroidUiTesting.md#room-and-nested-page-inspection) and [emulator setup](docs/AndroidEmulatorSetup.md).
