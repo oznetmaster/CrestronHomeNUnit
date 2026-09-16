@@ -22,6 +22,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Workflow regression tests failed.' }
     dotnet test CrestronHomeNUnit.TestAdapter.Tests/CrestronHomeNUnit.TestAdapter.Tests.csproj -c Release --no-build
     if ($LASTEXITCODE -ne 0) { throw 'Test adapter regression tests failed.' }
+    dotnet test CrestronHomeNUnit.Android.Tests/CrestronHomeNUnit.Android.Tests.csproj -c Release --no-build
+    if ($LASTEXITCODE -ne 0) { throw 'Android toolkit regression tests failed.' }
     $package = Join-Path $root 'CrestronHomeNUnit.Driver/bin/Release/net472/CrestronHomeNUnit.Driver.pkg'
     $validation = Join-Path $root 'artifacts/release-validation'
     $extracted = Join-Path $validation ([Guid]::NewGuid().ToString('N'))

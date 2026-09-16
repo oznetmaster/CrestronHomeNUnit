@@ -1,6 +1,6 @@
 # Android UI testing for driver submissions
 
-This is source development for the [Crestron submission workflow](https://github.com/oznetmaster/CrestronHomeDevTools/blob/main/docs/CrestronSubmission.md). It is not included in the published 1.6.0 tools. The shared CLI/Test Explorer workflow has an opt-in Android test stage in source. A combined Wiser development workflow passed on real hardware on 16 September 2026; Release-candidate submission integration remains unfinished.
+The optional Android stage requires **CrestronHomeNUnit 1.7.0 or later**. It extends the shared CLI/Test Explorer development workflow and is a foundation for the Crestron submission workflow described below. A combined Wiser development workflow passed on real hardware on 16 September 2026; Release-candidate submission integration remains unfinished.
 
 `CrestronHomeNUnit.Android` is a .NET 10 library that uses an existing ADB installation and an explicit Android device serial. `CrestronHomeNUnit.Android.Tests` contains offline NUnit tests; discovering or running that project does not contact Android, install drivers or operate physical devices. The new library has no Android emulator or Crestron APK bundled with it and is not currently a separate NuGet package.
 
@@ -13,6 +13,8 @@ The documented BlueStacks hide shortcut did not hide the window in this setup. N
 The original weather proof used a private script. On 16 September 2026 a private .NET diagnostic also used the public Android library against the minimized emulator under the shared processor lease and a separate Android reservation. It closed the read-only Wiser panel, opened the selected system's saved connection details, verified the local address and port, returned to the system list, reconnected to the same Home, and verified the unobstructed Home screen. The connection/navigation sequence passed twice. No setting was changed and no physical-device command was sent; both reservations were released afterward.
 
 That diagnostic verified .NET capture, guarded taps, scoped field assertions and page navigation in a logged-in desktop session. A subsequent complete CLI development workflow passed 96 desktop tests, 53 processor tests and three read-only live hub tests, verified the gated Wiser driver update, then passed all three discovered Android NUnit tests. The Android tests checked Home readiness and repeated saved-endpoint inspection/Home restoration twice. Their TRX, seven capture observations, discovery coverage and matching restoration record were retained under the actual workflow run/package identity. Both reservations were released. The temporary test instance and package file were removed; Home retained a cached catalogue entry until its next planned reboot.
+
+A subsequent isolated NuGet-consumer workflow used the driver-specific Wiser Android project with no toolkit source reference. It passed 96 desktop, 53 processor and three live tests, updated the actual Debug driver, passed three installed health checks and both discovered gateway UI cases, and confirmed Home restoration. The tests compared Hot Water and Away row status, action labels and enabled state with fresh management observations. The workflow removed its temporary instance and released both reservations; an archive preserved from the earlier failed validation was separately removed after verifying the run receipts, identity and package hash. Gateway and room identities, schedules and setpoints were preserved.
 
 This validates the integrated development workflow, not an exact Release candidate, all driver UI controls, the app's active network route, or its binding to a specific installed driver instance. Ordinary offline test projects still use simulated Android transports only. The real Android fixture sends navigation inputs but no configuration edits or physical-device commands.
 
@@ -39,6 +41,8 @@ The initial interface intentionally has no credential entry or physical-device t
 Hierarchy output masks text and accessibility descriptions of password fields. Other personal/device information can remain. Screenshots are unredacted and must go to private evidence storage. The interface checks the PNG header, not the full image. Visual validation, redaction and evidence retention remain responsibilities of the workflow.
 
 ## Opt-in workflow setup
+
+For your own .NET 10 NUnit UI-test project, consume the Android assembly from `CrestronHomeNUnit.TestAdapter` 1.7.0 or later alongside `NUnit`, `NUnit3TestAdapter` and `Microsoft.NET.Test.Sdk`. Mark test-tool dependencies `PrivateAssets="all"` and do not add a `Workflows.xml` to that UI-test project. The existing workflow container remains a separate project. The bundled sample uses a source reference to exercise the toolkit being developed; consuming driver repositories do not need a second checkout. Publish the required toolkit version before pushing dependent driver-project updates.
 
 Add `androidTests` to the private workflow plan, alongside the existing actual-driver target, processor live suites and installed-driver checks:
 
@@ -78,11 +82,11 @@ The workflow currently records an aggregate Android stage plus the private detai
 
 ADB and the emulator must be privately configured by the developer. Use local access where possible; the development proof left remote ADB disabled and verified loopback listeners. Do not expose an ADB port publicly. All driver-control tests must follow the existing [state restoration and deployment policy](ContinuousIntegration.md).
 
-Build and run the offline project:
-
-The developing toolkit also provides `CrestronHomeNavigation.InspectHomeExtensionAsync` for read-only inspection of a uniquely named Home tile. It verifies the extension page title, invokes the fixture's assertions and restores Home even after a failed assertion. `CrestronHomePages.ReadStatusAndButton` reads a labelled row without confusing repeated button IDs. A fresh hierarchy read may be attempted up to three times after a transient capture failure; neither taps nor Back commands are retried. These helpers are source-only until the next toolkit distribution.
+The toolkit also provides `CrestronHomeNavigation.InspectHomeExtensionAsync` for read-only inspection of a uniquely named Home tile. It verifies the extension page title, invokes the fixture's assertions and restores Home even after a failed assertion. `CrestronHomePages.ReadStatusAndButton` reads a labelled row without confusing repeated button IDs. A fresh hierarchy read may be attempted up to three times after a transient capture failure; neither taps nor Back commands are retried. These helpers require version 1.7.0 or later.
 
 The Wiser driver's separate Android test project uses these helpers to compare gateway controls with fresh management state. A unique name plus matching saved endpoint does not establish the active Android network route, so these initial fixtures send no physical device commands. Room controls, stronger instance binding and submission-contract integration remain required work.
+
+Build and run the offline project:
 
 ```powershell
 dotnet test CrestronHomeNUnit.Android.Tests/CrestronHomeNUnit.Android.Tests.csproj -c Release

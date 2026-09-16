@@ -200,7 +200,7 @@ public static class WorkflowRunner
 			using var deadline = Deadline (token);
 			await CheckSource (deadline.Token).ConfigureAwait (false);
 			var prefix = test ? "processor" : "actual";
-			var manifestPath = Path.ChangeExtension (Path.GetFullPath (package.Project), ".json");
+			var manifestPath = WorkflowDebugVersion.ResolveManifest (package);
 			if (File.Exists (manifestPath) && !plan.SourceRoots.Any (root => manifestPath.StartsWith (
 				Path.GetFullPath (root).TrimEnd (Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)))
 				throw new InvalidOperationException ("The driver manifest must belong to a declared source root before Debug version reconciliation.");

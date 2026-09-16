@@ -51,8 +51,26 @@ internal static class WorkflowDebugVersion
 		return baseline;
 		}
 
-	// Standard driver/test projects keep their manifest beside the project with the same basename.
-	// A custom layout retains the existing build and deployment checks instead of guessing a manifest.
+	// Submission naming can give the package a different basename from its project.
+	// Only these two conventions are recognized; ambiguous layouts require an explicit path.
+	internal static string ResolveManifest (PackageBuildPlan package)
+		{
+		if (package.ManifestPath is string explicitPath)
+			{
+			if (!Path.IsPathFullyQualified (explicitPath) || !File.Exists (explicitPath))
+				throw new InvalidDataException ("The explicit driver manifest must be an existing absolute path.");
+			return Path.GetFullPath (explicitPath);
+			}
+		var project = Path.GetFullPath (package.Project);
+		var conventional = Path.ChangeExtension (project, ".json");
+		var candidates = new[] { conventional, Path.Combine (Path.GetDirectoryName (project)!, Path.ChangeExtension (Path.GetFileName (package.PackagePath), ".json")) }
+			.Distinct (StringComparer.OrdinalIgnoreCase).Where (File.Exists).ToArray ();
+		if (candidates.Length > 1)
+			throw new InvalidDataException ("Multiple driver manifests match this project. Set manifestPath explicitly before building.");
+		return candidates.SingleOrDefault () ?? conventional;
+		}
+
+	// Unrecognized custom layouts retain collision checks without guessing an unrelated JSON file.
 	internal static async Task<PreparedDebugVersion?> PrepareAsync (string path,
 		Func<string, CancellationToken, Task<IReadOnlyList<DriverInfo>>> readCatalogue, CancellationToken token)
 		{

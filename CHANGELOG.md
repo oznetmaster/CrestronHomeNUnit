@@ -1,10 +1,12 @@
 # Changelog
 
-## Android toolkit development - 2026-09-16 (not yet packaged)
+## Android toolkit source development - 2026-09-16
 
 - Add read-only inspection of a uniquely named Home extension tile with page-title validation and observed Home restoration, including when assertions fail.
 - Read repeated status-and-button controls within their own labelled rows instead of selecting a global repeated resource ID.
 - Retry transient hierarchy reads at most three times, clean each read's temporary file, and preserve the original failure when cleanup also fails. Taps and Back commands are never automatically repeated.
+- Consume the Android library through the test adapter NuGet package and validate the isolated package with both workflow discovery and ordinary NUnit fixtures.
+- Reconcile Debug revisions for manifests named after the package as well as the project. Ambiguous layouts require an explicit `manifestPath`; unchanged custom layouts retain collision checks.
 
 ## 1.6.0 - 2026-09-16
 

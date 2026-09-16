@@ -15,6 +15,66 @@ public sealed class DebugVersionTests
 	{
 	private static DriverInfo Driver (string? version, string model = "Example") => new () { Id = "catalogue", Model = model, Version = version };
 
+	[TestCase ("Example", false)]
+	[TestCase ("Thermostat_Example_IP_V2", false)]
+	[TestCase ("Thermostat_Example_IP_V2", true)]
+	public async Task RenamedManifestReconcilesCatalogueBeforeBuild (string basename, bool explicitPath)
+		{
+		var directory = Directory.CreateTempSubdirectory ();
+		try
+			{
+			var project = Path.Combine (directory.FullName, "Example.csproj");
+			var manifest = Path.Combine (directory.FullName, basename + ".json");
+			await File.WriteAllTextAsync (manifest, JsonSerializer.Serialize (new { GeneralInformation = new { Guid = Guid.NewGuid (), BaseModel = "Example", DriverVersion = "1.2.3.0" } }));
+			var plan = new PackageBuildPlan (project, Path.Combine (directory.FullName, "bin", basename + ".pkg"), "Test", 1)
+				{ ManifestPath = explicitPath ? manifest : null };
+			var resolved = WorkflowDebugVersion.ResolveManifest (plan);
+			Assert.That (resolved, Is.EqualTo (manifest));
+			var prepared = await WorkflowDebugVersion.PrepareAsync (resolved,
+				(_, _) => Task.FromResult<IReadOnlyList<DriverInfo>> ([Driver ("1.2.3.12")]), CancellationToken.None);
+			Assert.That (prepared!.Baseline, Is.EqualTo (new Version (1, 2, 3, 12)));
+			using var updated = JsonDocument.Parse (await File.ReadAllTextAsync (manifest));
+			Assert.That (updated.RootElement.GetProperty ("GeneralInformation").GetProperty ("DriverVersion").GetString (), Is.EqualTo ("1.2.3.0012"));
+			}
+		finally { directory.Delete (true); }
+		}
+
+	[Test]
+	public void AmbiguousManifestNamesRequireExplicitSelection ()
+		{
+		var directory = Directory.CreateTempSubdirectory ();
+		try
+			{
+			var conventional = Path.Combine (directory.FullName, "Example.json");
+			var renamed = Path.Combine (directory.FullName, "Thermostat_Example_IP_V2.json");
+			File.WriteAllText (conventional, "original");
+			File.WriteAllText (renamed, "renamed");
+			var plan = new PackageBuildPlan (Path.Combine (directory.FullName, "Example.csproj"),
+				Path.Combine (directory.FullName, "bin", "Thermostat_Example_IP_V2.pkg"), "Test", 1);
+			Assert.Throws<InvalidDataException> (() => WorkflowDebugVersion.ResolveManifest (plan));
+			Assert.That (WorkflowDebugVersion.ResolveManifest (plan with { ManifestPath = renamed }), Is.EqualTo (renamed));
+			Assert.That (File.ReadAllText (conventional), Is.EqualTo ("original"));
+			Assert.That (File.ReadAllText (renamed), Is.EqualTo ("renamed"));
+			Assert.Throws<InvalidDataException> (() => WorkflowDebugVersion.ResolveManifest (plan with { ManifestPath = "missing.json" }));
+			Assert.Throws<InvalidDataException> (() => WorkflowDebugVersion.ResolveManifest (plan with { ManifestPath = Path.Combine (directory.FullName, "missing.json") }));
+			}
+		finally { directory.Delete (true); }
+		}
+
+	[Test]
+	public void UnknownLayoutDoesNotSelectOtherJsonFiles ()
+		{
+		var directory = Directory.CreateTempSubdirectory ();
+		try
+			{
+			File.WriteAllText (Path.Combine (directory.FullName, "settings.json"), "{}");
+			var project = Path.Combine (directory.FullName, "Example.csproj");
+			Assert.That (WorkflowDebugVersion.ResolveManifest (new (project, Path.Combine (directory.FullName, "Renamed.pkg"), "Test", 1)),
+				Is.EqualTo (Path.ChangeExtension (project, ".json")));
+			}
+		finally { directory.Delete (true); }
+		}
+
 	[TestCase ("1.2.3.0002", "1.002.003.0042", "1.2.3.42")]
 	[TestCase ("1.2.3.0042", "1.2.3.2", "1.2.3.42")]
 	[TestCase ("1.2.3.0002", "1.2.2.5000", "1.2.3.2")]

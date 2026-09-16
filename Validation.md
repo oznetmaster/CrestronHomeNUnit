@@ -66,3 +66,11 @@ Runner endpoint recovery is covered by the transport validation harness (`--runn
 ## Shared runner inputs — 12 September 2026
 
 The runner and transport regression suite passed with shared inputs across suites in the same processor package. Coverage includes processor/package isolation, changed ports, migration of compatible selections, conflicting legacy paths, explicit clearing, settings persistence, recovery and secure transfer. The processor host implementation is unchanged.
+
+## Packaged Android workflow validation - 16 September 2026
+
+The local 1.7.0 TestAdapter candidate restored into an isolated NuGet consumer and passed workflow discovery, ordinary NUnit Android API use and missing-private-configuration rejection. Workflow, Android and adapter regressions passed (240, 65 and 11 respectively).
+
+The Wiser workflow then used that package without a toolkit source checkout. It passed 96 desktop tests, 53 processor tests and three read-only live tests, updated the installed Debug driver and passed three installed health checks plus both discovered gateway UI cases. Seven private capture pairs matched their recorded hashes. Home restoration, released processor/Android reservations, unchanged gateway/room identities and unchanged room schedules/setpoints were independently checked. Its temporary test instance was removed. A test archive introduced by the preceding failed run was removed separately after checking the original baseline and the successful run's exact package identity/hash, retaining a backup; the cached catalogue entry awaits a planned reboot.
+
+The initial attempt exposed a renamed-manifest version-reconciliation gap and stopped before updating the actual driver. The corrected workflow recognizes the package basename or an explicit manifest path and verifies a fresh Debug revision before import. This is development-package validation in a logged-in BlueStacks session, not exact Release-candidate, full UI, service-session or certification validation.

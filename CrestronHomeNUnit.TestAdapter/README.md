@@ -4,6 +4,8 @@ Run a complete gated processor workflow from Visual Studio Test Explorer or VSTe
 
 Use a **separate .NET 10 test project** with `Microsoft.NET.Test.Sdk` and this package, both marked `PrivateAssets="all"`. Driver and processor test projects can continue to target net472. This adapter does not replace the NUnit adapter used by ordinary local unit tests.
 
+The package also includes `CrestronHomeNUnit.Android` for a separate .NET 10 NUnit UI-test project. Reference this package, `NUnit`, `NUnit3TestAdapter` and `Microsoft.NET.Test.Sdk` there. No `Workflows.xml` is needed in the UI project: the Crestron adapter discovers no workflows in that assembly, while the NUnit adapter runs its fixtures. Select the UI project through the private plan's `androidTests` stage, not its `localTests`. See [Android setup](https://github.com/oznetmaster/CrestronHomeNUnit/blob/main/docs/AndroidUiTesting.md). This is desktop test tooling; do not reference it from a net472 processor package.
+
 Add a `Workflows.xml` file to the workflow project:
 
 ```xml

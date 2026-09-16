@@ -153,6 +153,7 @@ public sealed record LocalTestPlan (string Project, int MinimumPassed, string? F
 public sealed record AndroidTestPlan (string Project, string ProfilePath);
 public sealed record PackageBuildPlan (string Project, string PackagePath, string InstanceName, int LocationId, int? ExpectedDeviceId = null)
 	{
+	public string? ManifestPath { get; init; }
 	public int[] AdditionalRemovalRebootDeviceIds { get; init; } = [];
 	public string? InitialConfigurationFile
 		{

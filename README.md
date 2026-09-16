@@ -8,6 +8,8 @@ Version 1.2.1 also supports private initial-driver configuration and health chec
 
 The workflow reconciles a standard project's Debug build counter with the processor catalogue before building, including packages previously deployed manually. It preserves the three release components and verifies a fresh package version before deployment. See [version identity and custom manifest layouts](docs/ContinuousIntegration.md#readiness-and-version-identity).
 
+Version 1.7.0 adds opt-in [Android UI tests](docs/AndroidUiTesting.md) after the installed-driver checks, using your own ADB installation and emulator. The Android library is included in the test adapter package. It also supports a [pinned Release package](docs/ReleaseCandidateTesting.md) without rebuilding it, and reconciles Debug versions for renamed driver manifests. Final Crestron submission, full UI coverage and service-session emulator operation remain separate work.
+
 Successful CI workflows can also remove their own stored test packages with `removeTestPackageAfterSuccessfulRun`, preserving pre-existing/manual packages and reporting catalogue entries that remain cached until a planned reboot. Deployment retains the original package filename. See [cleanup and interrupted runs](docs/ContinuousIntegration.md#cleanup-and-interrupted-runs).
 
 Optional [installed-driver controls](docs/InstalledDriverControls.md) capture physical state through a read-only probe, verify command completion and independently observe restoration. [Artifact reuse](docs/ArtifactReuse.md) can retain verified build bytes across runs while rerunning every required test stage. Both features are opt-in. [Guarded code rollback](docs/DriverRollback.md) additionally requires a known previous package and a driver-specific configuration verifier; it preserves current settings and tokens.
@@ -38,7 +40,7 @@ Copyright (c) 2026 Neil Colvin. Project-owned code is [MIT licensed](LICENSE). N
 | Component | Purpose |
 | --- | --- |
 | **Windows runner** | Finds packages, authenticates, selects and runs tests, transfers inputs and displays results. The Windows x64 ZIP includes .NET 10; no separate runtime installation is needed. |
-| **Automation CLI** | Self-contained Windows x64 console for unattended test runs and the complete gated development workflow. Uses CrestronHomeDevTools 1.1.0 from NuGet. |
+| **Automation CLI** | Self-contained Windows x64 console for unattended test runs and the complete gated development workflow. Uses CrestronHomeDevTools 1.4.0 from NuGet. |
 | **Test Explorer adapter** | NuGet package for a separate .NET 10 workflow project. Runs the complete workflow and reports individual test outcomes in Visual Studio or VSTest. |
 | **NUnit Test Host** | An optional processor package containing selected NUnit framework self-tests and 34 language/runtime compatibility tests. Appears under **Utility** in Configure/Setup. |
 | **Your processor test package** | Contains your NUnit tests, their dependencies, a test host and its own Home tile. |

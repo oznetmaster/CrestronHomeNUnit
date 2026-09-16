@@ -1,6 +1,6 @@
 # Test an existing Release package
 
-This opt-in source feature runs the development gates against a supplied actual-driver Release package. It is not included in the published 1.6.0 tooling. Ordinary plans continue to build Debug packages. This handoff has automated coverage; installation of a pinned Release candidate and the final Crestron submission gate still require hardware validation and integration.
+This opt-in feature requires **CrestronHomeNUnit 1.7.0 or later** and runs the development gates against a supplied actual-driver Release package. Ordinary plans continue to build Debug packages. This handoff has automated coverage; installation of a pinned Release candidate and the final Crestron submission gate still require hardware validation and integration.
 
 ## Prepare the candidate
 
