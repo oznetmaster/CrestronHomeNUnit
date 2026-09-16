@@ -8,6 +8,6 @@ Validation: the complete Android regression suite passed against both source and
 
 ## Updating
 
-These are prepared notes for the next patch release; use the GitHub release and NuGet version to determine publication status. Upgrade the separate .NET 10 Android test project to **CrestronHomeNUnit.TestAdapter 1.8.1** when published. Processor test packages do not need redeployment for this Windows-side fix. NUnit and DevTools dependency versions are unchanged.
+Upgrade the separate .NET 10 Android test project to **CrestronHomeNUnit.TestAdapter 1.8.1**. Processor test packages do not need redeployment for this Windows-side fix. NUnit and DevTools dependency versions are unchanged.
 
 See [room and nested-page testing](docs/AndroidUiTesting.md#room-and-nested-page-inspection) and [emulator setup](docs/AndroidEmulatorSetup.md).
