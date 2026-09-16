@@ -98,9 +98,29 @@ The UI automation library also provides `CrestronHomeNavigation.InspectHomeExten
 
 `CrestronHomeNavigation.InspectRoomExtensionAsync(checkId, roomName, tileName, pageTitle, verify)` opens Rooms, selects the exact room title and named service tile, checks the extension page title, runs the supplied read-only assertions, and restores Home. Missing or duplicate names fail without choosing another device. The bottom tabs have no distinct accessibility names in the observed app version, so the helper validates their two-button structure and current bounds before tapping. A changed layout fails without using saved coordinates.
 
-This API has not yet been included in a published adapter package. It requires building the Android project from this source revision. It currently inspects the initial room extension page; nested Schedule/Edit pages, picker traversal, offscreen room/tile scrolling and physical device operations need additional navigation helpers. A room retained behind an extension does not count as the current page. Failed assertions still trigger bounded Home restoration, and uncertain navigation inputs are never replayed.
+This API has not yet been included in a published adapter package. It requires building the Android project from this source revision. The single-page helper inspects the initial room extension page. For nested pages, `InspectRoomExtensionPagesAsync` supplies a `CrestronHomeExtensionNavigation` session: use `OpenPageAsync` with an explicitly reviewed navigation control and a non-saving close/cancel control, `InspectAsync` for assertions scoped to the front page, and `InspectSelectionAsync` to read an entire selection list without choosing an option. The latter checks the complete expected labels and selected state, captures each viewport, and dismisses the picker. Navigation controls must be selected by the fixture author; the library cannot infer whether an arbitrary driver command changes physical state. Offscreen room/tile scrolling and physical device operations still require additional helpers. A room retained behind an extension does not count as the current page. Failed assertions still trigger bounded Home restoration, and uncertain navigation inputs are never replayed.
 
 The room helper passed two consecutive read-only runs against the Wiser Upstairs Hall thermostat in the minimized Google emulator on 16 September 2026. A third run deliberately failed its control assertion and still restored Home. Final checks confirmed the installed-device inventory and selected Wiser control settings were unchanged, and both reservations were released. This was source-level development validation, not a published adapter or an exact Release-candidate submission.
+
+A nested read-only inspection can be written as:
+
+```csharp
+await navigation.InspectRoomExtensionPagesAsync(
+    "schedule-inspection", roomName, tileName, roomPageTitle,
+    async (pages, token) =>
+    {
+        await pages.OpenPageAsync(
+            new(AndroidSelectorKind.Text, "Open"), "Schedule",
+            CrestronHomePages.Resource("customdevices_toolbarClose"), token);
+        await pages.InspectSelectionAsync(
+            "schedule-options", new(AndroidSelectorKind.Text, "SELECT SCHEDULE"),
+            expectedScheduleLabels, expectedSelectedSchedule, token);
+    }, cancellationToken);
+```
+
+The expected labels and selected value should come from fresh state for the identified device. Each check ID must be unique in the workflow evidence directory. The helper validates the entire expected page stack because background fragments retain repeated resource IDs. Unknown pages or uncertain navigation prevent further inputs; cleanup failures retain the original inspection failure. Leaving the callback restores nested pages using the supplied close/cancel controls before restoring Home. This does not itself establish physical-device identity, schedule persistence or submission compliance.
+
+A further source-based Wiser run verified all 16 schedule labels, all seven day labels and all 48 half-hour time labels, including their selected states. It dismissed each picker, cancelled Edit Schedule and restored Home. Thirteen capture pairs matched their retained hashes; installed-device inventory and checked Wiser control settings were preserved, and both reservations were released. The list reader handles short clipped boundary fragments without relaxing input-coordinate validation. All 91 offline Android tests also passed against a private packaged adapter. These nested checks were exercised by a private validation program; integration into the Wiser NUnit fixture and the submission evidence contract is still required.
 
 The Wiser driver's separate Android test project uses these helpers to compare gateway controls with fresh management state and optionally performs the restored name challenge described above. These fixtures send no physical device commands. Room controls and submission-contract integration remain required work.
 

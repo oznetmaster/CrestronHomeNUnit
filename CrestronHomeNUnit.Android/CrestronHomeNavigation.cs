@@ -198,12 +198,41 @@ public sealed class CrestronHomeNavigation
 		}
 
 	/// <summary>Inspect one named room extension and restore Home, including after assertion failures. Sends no device control commands.</summary>
-	public async Task InspectRoomExtensionAsync (string checkId, string roomName, string tileName, string pageTitle, Action<AndroidHierarchy> verify, CancellationToken token = default)
+	public Task InspectRoomExtensionAsync (string checkId, string roomName, string tileName, string pageTitle, Action<AndroidHierarchy> verify, CancellationToken token = default)
+		{
+		ArgumentNullException.ThrowIfNull (verify);
+		return InspectRoomCoreAsync (checkId, roomName, tileName, pageTitle,
+			() => _session.CaptureAsync (checkId + ".controls", hierarchy => { Extension (hierarchy); verify (hierarchy); }, token), token);
+		}
+
+	/// <summary>Visit explicitly configured nested navigation pages, then restore the root page and Home.</summary>
+	public Task InspectRoomExtensionPagesAsync (string checkId, string roomName, string tileName, string pageTitle,
+		Func<CrestronHomeExtensionNavigation, CancellationToken, Task> inspect, CancellationToken token = default)
+		{
+		ArgumentNullException.ThrowIfNull (inspect);
+		return InspectRoomCoreAsync (checkId, roomName, tileName, pageTitle, async () =>
+			{
+			var pages = new CrestronHomeExtensionNavigation (_session, pageTitle);
+			Exception? failure = null;
+			try { await inspect (pages, token).ConfigureAwait (false); }
+			catch (Exception e) { failure = e; throw; }
+			finally
+				{
+				using var cleanup = new CancellationTokenSource (TimeSpan.FromMinutes (2));
+				try { await pages.RestoreRootAsync (cleanup.Token).ConfigureAwait (false); }
+				catch (Exception cleanupError) when (failure != null)
+					{
+					throw new AggregateException ("Extension inspection and restoration both failed.", failure, cleanupError);
+					}
+				}
+			}, token);
+		}
+
+	private async Task InspectRoomCoreAsync (string checkId, string roomName, string tileName, string pageTitle, Func<Task> inspect, CancellationToken token)
 		{
 		ArgumentException.ThrowIfNullOrWhiteSpace (roomName);
 		ArgumentException.ThrowIfNullOrWhiteSpace (tileName);
 		ArgumentException.ThrowIfNullOrWhiteSpace (pageTitle);
-		ArgumentNullException.ThrowIfNull (verify);
 		await WaitAsync (Home, token).ConfigureAwait (false);
 		HomeRestored = true;
 		_roomName = roomName;
@@ -215,6 +244,7 @@ public sealed class CrestronHomeNavigation
 			if (hierarchy.RequireUnique (room).ResourceId != CrestronHomePages.ResourcePrefix + "itemRoomTitle")
 				throw new InvalidOperationException ("The matching text is not a room title.");
 			}
+		Exception? failure = null;
 		try
 			{
 			await TapBottomTabAsync (true, Home, token).ConfigureAwait (false);
@@ -224,13 +254,21 @@ public sealed class CrestronHomeNavigation
 			await TapAsync (new (AndroidSelectorKind.ContentDescription, "room_service_" + tileName), Room, token).ConfigureAwait (false);
 			await WaitAsync (Extension, token).ConfigureAwait (false);
 			await ConfirmDepartureAsync (token).ConfigureAwait (false);
-			await _session.CaptureAsync (checkId + ".controls", hierarchy => { Extension (hierarchy); verify (hierarchy); }, token).ConfigureAwait (false);
+			await inspect ().ConfigureAwait (false);
 			}
+		catch (Exception e) { failure = e; throw; }
 		finally
 			{
 			using var cleanup = new CancellationTokenSource (TimeSpan.FromMinutes (2));
-			await RestoreHomeAsync (cleanup.Token).ConfigureAwait (false);
-			await _session.CaptureAsync (checkId + ".home-restored", Home, cleanup.Token).ConfigureAwait (false);
+			try
+				{
+				await RestoreHomeAsync (cleanup.Token).ConfigureAwait (false);
+				await _session.CaptureAsync (checkId + ".home-restored", Home, cleanup.Token).ConfigureAwait (false);
+				}
+			catch (Exception cleanupError) when (failure != null)
+				{
+				throw new AggregateException ("Room inspection and Home restoration both failed.", failure, cleanupError);
+				}
 			}
 		}
 
