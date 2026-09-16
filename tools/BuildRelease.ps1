@@ -57,7 +57,7 @@ try {
     Copy-Item -LiteralPath (Join-Path $root 'licenses') -Destination $notices -Recurse
     Copy-Item -LiteralPath (Join-Path $root 'docs') -Destination $notices -Recurse
     # Preserve the source attributions and small reproductions linked from the guides.
-    $linkedSources = @(git ls-files samples vendor/nunit/LICENSE.txt vendor/nunit/PROVENANCE.md tools/ILRepackIndexerRepro tools/NUnitRepeatRunReports)
+    $linkedSources = @(git ls-files samples examples/android-session.example.json vendor/nunit/LICENSE.txt vendor/nunit/PROVENANCE.md tools/ILRepackIndexerRepro tools/NUnitRepeatRunReports)
     foreach ($file in $linkedSources) {
         $destination = Join-Path $notices $file
         [IO.Directory]::CreateDirectory((Split-Path $destination -Parent)) | Out-Null

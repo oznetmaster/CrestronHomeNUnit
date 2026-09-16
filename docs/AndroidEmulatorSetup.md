@@ -56,6 +56,8 @@ The emulator download is managed in the **Android SDK Manager inside Visual Stud
 
 If the Android menus are missing, use Visual Studio Installer to add the **.NET Multi-platform App UI development** workload first. Microsoft documents the SDK requirements and Device Manager in [managing virtual devices](https://learn.microsoft.com/en-us/dotnet/maui/android/emulator/device-manager?view=net-maui-10.0). The workload provides development tools; our UI fixtures remain ordinary Windows NUnit tests and do not require writing a MAUI app.
 
+Use **Windows Hypervisor Platform (WHPX)** for acceleration on a compatible Windows computer. The separate **Android Emulator Hypervisor Driver** offered under SDK Manager's Extras is an alternative that requires Hyper-V to be off, so do not install it alongside an active Windows hypervisor. Once the emulator is installed, its `emulator.exe -accel-check` command reports whether acceleration is usable. See [Microsoft's acceleration guide](https://learn.microsoft.com/en-us/dotnet/maui/android/emulator/hardware-acceleration?view=net-maui-10.0) before changing Windows features; an enabled feature may require a computer restart.
+
 ## Install and start BlueStacks
 
 1. Download **BlueStacks 5 App Player** from the [official installation page](https://support.bluestacks.com/hc/en-us/articles/360061525271-How-to-download-and-install-BlueStacks-5). Install it on the Windows computer that will execute the UI tests.
