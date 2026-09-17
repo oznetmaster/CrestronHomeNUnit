@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.8.2 - 2026-09-17
+
+Fix final verification and cleanup after long Android UI test stages. The workflow opens a fresh processor configuration connection after confirmed UI restoration and before removing its temporary test instance, instead of depending on a configuration session that may have become idle during the tests.
+
+Processor reservation ownership is checked before and after connecting. A failed connection or ownership check stops that step; device commands are not automatically replayed. Existing candidate identity, source checks, test evidence and restoration requirements remain in force.
+
+Validation: all 245 workflow regression tests passed. A complete development workflow passed desktop tests, processor tests, live reads, the driver update, three Android inspection cases, final driver verification and temporary-instance cleanup. Both reservations were released. This verifies the exercised development workflow, not complete driver acceptance or certification.
+
 ## 1.8.1 - 2026-09-16
 
 Fix room extension inspection when a named tile is below the initial viewport. The UI automation helper searches the observed service area with bounded scrolling and recognizes the compact room title that replaces the large heading after scrolling. Tile taps remain inside the visible area, clear of the toolbar and bottom navigation.
