@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.9.0 - 2026-09-17
+
+Identify repeated Android controls by the label beside them. `AndroidSelector.SiblingText` selects a button or value only when exactly one non-password sibling under the same immediate parent has the requested text and belongs to the configured application. It can be combined with an ancestor resource ID.
+
+Missing, duplicate, nested or foreign-application labels cannot select a different row. Multiple matching rows remain ambiguous. Taps still capture fresh bounds, run the fixture's page assertion and send at most one input. Fixture-specific labels, physical actions and restoration remain the consuming project's responsibility.
+
+Validation: the complete Android regression suite passed, including labelled-row selection, invalid or ambiguous targets and uncertain-input handling. An isolated consumer restored the private adapter candidate, used the new API in an ordinary NUnit fixture, discovered the workflow and verified its execution guards. These checks do not establish every consuming fixture's physical behavior or driver certification.
+
 ## 1.8.2 - 2026-09-17
 
 Fix final verification and cleanup after long Android UI test stages. The workflow opens a fresh processor configuration connection after confirmed UI restoration and before removing its temporary test instance, instead of depending on a configuration session that may have become idle during the tests.
