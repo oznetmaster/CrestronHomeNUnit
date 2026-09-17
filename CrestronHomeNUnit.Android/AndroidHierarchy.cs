@@ -18,6 +18,11 @@ public sealed record AndroidSelector (AndroidSelectorKind Kind, string Value)
 		{
 		get; init;
 		}
+	/// <summary>Require one non-password sibling with this literal text under the same immediate parent.</summary>
+	public string? SiblingText
+		{
+		get; init;
+		}
 	}
 public sealed record AndroidElement (string ResourceId, string Text, string Description, bool Enabled, int Left, int Top, int Right, int Bottom);
 
@@ -79,8 +84,13 @@ public sealed class AndroidHierarchy
 				};
 		if (selector.AncestorResourceId != null)
 			ArgumentException.ThrowIfNullOrWhiteSpace (selector.AncestorResourceId);
+		if (selector.SiblingText != null)
+			ArgumentException.ThrowIfNullOrWhiteSpace (selector.SiblingText);
 		return _document.Descendants ("node").Where (node =>
 			(string?)node.Attribute ("package") == _application && (string?)node.Attribute (attribute) == selector.Value &&
+			(selector.SiblingText == null || node.Parent?.Name == "node" && (string?)node.Parent.Attribute ("package") == _application &&
+				node.Parent.Elements ("node").Count (sibling => sibling != node && (string?)sibling.Attribute ("package") == _application &&
+					(string?)sibling.Attribute ("password") != "true" && (string?)sibling.Attribute ("text") == selector.SiblingText) == 1) &&
 			(selector.AncestorResourceId == null || node.Ancestors ("node").Any (ancestor =>
 				(string?)ancestor.Attribute ("package") == _application && (string?)ancestor.Attribute ("resource-id") == selector.AncestorResourceId))).ToArray ();
 		}

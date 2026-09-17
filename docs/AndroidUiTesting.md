@@ -40,6 +40,24 @@ Hierarchy output masks text and accessibility descriptions of password fields. O
 
 ## Opt-in workflow setup
 
+### Repeated controls in labelled rows
+
+The source for the next adapter release adds `AndroidSelector.SiblingText`. A selector can identify a repeated button or value by the literal label in the same immediate parent:
+
+```csharp
+var increase = new AndroidSelector(AndroidSelectorKind.ResourceId, "example.app:id/increase")
+{
+    SiblingText = "Target A"
+};
+await device.TapAsync(increase, verifyExpectedPage, cancellationToken);
+```
+
+The button and label must belong to the configured application. Exactly one non-password sibling must have that text; labels in another row or a nested container do not qualify. Multiple matching rows still fail as ambiguous. `SiblingText` can be combined with `AncestorResourceId`. The caller must continue to verify the front page and expected current value before input. The helper uses fresh observed bounds and never repeats an uncertain tap.
+
+This addition is not present in adapter 1.8.2 or earlier. The shared library supplies selection rules; each consuming fixture owns its labels, allowed operations, independent state checks and restoration.
+
+### Configure the workflow
+
 Use **1.7.1 or later for portrait screens**. If the local-port field is below the visible editor area, the navigator records the name/address first, scrolls once within the observed editor, then verifies the port. It does not edit fields or press Connect. Missing or incorrect fields after that bounded scroll still fail, and cleanup closes the editor before verifying Home restoration. Read-only inspection passed with the Google Pixel emulator minimized using this fix. See the service-session limits above; logged-out emulator operation remains unvalidated.
 
 For your own .NET 10 NUnit UI-test project, consume the Android assembly from `CrestronHomeNUnit.TestAdapter` 1.7.0 or later alongside `NUnit`, `NUnit3TestAdapter` and `Microsoft.NET.Test.Sdk`. Mark test-tool dependencies `PrivateAssets="all"` and do not add a `Workflows.xml` to that UI-test project. The existing workflow container remains a separate project. The [copyable sample](../samples/AndroidWorkflowTests/AndroidWorkflowTests.csproj) uses the published package by default. Tool contributors can set `UseSourceAndroid=true` to test the source library in this repository; consuming driver repositories do not need a second checkout. Publish the required test adapter version before pushing dependent driver-project updates.

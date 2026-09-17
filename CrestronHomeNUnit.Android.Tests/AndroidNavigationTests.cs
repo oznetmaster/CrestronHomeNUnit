@@ -17,6 +17,56 @@ public sealed class AndroidNavigationTests
 		<node package="example.app" resource-id="example.app:id/open" text="Open" content-desc="Navigate" bounds="[10,20][110,80]" enabled="true" password="false" />
 		""";
 	private static string Document (string nodes) => "<hierarchy>" + nodes + "</hierarchy>";
+	private static string LabelRow (string label, string child = Node) =>
+		"<node package='example.app' resource-id='example.app:id/row'>" +
+		"<node package='example.app' text='" + label + "' password='false' />" + child + "</node>";
+
+	[Test]
+	public async Task SiblingLabel_SelectsOnlyTheNamedRowAmongRepeatedButtons ()
+		{
+		var transport = new FakeTransport (Document (LabelRow ("First") + LabelRow ("Second", Node.Replace ("[10,20][110,80]", "[110,20][210,80]"))));
+		var selector = Selector with { SiblingText = "Second", AncestorResourceId = "example.app:id/row" };
+		await new AndroidDevice (transport, Application).TapAsync (selector, h => Assert.That (h.RequireUnique (selector).Left, Is.EqualTo (110)));
+		Assert.That (transport.Commands.Last (), Is.EqualTo (new[] { "shell", "input", "tap", "160", "50" }));
+		}
+
+	[TestCase ("missing")]
+	[TestCase ("duplicate-row")]
+	[TestCase ("duplicate-label")]
+	[TestCase ("nested-label")]
+	[TestCase ("foreign-label")]
+	[TestCase ("foreign-parent")]
+	[TestCase ("password-label")]
+	[TestCase ("wrong-ancestor")]
+	[TestCase ("blank-label")]
+	public void UnsafeSiblingLabel_SendsNoInput (string defect)
+		{
+		string row = LabelRow ("First");
+		string label = "<node package='example.app' text='First' password='false' />";
+		row = defect switch
+			{
+			"missing" => row.Replace (label, ""),
+			"duplicate-row" => row + row,
+			"duplicate-label" => row.Replace (label, label + label),
+			"nested-label" => row.Replace (label, "<node package='example.app'>" + label + "</node>"),
+			"foreign-label" => row.Replace (label, label.Replace ("example.app", "other.app")),
+			"foreign-parent" => row.Replace ("package='example.app' resource-id", "package='other.app' resource-id"),
+			"password-label" => row.Replace ("password='false'", "password='true'"),
+			_ => row
+			};
+		var selector = Selector with { SiblingText = defect == "blank-label" ? " " : "First", AncestorResourceId = defect == "wrong-ancestor" ? "missing" : null };
+		var transport = new FakeTransport (Document (row));
+		Assert.CatchAsync<Exception> (() => new AndroidDevice (transport, Application).TapAsync (selector, _ => { }));
+		Assert.That (transport.Commands.Any (c => c.Contains ("input")), Is.False);
+		}
+
+	[Test]
+	public void SiblingScopedInputFailure_IsNotReplayed ()
+		{
+		var transport = new FakeTransport (Document (LabelRow ("First") + LabelRow ("Second"))) { FailInput = true };
+		Assert.ThrowsAsync<TimeoutException> (() => new AndroidDevice (transport, Application).TapAsync (Selector with { SiblingText = "First" }, _ => { }));
+		Assert.That (transport.Commands.Count (c => c.Contains ("input")), Is.EqualTo (1));
+		}
 
 	[Test]
 	public async Task TransientCaptureFailureRepeatsOnlyReadsBeforeOneTap ()

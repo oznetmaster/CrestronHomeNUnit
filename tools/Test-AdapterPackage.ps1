@@ -56,6 +56,11 @@ public sealed class AndroidHelpers
         CrestronHomePages.RequireExtensionPage(hierarchy, "Options");
         Assert.That(CrestronHomePages.ReadStatusAndButton(hierarchy, "First"), Is.EqualTo(("ON", "Turn Off", true)));
         Assert.That(CrestronHomePages.ReadStatusAndButton(hierarchy, "Second"), Is.EqualTo(("OFF", "Turn On", true)));
+        var controls = new AndroidHierarchy("<hierarchy>" +
+            Node("row", "", Node("label", "First") + Node("adjust", "+")) +
+            Node("row", "", Node("label", "Second") + Node("adjust", "+")) + "</hierarchy>", app);
+        Assert.Throws<System.InvalidOperationException>(() => controls.RequireUnique(CrestronHomePages.Resource("adjust")));
+        Assert.That(controls.RequireUnique(CrestronHomePages.Resource("adjust") with { SiblingText = "Second" }).Text, Is.EqualTo("+"));
         XElement Page(string id, string title) => new XElement("node",
             new XAttribute("package", app), new XAttribute("resource-id", app + ":id/" + id),
             new XAttribute("class", "android.widget.LinearLayout"),

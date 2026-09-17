@@ -1,13 +1,13 @@
-# Crestron Home NUnit v1.8.2
+# Crestron Home NUnit v1.9.0
 
-Fix final verification and cleanup after long Android UI test stages. The workflow opens a fresh processor configuration connection after confirmed UI restoration and before removing its temporary test instance, instead of depending on a configuration session that may have become idle during the tests.
+Identify repeated Android controls by the label beside them. `AndroidSelector.SiblingText` selects a button or value only when exactly one non-password sibling under the same immediate parent has the requested text and belongs to the configured application. It can be combined with an ancestor resource ID.
 
-Processor reservation ownership is checked before and after connecting. A failed connection or ownership check stops that step; device commands are not automatically replayed. Existing candidate identity, source checks, test evidence and restoration requirements remain in force.
+Missing, duplicate, nested or foreign-application labels cannot select a different row. Multiple matching rows remain ambiguous. Taps still capture fresh bounds, run the fixture's page assertion and send at most one input. Fixture-specific labels, physical actions and restoration remain the consuming project's responsibility.
 
-Validation: all 245 workflow regression tests passed. A complete development workflow passed desktop tests, processor tests, live reads, the driver update, three Android inspection cases, final driver verification and temporary-instance cleanup. Both reservations were released. This verifies the exercised development workflow, not complete driver acceptance or certification.
+Validation: the complete Android regression suite passed, including labelled-row selection, invalid or ambiguous targets and uncertain-input handling. An isolated consumer restored the private adapter candidate, used the new API in an ordinary NUnit fixture, discovered the workflow and verified its execution guards. These checks do not establish every consuming fixture's physical behavior or driver certification.
 
 ## Updating
 
-Update the CLI or the workflow project's **CrestronHomeNUnit.TestAdapter** reference to **1.8.2**. Processor test packages do not need redeployment for this Windows-side workflow fix. NUnit and DevTools dependency versions are unchanged.
+Update the UI-test project's **CrestronHomeNUnit.TestAdapter** reference to **1.9.0** to use the new selector property. Existing selectors remain compatible. Processor test packages do not need redeployment for this Windows-side addition. NUnit and DevTools dependencies are unchanged.
 
 See [Android UI testing](docs/AndroidUiTesting.md) and [continuous integration](docs/ContinuousIntegration.md).
