@@ -101,7 +101,7 @@ Build **CrestronHomeNUnit.Runner** for Windows, or **CrestronHomeNUnit.Driver** 
 
 `PublishRunner.ps1` creates a self-contained Windows x64 ZIP. Licensed local builds can set `RunnerIconPath` in the excluded `CrestronHomeNUnit.Runner.Local.targets`. The public source has an MIT icon fallback; official releases use the privately supplied GlyphLab icon.
 
-For a GitHub release, update `CHANGELOG.md` and `RELEASE-NOTES.md`, then run the **Release** workflow on `main` with a new three-part version. CI sets the version, builds and validates the packages, pushes the release commit and annotated tag, then publishes the runner, CLI, processor package, adapter, documentation and checksums. The adapter alone is also published to NuGet using the `release` environment and package-scoped Trusted Publishing policy; repository variable `NUGET_USER` identifies its owner. Release version changes occur in CI; local Release builds preserve the manifest version. Release CI does not deploy to processors.
+For a GitHub release, prepare `RELEASE-NOTES.md` for the new version, then run the **Release** workflow on `main` with a new three-part version. CI sets the version, adds the dated changelog entry from those release notes, builds and validates the packages, pushes the release commit and annotated tag, then publishes the runner, CLI, processor package, adapter, documentation and checksums. The adapter alone is also published to NuGet using the `release` environment and package-scoped Trusted Publishing policy; repository variable `NUGET_USER` identifies its owner. Release version changes occur in CI; local Release builds preserve the manifest version. Release CI does not deploy to processors.
 
 ## Documentation and known limitations
 

@@ -71,6 +71,10 @@ An interrupted reservation never expires or gets stolen. Before manually removin
 
 The workflow records an aggregate Android stage plus the private detailed TRX and captures. Its development source digest is not a release commit identity. The opt-in [prebuilt Release handoff](ReleaseCandidateTesting.md) also carries the verified source commit in the Android context, capture observations and coverage record. That handoff has automated coverage but has not yet passed Release hardware validation. Matching discovery proves that the configured project's tests executed; each driver project remains responsible for testing all of its intended behavior.
 
+## Configuration session lifetime
+
+Workflow version 1.8.2 refreshes its processor configuration connection after a restored Android stage and before temporary test-instance removal. Long child-process tests therefore do not depend on the workflow's earlier configuration session remaining usable. The workflow verifies reservation ownership before and after the new connection. This is a stage-boundary refresh, not an automatic retry of a driver command; unconfirmed restoration still retains recovery evidence and closes the deployment gate.
+
 ## Remaining test coverage and worker validation
 
 1. Implement reviewed instance binding in consuming fixtures and bind their physical devices/rooms. Exact Release-candidate provenance and additional route verification remain separate requirements.

@@ -414,6 +414,10 @@ public static class WorkflowRunner
 					test.Add (new XElement ("failure", new XElement ("message", "Android tests or starting-state restoration were not confirmed; inspect private AndroidUI evidence.")));
 				cases.Add (test);
 				SaveChecks (cases);
+				// The child process owns its own API session. Our idle session may have
+				// expired while it ran; start a fresh one before verifying the driver.
+				if (android.RestorationConfirmed)
+					await RefreshConfigurationAsync (token).ConfigureAwait (false);
 				}
 			await client.WaitForDriverVersionAsync ([_actual!.DeviceId], _actual.Version, Timeout, token).ConfigureAwait (false);
 			await CheckSource (token).ConfigureAwait (false);
@@ -491,9 +495,16 @@ public static class WorkflowRunner
 			{
 			if (_test == null || !RemoteExecutionConfirmedStopped || _test.DeviceId == _actual?.DeviceId || _test.DeviceId == plan.ActualDriver?.ExpectedDeviceId)
 				throw new InvalidOperationException ("Test instance removal is not safe.");
+			await RefreshConfigurationAsync (token).ConfigureAwait (false);
 			await client.RemoveDriverInstanceAsync (_test.DeviceId, _test.Model, _test.Version, Timeout, token, RebootHandler (plan.TestPackage)).ConfigureAwait (false);
 			_test = null;
 			ActivationUncertain = false;
+			}
+		private async Task RefreshConfigurationAsync (CancellationToken token)
+			{
+			client = await WorkflowConnection.RefreshAsync (client,
+				ct => ConfigurationClient.ConnectAsync (ConnectionOptions (plan, _host), credential, ct),
+				ct => lease.VerifyAfterReconnectAsync (_host, ct), token).ConfigureAwait (false);
 			}
 		private DriverRebootHandler? RebootHandler (PackageBuildPlan target)
 			{
