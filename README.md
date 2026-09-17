@@ -14,7 +14,7 @@ Version 1.7.0 adds opt-in [Android UI tests](docs/AndroidUiTesting.md) after the
 
 Room UI fixtures can inspect named room tiles, nested extension pages and complete selection lists through the adapter's [room-navigation APIs](docs/AndroidUiTesting.md#room-and-nested-page-inspection), with observed Home restoration after assertions. Selection inspection does not change a chosen value; fixtures provide reviewed navigation/cancel controls and expected state for their identified device. Room-tile scrolling and compact room headings require adapter 1.8.1 or later; see the guide for search limits.
 
-The next adapter release also supports [repeated controls in labelled rows](docs/AndroidUiTesting.md#repeated-controls-in-labelled-rows). This source addition lets a fixture identify one repeated control through its adjacent label, while retaining page checks and refusal of ambiguous targets. It is not included in 1.8.2 or earlier.
+Adapter 1.9.0 and later also supports [repeated controls in labelled rows](docs/AndroidUiTesting.md#repeated-controls-in-labelled-rows). This lets a fixture identify one repeated control through its adjacent label, while retaining page checks and refusal of ambiguous targets. Use adapter 1.9.0 or later for these selectors.
 
 Successful CI workflows can also remove their own stored test packages with `removeTestPackageAfterSuccessfulRun`, preserving pre-existing/manual packages and reporting catalogue entries that remain cached until a planned reboot. Deployment retains the original package filename. See [cleanup and interrupted runs](docs/ContinuousIntegration.md#cleanup-and-interrupted-runs).
 

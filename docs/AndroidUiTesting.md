@@ -42,7 +42,7 @@ Hierarchy output masks text and accessibility descriptions of password fields. O
 
 ### Repeated controls in labelled rows
 
-The source for the next adapter release adds `AndroidSelector.SiblingText`. A selector can identify a repeated button or value by the literal label in the same immediate parent:
+Adapter 1.9.0 and later provides `AndroidSelector.SiblingText`. A selector can identify a repeated button or value by the literal label in the same immediate parent:
 
 ```csharp
 var increase = new AndroidSelector(AndroidSelectorKind.ResourceId, "example.app:id/increase")
