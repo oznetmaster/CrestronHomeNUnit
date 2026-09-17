@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.11.0 - 2026-09-17
+
+Android UI fixtures can now inspect extension pages whose controls do not fit on one screen. The shared navigation session exposes guarded scrolling in both directions, and saved-processor endpoint verification can reveal the local port on smaller screens.
+
+- Add `CrestronHomeExtensionNavigation.ScrollDownAsync` and `ScrollUpAsync`. Each validates the expected front page and caller assertions, sends one gesture within its observed viewport, and confirms the expected page afterward. Uncertain gestures are never automatically repeated.
+- Reject ambiguous, disabled or unusable front-page viewports, open selection overlays, failed assertions and cancellation before sending a scroll.
+- Replace the single-scroll assumption in saved-endpoint verification with an observed search of at most eight gestures. Incorrect or ambiguous fields, no progress, an exhausted search and uncertain input fail the check while retaining bounded Home restoration.
+- Document fixture responsibilities for complete coverage, edge-clipped accessibility bounds, non-saving cancellation and independent device-state restoration. Scrolling alone does not prove movement, visual correctness or complete page coverage.
+
+Validation: 139 Android regressions passed from source and through an isolated private adapter package. Package acceptance also checked ordinary NUnit API use, workflow discovery, execution guards and the identity of executed assembly bytes. A focused development run on a headless Google Android emulator used a reduced viewport, verified the saved endpoint through two observed scrolls, and inspected all expected labelled controls across two editor views. Independent device state, Home, emulator size, original inventory, temporary-child removal and reservation release were verified. This is development integration evidence, not final submission-candidate acceptance or certification.
+
 ## 1.10.0 - 2026-09-17
 
 The combined CLI/Test Explorer workflow can now create temporary managed children for an Android test project, pass their actual IDs to fixtures by alias, and remove the children after independently confirmed restoration. Setup and cleanup use the published CrestronHomeDevTools 1.6.0 library under the workflow's existing processor and Android reservations.
