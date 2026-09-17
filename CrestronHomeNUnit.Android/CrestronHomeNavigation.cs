@@ -262,14 +262,15 @@ public sealed class CrestronHomeNavigation
 		void RoomChoice (AndroidHierarchy hierarchy)
 			{
 			Rooms (hierarchy);
-			if (hierarchy.RequireUnique (room).ResourceId != CrestronHomePages.ResourcePrefix + "itemRoomTitle")
-				throw new InvalidOperationException ("The matching text is not a room title.");
+			if (!CrestronHomePages.RoomChoiceVisible (hierarchy, hierarchy.RequireUnique (room)))
+				throw new InvalidOperationException ("The room title is outside the unobstructed room list; no input was sent.");
 			}
 		Exception? failure = null;
 		try
 			{
 			await TapBottomTabAsync (true, Home, token).ConfigureAwait (false);
 			await WaitAsync (Rooms, token).ConfigureAwait (false);
+			await RevealRoomChoiceAsync (room, token).ConfigureAwait (false);
 			await TapAsync (room, RoomChoice, token).ConfigureAwait (false);
 			await WaitAsync (Room, token).ConfigureAwait (false);
 			var tile = new AndroidSelector (AndroidSelectorKind.ContentDescription, "room_service_" + tileName);
@@ -298,6 +299,53 @@ public sealed class CrestronHomeNavigation
 				throw new AggregateException ("Room inspection and Home restoration both failed.", failure, cleanupError);
 				}
 			}
+		}
+
+	private async Task RevealRoomChoiceAsync (AndroidSelector room, CancellationToken token)
+		{
+		await ConfirmDepartureAsync (token).ConfigureAwait (false);
+		// The app preserves the room list's scroll position. Search both directions,
+		// bounding gestures and observing every viewport rather than assuming the list starts at the top.
+		foreach (bool down in new[] { true, false })
+			{
+			var seen = new HashSet<string> (StringComparer.Ordinal);
+			for (int viewport = 0; viewport <= 12; viewport++)
+				{
+				_session.VerifyActive ();
+				var hierarchy = await _session.Device.CaptureAsync (token).ConfigureAwait (false);
+				Rooms (hierarchy);
+				var matches = hierarchy.Find (room);
+				if (matches.Length > 1 || matches.Length == 1 && (!matches[0].Enabled || matches[0].ResourceId != CrestronHomePages.ResourcePrefix + "itemRoomTitle"))
+					throw new InvalidOperationException ("The room name is ambiguous, disabled or not a room title; no input was sent.");
+				if (matches.Length == 1 && CrestronHomePages.RoomChoiceVisible (hierarchy, matches[0]))
+					return;
+				_ = CrestronHomePages.RoomsViewport (hierarchy);
+				string signature = CrestronHomePages.RoomsViewportSignature (hierarchy);
+				if (viewport == 12 || !seen.Add (signature))
+					break;
+				void Guard (AndroidHierarchy current)
+					{
+					Rooms (current);
+					if (CrestronHomePages.RoomsViewportSignature (current) != signature)
+						throw new InvalidOperationException ("The room list changed before scrolling; no input was sent.");
+					}
+				if (down)
+					await _session.Device.ScrollDownAsync (CrestronHomePages.RoomsViewport, Guard, static () => { }, token).ConfigureAwait (false);
+				else
+					await _session.Device.ScrollUpAsync (CrestronHomePages.RoomsViewport, Guard, static () => { }, token).ConfigureAwait (false);
+				for (int read = 0; read < 3; read++)
+					{
+					_session.VerifyActive ();
+					var after = await _session.Device.CaptureAsync (token).ConfigureAwait (false);
+					Rooms (after);
+					if (CrestronHomePages.RoomsViewportSignature (after) != signature)
+						break;
+					if (read < 2)
+						await Task.Delay (100, token).ConfigureAwait (false);
+					}
+				}
+			}
+		throw new InvalidOperationException ("The requested room was not visible within the bounded room-list search.");
 		}
 
 	private async Task RevealRoomTileAsync (AndroidSelector tile, CancellationToken token)

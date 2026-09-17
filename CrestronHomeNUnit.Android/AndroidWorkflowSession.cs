@@ -26,7 +26,32 @@ public sealed record AndroidRunContext (int SchemaVersion, string RunId, string 
 	AndroidSessionProfile Profile, string EvidenceDirectory)
 	{
 	public string? ReleaseSourceCommit { get; init; }
+	public IReadOnlyList<AndroidManagedDeviceBinding> ManagedDevices { get; init; } = [];
+
+	/// <summary>Resolve only a child supplied by this workflow; no inventory lookup or fallback is performed.</summary>
+	public AndroidManagedDeviceBinding RequireManagedDevice (string alias)
+		{
+		ArgumentException.ThrowIfNullOrWhiteSpace (alias);
+		ValidateManagedDevices ();
+		return ManagedDevices.SingleOrDefault (binding => binding.Alias.Equals (alias, StringComparison.Ordinal))
+			?? throw new InvalidDataException ("The requested managed-child alias was not supplied by this workflow.");
+		}
+
+	internal void ValidateManagedDevices ()
+		{
+		if (ManagedDevices == null || ManagedDevices.Any (binding => binding == null ||
+			string.IsNullOrWhiteSpace (binding.Alias) || binding.Alias.Length > 64 ||
+			binding.Alias.Any (c => !char.IsAsciiLetterOrDigit (c) && c is not ('_' or '-')) ||
+			binding.DeviceId <= 0 || binding.DeviceId == InstalledDriverId || binding.ParentDriverId != InstalledDriverId ||
+			binding.LocationId <= 0 || string.IsNullOrWhiteSpace (binding.Model) || string.IsNullOrWhiteSpace (binding.Name)) ||
+			ManagedDevices.Select (binding => binding.Alias).Distinct (StringComparer.OrdinalIgnoreCase).Count () != ManagedDevices.Count ||
+			ManagedDevices.Select (binding => binding.DeviceId).Distinct ().Count () != ManagedDevices.Count)
+			throw new InvalidDataException ("Invalid or ambiguous managed-child workflow bindings.");
+		}
 	}
+
+/// <summary>The actual identity of a child created for this run. Consumers must still verify its current processor state.</summary>
+public sealed record AndroidManagedDeviceBinding (string Alias, int DeviceId, int ParentDriverId, string Model, string Name, int LocationId);
 public sealed record AndroidRunCompletion (int SchemaVersion, string RunId, string PackageSha256, bool RestorationConfirmed);
 
 /// <summary>A workflow-owned session; ordinary desktop tests have no implicit Android connection.</summary>
@@ -86,6 +111,7 @@ public sealed class AndroidWorkflowSession
 	public static void VerifyContext (AndroidRunContext context)
 		{
 		context.Profile.Validate ();
+		context.ValidateManagedDevices ();
 		if (context.SchemaVersion != 1 || context.Machine != Environment.MachineName || context.InstalledDriverId <= 0 ||
 			!Guid.TryParse (context.DriverGuid, out _) || !Version.TryParse (context.DriverVersion, out _) ||
 			!IsHash (context.PackageSha256) || !IsHash (context.SourceSha256) ||

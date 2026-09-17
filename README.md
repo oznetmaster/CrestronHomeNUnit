@@ -24,7 +24,7 @@ To run hardware checks from GitHub Actions on your own Windows computer and proc
 
 Run NUnit tests **on a Crestron Home processor**, using a Windows runner, automation CLI or a standalone test tile in Crestron Home. This checks your code in the processor's Mono-based environment, where SDK, filesystem and networking behavior can differ from Windows.
 
-[Download the latest release](https://github.com/oznetmaster/CrestronHomeNUnit/releases/latest) Â· [Changelog](CHANGELOG.md) Â· [Full user and developer guide](docs/UserGuide.md) Â· [Create your own test package](docs/ProcessorTestPackages.md)
+[Download the latest release](https://github.com/oznetmaster/CrestronHomeNUnit/releases/latest) Ã‚Â· [Changelog](CHANGELOG.md) Ã‚Â· [Full user and developer guide](docs/UserGuide.md) Ã‚Â· [Create your own test package](docs/ProcessorTestPackages.md)
 
 Copyright (c) 2026 Neil Colvin. Project-owned code is [MIT licensed](LICENSE). NUnit and other dependencies retain their own licenses and notices.
 
@@ -35,6 +35,7 @@ Copyright (c) 2026 Neil Colvin. Project-owned code is [MIT licensed](LICENSE). N
 - [Using the Windows runner](#using-the-windows-runner)
 - [Standalone Home tiles](#standalone-home-tiles)
 - [Your own processor tests](#your-own-processor-tests)
+- [Command-line automation](#command-line-automation)
 - [Build and release](#build-and-release)
 - [Documentation and known limitations](#documentation-and-known-limitations)
 - [Android UI testing](docs/AndroidUiTesting.md)
@@ -93,6 +94,18 @@ For Crestron-specific drivers, that project can stay in the driver's solution. F
 
 See [the package creation guide](docs/ProcessorTestPackages.md) and [repository layout and ownership](docs/UserGuide.md#repository-layout-and-package-ownership).
 
+## Command-line automation
+
+A standalone .NET 10 CLI shares the Windows runner's TCP and authentication code. It supports package discovery, suite selection, private input transfer, NUnit XML results and CI exit codes. See [Command-line processor tests](docs/CommandLineRunner.md).
+
+The CLI also runs the [gated development workflow](docs/ProcessorTestWorkflow.md): local tests, processor package installation, processor/live tests, actual-driver update and checks, then test-instance cleanup. Representative Entity V2 and V1 runs have been validated on hardware, including the explicitly authorized V1 reboot. The [Visual Studio adapter](docs/VisualStudioTestExplorer.md) uses the same backend.
+
+For source and package CI checks without duplicated test totals, see [discovery-based coverage validation](docs/ProcessorTestPackages.md#validate-coverage-without-duplicated-counts).
+
+### Temporary children for Android fixtures
+
+From version 1.10.0, an optional `androidTests.managedChildren` list creates test-owned children of the actual driver. Fixtures receive their actual IDs through `session.Context.RequireManagedDevice(alias)`. The workflow removes those children only after verified restoration and retains uncertain runs for reconciliation. Existing manual installations remain outside this cleanup scope. See [the plan example and lifecycle](docs/AndroidUiTesting.md#temporary-managed-children-for-a-test-run).
+
 ## Build and release
 
 **Updating to v1.0.1:** close the runner and extract the complete new Windows ZIP. Saved preferences and credentials remain in the user profile. The reconnection fix works with existing processor packages. Package authors should update their shared SDK checkout or pin, rebuild and redeploy to receive the fixes for dependency resource helpers and anonymous JSON payload types.
@@ -124,10 +137,3 @@ The NUnit framework and imported self-tests are **Copyright (c) Charlie Poole, R
 **Crestron notice:** Crestron and Crestron Home are trademarks or registered trademarks of Crestron Electronics, Inc. This project is not affiliated with, endorsed by, or sponsored by Crestron Electronics, Inc. It is an independent, unofficial development and testing tool. Use of the NUnit name identifies the test framework and included upstream tests; this is not an official NUnit distribution or an NUnit-endorsed Crestron product.
 
 The Crestron SDK is obtained separately under Crestron's terms. Its proprietary components are platform/build dependencies and are not relicensed under MIT.
-## Command-line automation (development)
-
-A standalone .NET 10 CLI shares the Windows runner's TCP and authentication code. It supports package discovery, suite selection, private input transfer, NUnit XML results and CI exit codes. See [Command-line processor tests](docs/CommandLineRunner.md).
-
-The CLI also runs the [gated development workflow](docs/ProcessorTestWorkflow.md): local tests, processor package installation, processor/live tests, actual-driver update and checks, then test-instance cleanup. Representative Entity V2 and V1 runs have been validated on hardware, including the explicitly authorized V1 reboot. The [Visual Studio adapter](docs/VisualStudioTestExplorer.md) uses the same backend.
-
-For source and package CI checks without duplicated test totals, see [discovery-based coverage validation](docs/ProcessorTestPackages.md#validate-coverage-without-duplicated-counts).

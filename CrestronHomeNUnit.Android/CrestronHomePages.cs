@@ -41,6 +41,38 @@ public static class CrestronHomePages
 			throw new InvalidOperationException ("The expected room is not open.");
 		}
 
+	internal static AndroidElement RoomsViewport (AndroidHierarchy hierarchy)
+		{
+		RequireRooms (hierarchy);
+		var container = hierarchy.RequireUnique (Resource ("rooms_roomsList"));
+		var heading = hierarchy.RequireUnique (Resource ("fragmentRoomsTitle"));
+		var bar = hierarchy.RequireUnique (Resource ("bottomNavigationView"));
+		int top = Math.Max (container.Top, heading.Bottom);
+		int bottom = Math.Min (container.Bottom, bar.Top);
+		if (!container.Enabled || !bar.Enabled || bottom - top < 80)
+			throw new InvalidOperationException ("The visible room list is unavailable.");
+		return container with { Top = top, Bottom = bottom };
+		}
+
+	internal static bool RoomChoiceVisible (AndroidHierarchy hierarchy, AndroidElement room)
+		{
+		var viewport = RoomsViewport (hierarchy);
+		return room.ResourceId == ResourcePrefix + "itemRoomTitle" && room.Left >= viewport.Left && room.Right <= viewport.Right &&
+			room.Top >= viewport.Top && room.Bottom <= viewport.Bottom;
+		}
+
+	internal static string RoomsViewportSignature (AndroidHierarchy hierarchy)
+		{
+		var document = XDocument.Parse (hierarchy.MaskedXml);
+		var container = document.Descendants ("node").Single (node =>
+			(string?)node.Attribute ("package") == "com.crestron.phoenix.app" &&
+			(string?)node.Attribute ("resource-id") == ResourcePrefix + "rooms_roomsList");
+		return string.Join ("\n", container.Descendants ("node").Where (node =>
+			(string?)node.Attribute ("package") == "com.crestron.phoenix.app" &&
+			(string?)node.Attribute ("resource-id") == ResourcePrefix + "itemRoomTitle")
+			.Select (node => (string?)node.Attribute ("text") + "|" + (string?)node.Attribute ("bounds")));
+		}
+
 	internal static AndroidElement RoomViewport (AndroidHierarchy hierarchy)
 		{
 		var container = hierarchy.RequireUnique (Resource ("room_scrollView"));

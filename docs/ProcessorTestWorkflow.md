@@ -28,7 +28,7 @@ Test Explorer should distinguish Local, Processor, Processor Live and Deployed D
 6. Run required smoke/live checks against the actual installed driver: loading, connection, entities, reported state and, when configured, device control.
 7. Show and save all stage results, including restoration failures and the final installed driver version.
 
-Source development also provides an optional `androidTests` project after the installed-driver checks in step 6. It reserves the configured Android session before deployment and retains both reservations if UI restoration is unconfirmed. This addition is not in released 1.6.0 and has not completed hardware validation; see [Android setup, evidence and recovery](AndroidUiTesting.md).
+The optional `androidTests` project is available from 1.7.0 after the installed-driver checks in step 6. It reserves the configured Android session before deployment and retains both reservations if UI restoration is unconfirmed. Version 1.10.0 adds temporary managed-child targets, actual-ID bindings and verified removal under the same reservations. A normal CP4-R workflow passed the complete path with one selected editor Cancel fixture and independently checked restoration/cleanup. See [Android setup, evidence and recovery](AndroidUiTesting.md), including the boundaries of the hardware validation.
 
 A suite counts as passed only when the required tests actually execute successfully. Missing, skipped, zero-test, timed-out, cancelled or incomplete required stages cannot unlock driver deployment. Optional live fixtures remain opt-in and must not silently become mandatory. An individual Run Selection result cannot masquerade as completion of the full required gate.
 

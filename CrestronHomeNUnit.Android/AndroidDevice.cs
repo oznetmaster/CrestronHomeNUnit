@@ -151,6 +151,12 @@ public sealed class AndroidDevice (IAndroidCommandTransport transport, string ap
 		=> await ScrollDownAsync (hierarchy => hierarchy.RequireUnique (container), validatePage, inputStarting, token).ConfigureAwait (false);
 
 	internal async Task ScrollDownAsync (Func<AndroidHierarchy, AndroidElement> select, Action<AndroidHierarchy> validatePage, Action inputStarting, CancellationToken token)
+		=> await ScrollAsync (select, validatePage, inputStarting, true, token).ConfigureAwait (false);
+
+	internal async Task ScrollUpAsync (Func<AndroidHierarchy, AndroidElement> select, Action<AndroidHierarchy> validatePage, Action inputStarting, CancellationToken token)
+		=> await ScrollAsync (select, validatePage, inputStarting, false, token).ConfigureAwait (false);
+
+	private async Task ScrollAsync (Func<AndroidHierarchy, AndroidElement> select, Action<AndroidHierarchy> validatePage, Action inputStarting, bool down, CancellationToken token)
 		{
 		var hierarchy = await CaptureAsync (token).ConfigureAwait (false);
 		validatePage (hierarchy);
@@ -160,6 +166,8 @@ public sealed class AndroidDevice (IAndroidCommandTransport transport, string ap
 		var x = ((element.Left + element.Right) / 2).ToString (CultureInfo.InvariantCulture);
 		var start = (element.Top + (element.Bottom - element.Top) * 3 / 4).ToString (CultureInfo.InvariantCulture);
 		var end = (element.Top + (element.Bottom - element.Top) / 4).ToString (CultureInfo.InvariantCulture);
+		if (!down)
+			(start, end) = (end, start);
 		token.ThrowIfCancellationRequested ();
 		inputStarting ();
 		await transport.ExecuteAsync (["shell", "input", "swipe", x, start, x, end, "350"], token).ConfigureAwait (false);

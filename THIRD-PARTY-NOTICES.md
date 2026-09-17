@@ -29,7 +29,7 @@ The separately copied `System.Threading.Lock` compatibility source retains its N
 
 ## Configuration workflow dependency
 
-The CLI workflow and Test Explorer adapter use [CrestronHomeDevTools 1.1.0](https://github.com/oznetmaster/CrestronHomeDevTools), copyright (c) 2026 Neil Colvin, under the MIT license. It uses the same SSH.NET version listed below and adds no Crestron SDK runtime dependency to the desktop tooling. The adapter's NuGet package includes project-owned Workflow, Client and Transport assemblies under the root MIT license; third-party runtime dependencies are restored as separate NuGet packages with their own licenses. Microsoft.TestPlatform.ObjectModel 18.9.0 is a build dependency under Microsoft's MIT license, supplied at runtime by the VSTest host.
+The CLI workflow and Test Explorer adapter use [CrestronHomeDevTools 1.6.0](https://github.com/oznetmaster/CrestronHomeDevTools), copyright (c) 2026 Neil Colvin, under the MIT license. It uses the same SSH.NET version listed below and adds no Crestron SDK runtime dependency to the desktop tooling. The adapter's NuGet package includes project-owned Workflow, Android, Client and Transport assemblies under the root MIT license; third-party runtime dependencies are restored as separate NuGet packages with their own licenses. Microsoft.TestPlatform.ObjectModel 18.9.0 is a build dependency under Microsoft's MIT license, supplied at runtime by the VSTest host.
 
 ## Runtime and source dependencies
 

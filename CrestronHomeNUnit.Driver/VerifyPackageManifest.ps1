@@ -3,11 +3,33 @@
 
 param(
     [Parameter(Mandatory)][string] $ManifestPath,
-    [Parameter(Mandatory)][string] $MetadataPath
+    [Parameter(Mandatory, ParameterSetName='Metadata')][string] $MetadataPath,
+    [Parameter(Mandatory, ParameterSetName='Package')][string] $PkgPath,
+    [Parameter(Mandatory, ParameterSetName='Package')][string] $AssemblyName
 )
 $ErrorActionPreference = 'Stop'
 $expected = (Get-Content -LiteralPath $ManifestPath -Raw | ConvertFrom-Json).GeneralInformation
-$actual = Get-Content -LiteralPath $MetadataPath -Raw | ConvertFrom-Json
+if ($PSCmdlet.ParameterSetName -eq 'Package') {
+    if ([string]::IsNullOrWhiteSpace($AssemblyName) -or $AssemblyName.IndexOfAny([char[]]'/\') -ge 0) {
+        throw 'A plain assembly name is required for package metadata verification.'
+    }
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $archive = [System.IO.Compression.ZipFile]::OpenRead($PkgPath)
+    try {
+        $expectedEntry = $AssemblyName + '.dat'
+        $entries = @($archive.Entries | Where-Object { [string]::Equals($_.FullName, $expectedEntry, [StringComparison]::OrdinalIgnoreCase) })
+        if ($entries.Count -ne 1 -or $entries[0].FullName -cne $expectedEntry) {
+            throw 'The package must contain exactly one correctly named root metadata entry.'
+        }
+        $reader = [System.IO.StreamReader]::new($entries[0].Open())
+        try { $actual = $reader.ReadToEnd() | ConvertFrom-Json }
+        finally { $reader.Dispose() }
+    }
+    finally { $archive.Dispose() }
+}
+else {
+    $actual = Get-Content -LiteralPath $MetadataPath -Raw | ConvertFrom-Json
+}
 $checks = @{
     driverId = [string]$expected.Guid
     driverVersion = [string]$expected.DriverVersion

@@ -24,3 +24,14 @@ Select the workflow in Test Explorer to run it. Individual test outcomes are rep
 See the [Visual Studio guide](https://github.com/oznetmaster/CrestronHomeNUnit/blob/main/docs/VisualStudioTestExplorer.md) and [workflow configuration guide](https://github.com/oznetmaster/CrestronHomeNUnit/blob/main/docs/ContinuousIntegration.md) for setup and limitations.
 
 Copyright (c) 2026 Neil Colvin. MIT licensed. Independent developer tooling; not affiliated with or endorsed by Crestron or the NUnit project.
+
+
+## Package acceptance checks
+
+The repository's `tools/Test-AdapterPackage.ps1` restores a clean consumer using an isolated cache and an exact source mapping for the package under test. It verifies workflow discovery, manifest copying, ordinary NUnit use of the Android API and the expected failure when private workflow settings are missing. It also compiles the Android regression fixtures against the packaged assemblies, compares executed tests with discovery and verifies those assembly bytes against the archive. No processor, emulator or production-source project reference is needed for these package checks. They do not replace physical workflow or driver acceptance tests.
+
+## Temporary managed-child fixtures
+
+Version 1.10.0 adds optional `androidTests.managedChildren` targets to the combined workflow. The selected actual driver supplies the parent identity; the fixture receives actual created child IDs through `session.Context.RequireManagedDevice(alias)`. Setup and cleanup use DevTools 1.6.0 under the existing reservations. Cleanup requires independently confirmed restoration, preserves failed test outcomes and removes only the run's own children. Existing plans without targets keep their previous context format.
+
+See the [plan example, fixture contract and recovery rules](https://github.com/oznetmaster/CrestronHomeNUnit/blob/main/docs/AndroidUiTesting.md#temporary-managed-children-for-a-test-run). The normal workflow passed a CP4-R development run with one selected editor Cancel fixture and verified restoration/removal. This is not final submission-candidate acceptance or certification.

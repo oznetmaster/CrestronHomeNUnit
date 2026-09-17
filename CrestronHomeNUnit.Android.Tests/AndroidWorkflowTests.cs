@@ -72,6 +72,52 @@ public sealed class AndroidWorkflowTests
 		}
 
 	[Test]
+	public void ManagedChildBindingsRoundTripWithoutSelectingAnotherDevice ()
+		{
+		var binding = new AndroidManagedDeviceBinding ("room", 19, 7, "Example Child", "CI Child", 3);
+		var context = Context () with { ManagedDevices = [binding] };
+		string file = Path.Combine (_directory, "context.json");
+		File.WriteAllText (file, JsonSerializer.Serialize (context));
+		var restored = AndroidWorkflowSession.Read<AndroidRunContext> (file);
+		Assert.That (restored.RequireManagedDevice ("room"), Is.EqualTo (binding));
+		Assert.Throws<InvalidDataException> (() => restored.RequireManagedDevice ("another-room"));
+		}
+
+	[Test]
+	public void LegacyContextHasNoImplicitManagedChild ()
+		{
+		var json = System.Text.Json.Nodes.JsonNode.Parse (JsonSerializer.Serialize (Context ()))!.AsObject ();
+		json.Remove ("ManagedDevices");
+		string file = Path.Combine (_directory, "legacy.json");
+		File.WriteAllText (file, json.ToJsonString ());
+		var context = AndroidWorkflowSession.Read<AndroidRunContext> (file);
+		Assert.That (context.ManagedDevices, Is.Empty);
+		Assert.Throws<InvalidDataException> (() => context.RequireManagedDevice ("room"));
+		}
+
+	[TestCase ("parent")]
+	[TestCase ("root")]
+	[TestCase ("alias")]
+	[TestCase ("duplicate-alias")]
+	[TestCase ("duplicate-id")]
+	[TestCase ("location")]
+	public void InvalidManagedChildBindingsRejectTheSessionBeforeUiAccess (string fault)
+		{
+		using var lease = AndroidSessionLease.Acquire (_lock, _owner);
+		var binding = new AndroidManagedDeviceBinding ("room", 19, 7, "Example Child", "CI Child", 3);
+		IReadOnlyList<AndroidManagedDeviceBinding> bindings = fault switch
+			{
+			"parent" => [binding with { ParentDriverId = 8 }],
+			"root" => [binding with { DeviceId = 7 }],
+			"alias" => [binding with { Alias = "../room" }],
+			"duplicate-alias" => [binding, binding with { Alias = "ROOM", DeviceId = 20 }],
+			"duplicate-id" => [binding, binding with { Alias = "second" }],
+			_ => [binding with { LocationId = 0 }]
+			};
+		Assert.Throws<InvalidDataException> (() => AndroidWorkflowSession.VerifyContext (Context () with { ManagedDevices = bindings }));
+		}
+
+	[Test]
 	public async Task CapturedEvidenceUsesActualRunIdentityAndMasksPasswordHierarchy ()
 		{
 		using var lease = AndroidSessionLease.Acquire (_lock, _owner);

@@ -66,6 +66,7 @@ public sealed class AndroidStageTests
 				AndroidWorkflowSession.VerifyContext (context);
 				Assert.That (context.ProcessorAddress, Is.EqualTo ("192.0.2.1"));
 				Assert.That (context.InstalledDriverId, Is.EqualTo (7));
+				Assert.That (context.RequireManagedDevice ("child").DeviceId, Is.EqualTo (19));
 				Assert.That (context.DriverVersion, Is.EqualTo ("1.2.3.8"));
 				Assert.That (context.PackageSha256, Is.EqualTo (Convert.ToHexString (SHA256.HashData (File.ReadAllBytes (_package)))));
 				Assert.That (context.SourceSha256, Is.EqualTo (new string ('B', 64)));
@@ -77,10 +78,23 @@ public sealed class AndroidStageTests
 				await File.WriteAllTextAsync (Path.Combine (output, "TestResult.trx"),
 					"<TestRun><ResultSummary outcome=\"Completed\"><Counters total=\"1\" passed=\"1\" failed=\"0\" /></ResultSummary><Results><UnitTestResult testId=\"1\" executionId=\"unique\" outcome=\"Passed\" /></Results><TestDefinitions><UnitTest id=\"1\" name=\"Home\"><TestMethod className=\"Example\" adapterTypeName=\"executor://nunit3testexecutor/\" /></UnitTest></TestDefinitions></TestRun>", token);
 				return exit;
-				}, releaseSourceCommit: new ('d', 40));
+				}, releaseSourceCommit: new ('d', 40), managedDevices: [new ("child", 19, 7, "Example Child", "CI Child", 3)]);
 		Assert.That (outcome.Tests.MeetsGate, Is.EqualTo (passes));
 		Assert.That (outcome.RestorationConfirmed, Is.EqualTo (restored));
 		Assert.That (File.Exists (_profile.LockPath), Is.True, "Only the coordinator may release after all workflow cleanup.");
+		}
+
+	[Test]
+	public void EmptyManagedBindingsKeepTheLegacyContextWireContract ()
+		{
+		var context = new AndroidRunContext (1, _owner, Environment.MachineName, 1, 1,
+			"192.0.2.1", 7, "11111111-1111-1111-1111-111111111111", "1.0.0.1", new ('a', 64), new ('b', 64), _profile, _root);
+		using var legacy = JsonDocument.Parse (WorkflowAndroid.SerializeContext (context));
+		Assert.That (legacy.RootElement.TryGetProperty ("ManagedDevices", out _), Is.False,
+			"Old UI fixture packages reject this unknown field, even when it is empty.");
+		using var managed = JsonDocument.Parse (WorkflowAndroid.SerializeContext (context with
+			{ ManagedDevices = [new ("room", 19, 7, "Example Child", "CI Child", 3)] }));
+		Assert.That (managed.RootElement.GetProperty ("ManagedDevices")[0].GetProperty ("DeviceId").GetInt32 (), Is.EqualTo (19));
 		}
 
 	[Test]

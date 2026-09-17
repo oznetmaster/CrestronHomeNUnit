@@ -401,22 +401,31 @@ public static class WorkflowRunner
 				ActivationUncertain = true;
 				await lease.BeginControlAsync (token).ConfigureAwait (false);
 				using var androidDeadline = Deadline (token);
-				var android = await WorkflowAndroid.RunAsync (plan.AndroidTests, androidProfile!, lease.Owner, _host, _actual!.DeviceId,
-					_actualPath!, _source!, Path.Combine (results, "AndroidUI"), androidDeadline.Token, releaseSourceCommit: releasePackage?.SourceCommit).ConfigureAwait (false);
-				if (android.RestorationConfirmed)
+				async Task VerifyAndroidOwnership (CancellationToken ct)
+					{
+					await lease.VerifyAfterReconnectAsync (_host, ct).ConfigureAwait (false);
+					AndroidSessionLease.VerifyOwner (androidProfile!.LockPath, lease.Owner);
+					await CheckSource (ct).ConfigureAwait (false);
+					}
+				var android = await WorkflowManagedAndroid.RunAsync (plan.AndroidTests, _actual!, Path.Combine (results, "AndroidManagedChildren"),
+					Timeout, ct => ConfigurationClient.ConnectAsync (ConnectionOptions (plan, _host), credential, ct), VerifyAndroidOwnership,
+					(bindings, ct) => WorkflowAndroid.RunAsync (plan.AndroidTests, androidProfile!, lease.Owner, _host, _actual!.DeviceId,
+						_actualPath!, _source!, Path.Combine (results, "AndroidUI"), ct, releaseSourceCommit: releasePackage?.SourceCommit,
+						managedDevices: bindings), androidDeadline.Token).ConfigureAwait (false);
+				if (android.SafeToRelease)
 					{
 					await lease.EndControlAsync (token).ConfigureAwait (false);
 					ActivationUncertain = false;
 					}
-				bool passed = android.RestorationConfirmed && android.Tests.MeetsGate;
+				bool passed = android.Passed;
 				var test = new XElement ("test-case", new XAttribute ("name", "Android UI tests"), new XAttribute ("fullname", "Android.Workflow"), new XAttribute ("result", passed ? "Passed" : "Failed"));
 				if (!passed)
-					test.Add (new XElement ("failure", new XElement ("message", "Android tests or starting-state restoration were not confirmed; inspect private AndroidUI evidence.")));
+					test.Add (new XElement ("failure", new XElement ("message", "Android tests, starting-state restoration or owned-child cleanup were not confirmed; inspect private AndroidUI and AndroidManagedChildren evidence.")));
 				cases.Add (test);
 				SaveChecks (cases);
 				// The child process owns its own API session. Our idle session may have
 				// expired while it ran; start a fresh one before verifying the driver.
-				if (android.RestorationConfirmed)
+				if (android.SafeToRelease)
 					await RefreshConfigurationAsync (token).ConfigureAwait (false);
 				}
 			await client.WaitForDriverVersionAsync ([_actual!.DeviceId], _actual.Version, Timeout, token).ConfigureAwait (false);

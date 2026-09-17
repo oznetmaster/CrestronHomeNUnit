@@ -140,3 +140,43 @@ Build and run the offline project:
 ```powershell
 dotnet test CrestronHomeNUnit.Android.Tests/CrestronHomeNUnit.Android.Tests.csproj -c Release
 ```
+
+## Temporary managed children for a test run
+
+Temporary managed-child plans require adapter/CLI 1.10.0 or later and use DevTools 1.6.0. The combined workflow passed a CP4-R development run with one selected editor Cancel fixture, independently confirmed restoration, owned-child/test-instance removal and reservation release. This does not establish every driver's behavior or final submission acceptance.
+
+An optional `managedChildren` list under `androidTests` commissions temporary children of the actual driver selected by the workflow. It is useful when a fixture needs a platform-managed child that should not remain installed after testing:
+
+```json
+"androidTests": {
+  "project": "C:/src/ExampleDriver/ExampleDriver.AndroidTests/ExampleDriver.AndroidTests.csproj",
+  "profilePath": "C:/private/android-session.json",
+  "managedChildren": [
+    {
+      "alias": "room",
+      "managedDeviceId": "advertised-child-id",
+      "name": "CI Example Child",
+      "model": "Example Child",
+      "locationId": 3
+    }
+  ]
+}
+```
+
+Use the selected processor's advertised child identity and an existing Home room. These values are examples, not discovery rules. The parent ID/model/version come from the actual driver activated by this run. Aliases, managed child identities and room/name pairs must be distinct. A collision with an existing child name stops setup; the workflow never adopts a manually installed child.
+
+The processor and Android reservations remain held through setup, fixture execution, restoration and removal. Setup enters the child's initial configuration even when it already reports configured. A pending configuration prompt stops the run and retains a private journal; no values are guessed or applied automatically.
+
+After readiness, the fixture's session receives the actual created identity:
+
+```csharp
+var child = session.Context.RequireManagedDevice("room");
+// Verify the child's current identity and state through the processor client
+// before opening its tile or operating its physical device.
+```
+
+The binding supplies the child ID, parent driver ID, model, name and location. Missing aliases, duplicate identities and unrelated parents are rejected. The fixture owns its own mapping from an alias to physical-device expectations and private credentials. Shared tooling does not rewrite driver-specific JSON files or infer a device from its name. Existing fixture settings can continue to use explicit existing IDs when no temporary child is requested.
+
+The coordinator separates test success, independently verified restoration and confirmed child removal. A failed test can clean up after restoration, but remains failed. Unknown restoration, partial setup, lost reservations, interruptions or uncertain cleanup retain the child and journals for reconciliation. Commands and partial journals are never automatically replayed. Only children recorded as created by the run are removed, in reverse creation order, with preservation of other installed devices checked. This does not delete manually installed children or the actual driver.
+
+Inspect private `AndroidManagedChildren` journals alongside `AndroidUI` context, discovery, TRX and completion evidence. A run is not safe to release until both restoration and cleanup are confirmed. Keep these files outside public source and public artifacts. See the [DevTools lifecycle contract](https://github.com/oznetmaster/CrestronHomeDevTools/blob/v1.6.0/docs/ManagedChildValidation.md).

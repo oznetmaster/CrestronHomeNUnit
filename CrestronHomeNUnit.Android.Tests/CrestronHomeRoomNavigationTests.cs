@@ -115,6 +115,67 @@ public sealed class CrestronHomeRoomNavigationTests
 		CrestronHomePages.RequireExtensionPage (hierarchy, "Room Controls");
 		}
 
+	[Test]
+	public async Task RoomTitleCoveredByBottomBarIsScrolledBeforeTapping ()
+		{
+		_transport.ClippedRoom = true;
+		await Inspect ();
+		Assert.That (_transport.RoomSwipes, Is.EqualTo (1));
+		Assert.That (_transport.ExtensionOpens, Is.EqualTo (1));
+		Assert.That (_navigation.HomeRestored, Is.True);
+		}
+
+	[Test]
+	public async Task RoomBelowCurrentViewportIsFoundByObservedScrolling ()
+		{
+		_transport.DesiredRoomViewport = 2;
+		await Inspect ();
+		Assert.That (_transport.RoomSwipes, Is.EqualTo (2));
+		Assert.That (_navigation.HomeRestored, Is.True);
+		}
+
+	[Test]
+	public async Task PreviouslyScrolledListCanFindARoomAboveIt ()
+		{
+		_transport.RoomListPosition = 2;
+		await Inspect ();
+		Assert.That (_transport.RoomUpSwipes, Is.GreaterThan (0));
+		Assert.That (_transport.ExtensionOpens, Is.EqualTo (1));
+		Assert.That (_navigation.HomeRestored, Is.True);
+		}
+
+	[Test]
+	public void LostRoomScrollResponseIsNeverReplayed ()
+		{
+		_transport.DesiredRoomViewport = 1;
+		_transport.ThrowAfterRoomSwipe = true;
+		Assert.ThrowsAsync<IOException> (() => Inspect ());
+		Assert.That (_transport.RoomSwipes, Is.EqualTo (1));
+		Assert.That (_transport.ExtensionOpens, Is.Zero);
+		Assert.That (_navigation.HomeRestored, Is.True);
+		}
+
+	[Test]
+	public void UnreachableRoomStopsAndRestoresHome ()
+		{
+		_transport.DesiredRoomViewport = 5;
+		Assert.ThrowsAsync<InvalidOperationException> (() => Inspect ());
+		Assert.That (_transport.RoomSwipes, Is.LessThanOrEqualTo (24));
+		Assert.That (_transport.ExtensionOpens, Is.Zero);
+		Assert.That (_navigation.HomeRestored, Is.True);
+		}
+
+	[Test]
+	public void DuplicateRoomAfterScrollingIsNeverTapped ()
+		{
+		_transport.DesiredRoomViewport = 1;
+		_transport.DuplicateRoom = true;
+		Assert.ThrowsAsync<InvalidOperationException> (() => Inspect ());
+		Assert.That (_transport.RoomSwipes, Is.EqualTo (1));
+		Assert.That (_transport.ExtensionOpens, Is.Zero);
+		Assert.That (_navigation.HomeRestored, Is.True);
+		}
+
 	[TestCase (1)]
 	[TestCase (3)]
 	public async Task OffscreenTileIsRevealedWithCompactRoomHeading (int scrolls)
@@ -207,6 +268,12 @@ public sealed class CrestronHomeRoomNavigationTests
 		internal bool ThrowAfterSwipe;
 		internal bool DisabledTile;
 		internal string? ClippedTile;
+		internal bool ClippedRoom;
+		internal int DesiredRoomViewport;
+		internal int RoomListPosition;
+		internal int RoomSwipes;
+		internal int RoomUpSwipes;
+		internal bool ThrowAfterRoomSwipe;
 		private int _viewport;
 		internal List<string> Inputs = [];
 		internal static XElement Node (string id, string text = "", string description = "", string bounds = "[0,0][100,100]") => new ("node",
@@ -237,9 +304,16 @@ public sealed class CrestronHomeRoomNavigationTests
 				nodes.Add (Node ("fragmentRoomsTitle", "Rooms"));
 				if (page == "rooms")
 					{
-					nodes.Add (Node ("itemRoomTitle", "Example Room"));
-					if (DuplicateRoom)
-						nodes.Add (Node ("itemRoomTitle", "Example Room"));
+					var list = Node ("rooms_roomsList", bounds: "[0,100][200,1000]");
+					list.Add (Node ("itemRoomTitle", "Other Room " + RoomListPosition, bounds: "[100,150][200,250]"));
+					if (RoomListPosition == DesiredRoomViewport || ClippedRoom)
+						{
+						string bounds = ClippedRoom && RoomListPosition == 0 ? "[0,850][100,950]" : "[0,150][100,250]";
+						list.Add (Node ("itemRoomTitle", "Example Room", bounds: bounds));
+						if (DuplicateRoom)
+							list.Add (Node ("itemRoomTitle", "Example Room", bounds: bounds));
+						}
+					nodes.Add (list);
 					}
 				else
 					{
@@ -285,6 +359,18 @@ public sealed class CrestronHomeRoomNavigationTests
 				return Task.FromResult (Encoding.UTF8.GetBytes (Xml (Page)));
 			if (arguments[1] == "input" && arguments[2] == "swipe")
 				{
+				if (Page == "rooms")
+					{
+					if (arguments[3] != "100" || int.Parse (arguments[4]) >= 900 || int.Parse (arguments[4]) <= 100 ||
+						int.Parse (arguments[6]) >= 900 || int.Parse (arguments[6]) <= 100)
+						throw new InvalidOperationException ("Swipe must stay inside the unobstructed room list.");
+					bool down = int.Parse (arguments[4]) > int.Parse (arguments[6]);
+					RoomSwipes++;
+					if (!down) RoomUpSwipes++;
+					RoomListPosition = Math.Clamp (RoomListPosition + (down ? 1 : -1), 0, 3);
+					if (ThrowAfterRoomSwipe) throw new IOException ("Room scroll completed but response was lost.");
+					return Task.FromResult (Array.Empty<byte> ());
+					}
 				if (Page != "room" || arguments[3] != "300" || int.Parse (arguments[4]) >= 900 || int.Parse (arguments[6]) <= 100)
 					throw new InvalidOperationException ("Swipe must stay inside the observed room viewport.");
 				Swipes++;
@@ -300,7 +386,7 @@ public sealed class CrestronHomeRoomNavigationTests
 			Page = (Page, arguments[3], arguments[4]) switch
 				{
 					("home", "150", "950") => "rooms",
-					("rooms", "50", "50") => "room",
+					("rooms", "50", "200") => "room",
 					("room", "450", "250") => "extension",
 					("extension", "50", "50") => "room",
 					("room", "250", "50") => "rooms",

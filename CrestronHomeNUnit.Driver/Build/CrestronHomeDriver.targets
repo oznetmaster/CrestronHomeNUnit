@@ -56,7 +56,7 @@ Licensed under the MIT License. See LICENSE in the repository root.
     <Delete Files="$(TargetDir)$(AssemblyName).pkg" />
     <Exec Command="&quot;$(ManifestUtilExe)&quot; --file &quot;$(PatchedDriverPath)&quot; --lib &quot;$(TargetDir.TrimEnd('\'))&quot; --output &quot;$(TargetDir.TrimEnd('\'))&quot;" />
     <Error Condition="!Exists('$(TargetDir)$(AssemblyName).pkg')" Text="ManifestUtil did not create the driver package. Deployment has been stopped." />
-    <Exec Command="pwsh -NoProfile -NonInteractive -File &quot;$(DriverBuildToolsDirectory)\VerifyPackageManifest.ps1&quot; -ManifestPath &quot;$(DriverManifestPath)&quot; -MetadataPath &quot;$(TargetDir)patched\$(AssemblyName).dat&quot;" />
+    <Exec Command="pwsh -NoProfile -NonInteractive -File &quot;$(DriverBuildToolsDirectory)\VerifyPackageManifest.ps1&quot; -ManifestPath &quot;$(DriverManifestPath)&quot; -PkgPath &quot;$(TargetDir)$(AssemblyName).pkg&quot; -AssemblyName &quot;$(AssemblyName)&quot;" />
     <Exec Command="pwsh -NoProfile -NonInteractive -File &quot;$(DriverBuildToolsDirectory)\FixPkgPathSeparators.ps1&quot; -PkgPath &quot;$(TargetDir)$(AssemblyName).pkg&quot;" />
   </Target>
 

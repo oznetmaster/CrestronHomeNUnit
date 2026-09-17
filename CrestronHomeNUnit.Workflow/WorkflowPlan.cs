@@ -108,6 +108,7 @@ public sealed record WorkflowPlan
 			throw new ArgumentException ("Post-deployment controls require an actual driver target.");
 		if (AndroidTests != null)
 			{
+			AndroidTests.ValidateManagedChildren ();
 			if (ActualDriver == null || !Path.IsPathFullyQualified (AndroidTests.Project) || !File.Exists (AndroidTests.Project) ||
 				!Path.IsPathFullyQualified (AndroidTests.ProfilePath) || !File.Exists (AndroidTests.ProfilePath) ||
 				!SourceRoots.Any (root => Path.GetFullPath (AndroidTests.Project).StartsWith (Path.GetFullPath (root).TrimEnd (Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)))
@@ -150,7 +151,24 @@ public sealed record WorkflowPlan
 	}
 
 public sealed record LocalTestPlan (string Project, int MinimumPassed, string? Filter = null);
-public sealed record AndroidTestPlan (string Project, string ProfilePath);
+public sealed record AndroidTestPlan (string Project, string ProfilePath)
+	{
+	public IReadOnlyList<AndroidManagedChildPlan> ManagedChildren { get; init; } = [];
+
+	internal void ValidateManagedChildren ()
+		{
+		if (ManagedChildren == null || ManagedChildren.Any (child => child == null ||
+			string.IsNullOrWhiteSpace (child.Alias) || child.Alias.Length > 64 ||
+			child.Alias.Any (c => !char.IsAsciiLetterOrDigit (c) && c is not ('_' or '-')) ||
+			string.IsNullOrWhiteSpace (child.ManagedDeviceId) || string.IsNullOrWhiteSpace (child.Model) ||
+			string.IsNullOrWhiteSpace (child.Name) || child.Name.Length > 32 || child.LocationId <= 0) ||
+			ManagedChildren.Select (child => child.Alias).Distinct (StringComparer.OrdinalIgnoreCase).Count () != ManagedChildren.Count ||
+			ManagedChildren.Select (child => child.ManagedDeviceId).Distinct (StringComparer.Ordinal).Count () != ManagedChildren.Count ||
+			ManagedChildren.Select (child => (child.LocationId, child.Name)).Distinct ().Count () != ManagedChildren.Count)
+			throw new ArgumentException ("Managed-child tests require distinct aliases, advertised child identities and room/name pairs, with an explicit model and room.");
+		}
+	}
+public sealed record AndroidManagedChildPlan (string Alias, string ManagedDeviceId, string Name, string Model, int LocationId);
 public sealed record PackageBuildPlan (string Project, string PackagePath, string InstanceName, int LocationId, int? ExpectedDeviceId = null)
 	{
 	public string? ManifestPath { get; init; }

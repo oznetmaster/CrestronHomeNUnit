@@ -73,13 +73,26 @@ public sealed class AndroidHelpers
         Assert.Throws<System.InvalidOperationException>(() => CrestronHomeExtensionPages.RequirePage(nested, new[] { "Room" }));
         Assert.That(typeof(CrestronHomeNavigation).GetMethod(nameof(CrestronHomeNavigation.InspectRoomExtensionPagesAsync)), Is.Not.Null);
         Assert.That(typeof(CrestronHomeExtensionNavigation).GetMethod(nameof(CrestronHomeExtensionNavigation.InspectSelectionAsync)), Is.Not.Null);
+        var childPlan = new CrestronHomeNUnit.Workflow.AndroidTestPlan("unused", "unused")
+        {
+            ManagedChildren = new[] { new CrestronHomeNUnit.Workflow.AndroidManagedChildPlan("room", "child-id", "CI Child", "Example Child", 3) }
+        };
+        Assert.That(childPlan.ManagedChildren[0].Alias, Is.EqualTo("room"));
+        var context = new AndroidRunContext(1, "package-test", "unused", 1, 1, "192.0.2.1", 7,
+            "11111111-1111-1111-1111-111111111111", "1.0.0.1", new string('a', 64), new string('b', 64),
+            new AndroidSessionProfile("unused", "unused", "example.app", "Example Home", "unused"), "unused")
+        {
+            ManagedDevices = new[] { new AndroidManagedDeviceBinding("room", 19, 7, "Example Child", "CI Child", 3) }
+        };
+        Assert.That(context.RequireManagedDevice("room").DeviceId, Is.EqualTo(19));
+        Assert.Throws<System.IO.InvalidDataException>(() => context.RequireManagedDevice("missing"));
     }
 }
 '@
 [IO.File]::WriteAllText((Join-Path $root 'AndroidHelpers.cs'), $androidConsumer)
 [IO.File]::WriteAllText((Join-Path $root 'Workflows.xml'), "<Workflows><Workflow id='acceptance' name='Packaged workflow acceptance' settingsEnvironment='$manifestEnvironment' /></Workflows>")
 $escapedSource = [Security.SecurityElement]::Escape($packageDirectoryPath)
-[IO.File]::WriteAllText((Join-Path $root 'NuGet.Config'), "<configuration><packageSources><clear/><add key='release' value='$escapedSource'/><add key='nuget.org' value='https://api.nuget.org/v3/index.json'/></packageSources></configuration>")
+[IO.File]::WriteAllText((Join-Path $root 'NuGet.Config'), "<configuration><packageSources><clear/><add key='release' value='$escapedSource'/><add key='nuget.org' value='https://api.nuget.org/v3/index.json'/></packageSources><packageSourceMapping><packageSource key='release'><package pattern='CrestronHomeNUnit.TestAdapter'/></packageSource><packageSource key='nuget.org'><package pattern='*'/></packageSource></packageSourceMapping></configuration>")
 Push-Location $root
 try {
     # Isolate the package cache: a same-version package from an earlier check must not hide missing files.
@@ -106,7 +119,49 @@ try {
     if ($exitCode -ne 1) { throw 'Missing private configuration must fail the selected workflow.' }
     [xml]$result = Get-Content results/negative.trx -Raw
     if ([int]$result.TestRun.ResultSummary.Counters.failed -ne 1 -or [int]$result.TestRun.ResultSummary.Counters.total -ne 1) { throw 'Expected one failed workflow result.' }
-    Write-Host 'Packaged adapter: clean restore, offline discovery, NUnit Android API use, manifest copying and fail-closed execution passed.'
+    # Exercise the real Android regression fixtures against the extracted package,
+    # without referencing or rebuilding any production source project. Keep the
+    # friend-test assembly name so internal navigation guards receive coverage.
+    $androidRoot = Join-Path $root 'android-regressions'
+    [IO.Directory]::CreateDirectory($androidRoot) | Out-Null
+    $testSources = Join-Path (Split-Path $PSScriptRoot) 'CrestronHomeNUnit.Android.Tests'
+    Get-ChildItem -LiteralPath $testSources -Filter '*.cs' -File | Copy-Item -Destination $androidRoot
+    $escapedCache = [Security.SecurityElement]::Escape((Join-Path $root 'packages'))
+    $androidProject = @"
+<!-- Copyright (c) 2026 Neil Colvin. Licensed under the MIT License. -->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework><IsTestProject>true</IsTestProject><IsPackable>false</IsPackable>
+    <AssemblyName>CrestronHomeNUnit.Android.Tests</AssemblyName><ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable><LangVersion>latest</LangVersion><TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <RestorePackagesPath>$escapedCache</RestorePackagesPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
+    <PackageReference Include="CrestronHomeNUnit.TestAdapter" Version="$Version" PrivateAssets="all" />
+    <PackageReference Include="NUnit" Version="4.6.1" />
+    <PackageReference Include="NUnit3TestAdapter" Version="6.3.0" />
+  </ItemGroup>
+</Project>
+"@
+    $androidProjectPath = Join-Path $androidRoot 'AndroidPackageTests.csproj'
+    [IO.File]::WriteAllText($androidProjectPath, $androidProject)
+    & (Join-Path $PSScriptRoot 'Test-DiscoveredCoverage.ps1') -Stage Desktop -Project $androidProjectPath -Framework net10.0 -RequiredCategories @('unit') -ResultsDirectory (Join-Path $root 'android-coverage')
+    if ($LASTEXITCODE -ne 0) { throw "Packaged Android regression coverage failed. See $root." }
+    # Source mapping pins this adapter to the local feed; byte comparison also
+    # proves that execution used this archive rather than a same-version cache.
+    $archive = [IO.Compression.ZipFile]::OpenRead($packagePath)
+    try {
+        foreach ($assembly in @('TestAdapter', 'Workflow', 'Client', 'Transport', 'Android')) {
+            $entry = $archive.GetEntry("lib/net10.0/CrestronHomeNUnit.$assembly.dll")
+            $stream = $entry.Open()
+            try { $expectedHash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($stream)) }
+            finally { $stream.Dispose() }
+            $executedFile = Join-Path $androidRoot "bin/Release/net10.0/CrestronHomeNUnit.$assembly.dll"
+            if ((Get-FileHash -LiteralPath $executedFile -Algorithm SHA256).Hash -cne $expectedHash) { throw "Packaged $assembly assembly bytes differ from the tested output." }
+        }
+    } finally { $archive.Dispose() }
+    Write-Host 'Packaged adapter: isolated restore, workflow discovery, NUnit Android API use, complete Android regression coverage, archive byte verification and fail-closed execution passed.'
     Write-Host "Private acceptance evidence: $root"
 } finally { Pop-Location }
 

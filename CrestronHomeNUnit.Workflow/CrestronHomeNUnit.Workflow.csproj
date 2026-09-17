@@ -2,7 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings>
-    <DevToolsVersion Condition="'$(DevToolsVersion)' == ''">1.4.0</DevToolsVersion>
+    <DevToolsVersion Condition="'$(DevToolsVersion)' == ''">1.6.0</DevToolsVersion>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../CrestronHomeNUnit.Android/CrestronHomeNUnit.Android.csproj" />

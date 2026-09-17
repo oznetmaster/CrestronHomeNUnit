@@ -11,14 +11,19 @@ using CrestronHomeNUnit.Client;
 
 namespace CrestronHomeNUnit.Workflow;
 
-internal sealed record AndroidTestOutcome (WorkflowTestOutcome Tests, bool RestorationConfirmed);
+internal sealed record AndroidTestOutcome (WorkflowTestOutcome Tests, bool RestorationConfirmed)
+	{
+	public bool CleanupConfirmed { get; init; } = true;
+	public bool SafeToRelease => RestorationConfirmed && CleanupConfirmed;
+	public bool Passed => Tests.MeetsGate && SafeToRelease;
+	}
 internal delegate Task<int> AndroidTestProcess (string executable, IEnumerable<string> arguments, string directory, string log,
 	CancellationToken token, IReadOnlyDictionary<string, string>? environment);
 
 internal static class WorkflowAndroid
 	{
 	public static async Task<AndroidTestOutcome> RunAsync (AndroidTestPlan plan, AndroidSessionProfile profile, string owner,
-		string host, int deviceId, string package, string source, string directory, CancellationToken token, AndroidTestProcess? runProcess = null, string? releaseSourceCommit = null)
+		string host, int deviceId, string package, string source, string directory, CancellationToken token, AndroidTestProcess? runProcess = null, string? releaseSourceCommit = null, IReadOnlyList<AndroidManagedDeviceBinding>? managedDevices = null)
 		{
 		WorkflowEvidence.PrepareLocalResults (directory);
 		AndroidSessionLease.VerifyOwner (profile.LockPath, owner);
@@ -26,9 +31,10 @@ internal static class WorkflowAndroid
 		using var coordinator = Process.GetCurrentProcess ();
 		var context = new AndroidRunContext (1, owner, Environment.MachineName, coordinator.Id, coordinator.StartTime.ToUniversalTime ().Ticks,
 			host, deviceId, identity.DriverId, identity.Version, Convert.ToHexString (SHA256.HashData (await File.ReadAllBytesAsync (package, token).ConfigureAwait (false))),
-			source, profile, Path.GetFullPath (directory)) { ReleaseSourceCommit = releaseSourceCommit };
+			source, profile, Path.GetFullPath (directory)) { ReleaseSourceCommit = releaseSourceCommit, ManagedDevices = Array.AsReadOnly ((managedDevices ?? []).ToArray ()) };
+		AndroidWorkflowSession.VerifyContext (context);
 		var contextPath = Path.Combine (directory, "context.json");
-		await File.WriteAllTextAsync (contextPath, JsonSerializer.Serialize (context), token).ConfigureAwait (false);
+		await File.WriteAllTextAsync (contextPath, SerializeContext (context), token).ConfigureAwait (false);
 		var assemblyDirectory = Path.Combine (directory, "assembly");
 		var common = new[] { "test", plan.Project, "--configuration", "Debug", "--framework", "net10.0", "--output", assemblyDirectory,
 			"-p:DeployAfterBuild=false", "-p:BuildForTests=true" };
@@ -64,6 +70,15 @@ internal static class WorkflowAndroid
 			ExpectedTests = inventory, Results = coverage
 			}), token).ConfigureAwait (false);
 		return new (coverage, restored);
+		}
+
+	internal static string SerializeContext (AndroidRunContext context)
+		{
+		var json = JsonSerializer.SerializeToNode (context)!.AsObject ();
+		// Older fixture packages reject unknown context fields. Existing plans with
+		// no managed children must keep their original wire contract.
+		if (context.ManagedDevices.Count == 0) json.Remove (nameof (context.ManagedDevices));
+		return json.ToJsonString ();
 		}
 
 	internal static bool CompletionMatches (AndroidRunCompletion completion, AndroidRunContext context) =>
