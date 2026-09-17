@@ -110,6 +110,38 @@ public sealed class CrestronHomeNavigationTests
 		Assert.That (File.Exists (Path.Combine (_directory, "portrait.local-endpoint", "observation.json")), Is.True);
 		}
 
+	[TestCase (2)]
+	[TestCase (3)]
+	public async Task SmallerConnectionEditorRevealsPortThroughObservedViewports (int needed)
+		{
+		_transport.PortBelowFold = true;
+		_transport.PortAppearsAfter = needed;
+		await _navigation.VerifySavedEndpointAsync ("small", 50001);
+		Assert.That (_transport.Swipes, Is.EqualTo (needed));
+		Assert.That (_navigation.HomeRestored, Is.True);
+		Assert.That (File.Exists (Path.Combine (_directory, "small.local-scroll-" + (needed - 1), "observation.json")), Is.True);
+		}
+
+	[Test]
+	public void ConnectionEditorThatDoesNotMoveIsNotScrolledAgain ()
+		{
+		_transport.PortBelowFold = true;
+		_transport.NoScrollProgress = true;
+		Assert.ThrowsAsync<InvalidOperationException> (() => _navigation.VerifySavedEndpointAsync ("stationary", 50001));
+		Assert.That (_transport.Swipes, Is.EqualTo (1));
+		Assert.That (_navigation.HomeRestored, Is.True);
+		}
+
+	[Test]
+	public void UnreachableSavedPortHasABoundedGestureCountAndRestoresHome ()
+		{
+		_transport.PortBelowFold = true;
+		_transport.PortAppearsAfter = 20;
+		Assert.ThrowsAsync<InvalidOperationException> (() => _navigation.VerifySavedEndpointAsync ("bounded", 50001));
+		Assert.That (_transport.Swipes, Is.EqualTo (8));
+		Assert.That (_navigation.HomeRestored, Is.True);
+		}
+
 	[Test]
 	public void UncertainScrollIsNotRepeatedAndEditorIsCancelled ()
 		{
@@ -218,6 +250,8 @@ public sealed class CrestronHomeNavigationTests
 		public bool DuplicateMenu;
 		public bool NonTileText;
 		public bool PortBelowFold;
+		public int PortAppearsAfter = 1;
+		public bool NoScrollProgress;
 		public int Swipes;
 		public List<string> Inputs { get; } = [];
 		private static XElement Node (string id, string text = "", string description = "", int left = 0) => new ("node",
@@ -256,7 +290,10 @@ public sealed class CrestronHomeNavigationTests
 				if (Page == "systems" && DuplicateMenu) nodes = nodes.Append (Node ("homeview_more"));
 				if (Page == "details" && PortBelowFold)
 					{
-					nodes = nodes.Where (node => (string?)node.Attribute ("resource-id") != CrestronHomePages.ResourcePrefix + (Swipes == 0 ? "mobileclaimhome_localPort" : "mobileclaimhome_friendlyNameOrLocation"));
+					int position = NoScrollProgress ? 0 : Swipes;
+					if (position < PortAppearsAfter) nodes = nodes.Where (node => (string?)node.Attribute ("resource-id") != CrestronHomePages.ResourcePrefix + "mobileclaimhome_localPort");
+					if (position > 0) nodes = nodes.Where (node => (string?)node.Attribute ("resource-id") != CrestronHomePages.ResourcePrefix + "mobileclaimhome_friendlyNameOrLocation");
+					nodes = nodes.Append (Node ("observed-viewport", position.ToString ()));
 					nodes = nodes.Append (Node ("mobileclaimhome_scrollView")).Append (Node ("mobileclaimhome_content"));
 					}
 				return Task.FromResult (Encoding.UTF8.GetBytes (new XElement ("hierarchy", nodes).ToString (SaveOptions.DisableFormatting)));

@@ -60,7 +60,7 @@ public sealed class CrestronHomeNavigation
 		{
 		if (_scrolledDetails)
 			{
-			// This editor was bound to the expected Home before our single scroll.
+			// This editor was bound to the expected Home before our bounded scrolling.
 			// Its title/name may now be outside the viewport. Only cancel/close is permitted here.
 			_ = hierarchy.RequireUnique (Id ("mobileclaimhome_scrollView"));
 			_ = hierarchy.RequireUnique (Id ("mobileclaimhome_content"));
@@ -149,22 +149,36 @@ public sealed class CrestronHomeNavigation
 			var current = await _session.Device.CaptureAsync (token).ConfigureAwait (false);
 			Details (current);
 			CrestronHomePages.RequireSavedLocalAddress (current, _session.Context.Profile.ExpectedHomeText, _session.Context.ProcessorAddress);
-			bool portOutsideView = false;
-			try
+			bool HasPort (AndroidHierarchy hierarchy)
 				{
-				current.RequireAbsent (Id ("mobileclaimhome_localPort"));
-				portOutsideView = true;
+				var fields = hierarchy.Find (Id ("commonui_animatedEditText_editText") with
+					{
+					AncestorResourceId = CrestronHomePages.ResourcePrefix + "mobileclaimhome_localPort"
+					});
+				if (fields.Length > 1) throw new InvalidOperationException ("The saved local port field is ambiguous.");
+				return fields.Length == 1;
 				}
-			catch (InvalidOperationException) { }
+			bool portOutsideView = !HasPort (current);
 			if (portOutsideView)
 				{
 				await _session.CaptureAsync (checkId + ".local-address", h => CrestronHomePages.RequireSavedLocalAddress
 					(h, _session.Context.Profile.ExpectedHomeText, _session.Context.ProcessorAddress), token).ConfigureAwait (false);
 				await ConfirmDepartureAsync (token).ConfigureAwait (false);
-				_session.VerifyActive ();
-				await _session.Device.ScrollDownAsync (Id ("mobileclaimhome_scrollView"), Details, () => _scrolledDetails = true, token).ConfigureAwait (false);
-				await WaitAsync (h => { Details (h); CrestronHomePages.RequireSavedLocalPort (h, localPort); }, token).ConfigureAwait (false);
+				for (int gesture = 0; gesture < 8 && !HasPort (current); gesture++)
+					{
+					string previous = current.MaskedXml;
+					_session.VerifyActive ();
+					await _session.Device.ScrollDownAsync (Id ("mobileclaimhome_scrollView"), h => { _session.VerifyActive (); Details (h); },
+						() => _scrolledDetails = true, token).ConfigureAwait (false);
+					await _session.CaptureAsync (checkId + ".local-scroll-" + gesture, h => { Details (h); current = h; }, token).ConfigureAwait (false);
+					if (HasPort (current))
+						CrestronHomePages.RequireSavedLocalPort (current, localPort);
+					else if (current.MaskedXml == previous)
+						throw new InvalidOperationException ("The saved endpoint editor did not advance toward its local port; no gesture was retried.");
+					}
+				if (!HasPort (current)) throw new InvalidOperationException ("The saved local port was not observed within the bounded scroll limit.");
 				}
+
 			await _session.CaptureAsync (checkId + ".local-endpoint", hierarchy =>
 				{
 					Details (hierarchy);

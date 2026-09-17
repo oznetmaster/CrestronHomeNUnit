@@ -40,6 +40,14 @@ Hierarchy output masks text and accessibility descriptions of password fields. O
 
 ## Opt-in workflow setup
 
+### Scrolling within an extension page
+
+`CrestronHomeExtensionNavigation.ScrollDownAsync(validatePage, token)` and `ScrollUpAsync(validatePage, token)` require **TestAdapter 1.11.0 or later**. Each call validates the expected nested page stack, passes only the front page to the fixture's assertion, and sends one gesture within that page's observed component viewport. Duplicate, disabled or unusable viewports and an open selection picker are rejected. Neither method automatically repeats a gesture after an uncertain response.
+
+The return value does not establish movement or complete coverage. Use `InspectAsync` to retain and verify each new viewport; keep a bounded search and stop if the page does not advance. Aggregate explicitly expected controls across observations rather than assuming one screen contains everything. Android may clamp a partly hidden control's accessibility bounds to the viewport edge: edge-touching bounds alone cannot prove that its full label, value or actions are visible. Check screenshots when making visual claims.
+
+Choose navigation and non-saving close/cancel controls explicitly. If a required control is below the visible area, the fixture must reveal and verify it before tapping. Plan bounded cleanup as well as forward navigation; ordinary Home restoration does not imply that an arbitrary scroll position or device state was restored. Shared navigation helpers do not infer which driver commands operate physical equipment.
+
 ### Repeated controls in labelled rows
 
 Adapter 1.9.0 and later provides `AndroidSelector.SiblingText`. A selector can identify a repeated button or value by the literal label in the same immediate parent:
@@ -58,7 +66,7 @@ This addition is not present in adapter 1.8.2 or earlier. The shared library sup
 
 ### Configure the workflow
 
-Use **1.7.1 or later for portrait screens**. If the local-port field is below the visible editor area, the navigator records the name/address first, scrolls once within the observed editor, then verifies the port. It does not edit fields or press Connect. Missing or incorrect fields after that bounded scroll still fail, and cleanup closes the editor before verifying Home restoration. Read-only inspection passed with the Google Pixel emulator minimized using this fix. See the service-session limits above; logged-out emulator operation remains unvalidated.
+Use **1.7.1 or later for portrait screens**. Versions 1.7.1 through 1.10.0 allow one observed scroll to reveal the local port. **Version 1.11.0 adds a bounded search for smaller screens:** the navigator records the name/address first, then observes each viewport and sends at most eight downward gestures until the local-port field appears. A missing or ambiguous field, incorrect port, unchanged viewport or uncertain gesture fails the check. It does not edit fields or press Connect; cleanup closes the editor and verifies Home restoration. See the service-session limits above; logged-out emulator operation remains unvalidated.
 
 For your own .NET 10 NUnit UI-test project, consume the Android assembly from `CrestronHomeNUnit.TestAdapter` 1.7.0 or later alongside `NUnit`, `NUnit3TestAdapter` and `Microsoft.NET.Test.Sdk`. Mark test-tool dependencies `PrivateAssets="all"` and do not add a `Workflows.xml` to that UI-test project. The existing workflow container remains a separate project. The [copyable sample](../samples/AndroidWorkflowTests/AndroidWorkflowTests.csproj) uses the published package by default. Tool contributors can set `UseSourceAndroid=true` to test the source library in this repository; consuming driver repositories do not need a second checkout. Publish the required test adapter version before pushing dependent driver-project updates.
 

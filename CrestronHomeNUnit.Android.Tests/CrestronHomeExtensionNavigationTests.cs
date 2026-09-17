@@ -10,7 +10,7 @@ using NUnit.Framework;
 namespace CrestronHomeNUnit.Android.Tests;
 
 [TestFixture]
-public sealed class CrestronHomeExtensionNavigationTests
+public sealed partial class CrestronHomeExtensionNavigationTests
 	{
 	private const string APPLICATION = "com.crestron.phoenix.app";
 	private string _directory = null!;
@@ -143,6 +143,7 @@ public sealed class CrestronHomeExtensionNavigationTests
 		internal int Depth = 1;
 		internal bool Selection;
 		internal int Scrolls;
+		internal List<string[]> PageScrollArguments = [];
 		internal string? Error;
 		internal bool FailBack;
 		internal List<string> Inputs = [];
@@ -161,6 +162,11 @@ public sealed class CrestronHomeExtensionNavigationTests
 				layer.Add (Node ("action", i == 0 ? "Open" : "Edit", left: i == 0 ? 0 : 200), Node ("picker", "PICK", left: 300));
 				if (i == 2)
 					layer.Add (Node ("cancel", "Cancel", left: 400));
+				var viewport = Node ("customdevices_componentRecyclerView", bounds: $"[{i * 100},{100 + i * 100}][{500 + i * 100},{500 + i * 100}]");
+				if (i == Depth - 1 && Error == "viewport-disabled") viewport.SetAttributeValue ("enabled", "false");
+				if (i == Depth - 1 && Error == "viewport-small") viewport.SetAttributeValue ("bounds", "[0,100][500,120]");
+				if (i == Depth - 1 && Error == "viewport-duplicate") layer.Add (new XElement (viewport));
+				layer.Add (viewport);
 				container.Add (layer);
 				}
 			if (Selection)
@@ -202,7 +208,12 @@ public sealed class CrestronHomeExtensionNavigationTests
 			if (arguments[2] == "swipe")
 				{
 				if (!Selection)
-					throw new InvalidOperationException ("Scroll outside picker.");
+					{
+					PageScrollArguments.Add (arguments.ToArray ());
+					Inputs.Add ("page-scroll");
+					if (Error == "page-scroll") throw new IOException ("Uncertain completed page scroll.");
+					return Task.FromResult (Array.Empty<byte> ());
+					}
 				Inputs.Add ("scroll");
 				Scrolls++;
 				if (Error == "scroll")

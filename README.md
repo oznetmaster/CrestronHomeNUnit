@@ -16,6 +16,8 @@ Room UI fixtures can inspect named room tiles, nested extension pages and comple
 
 Adapter 1.9.0 and later also supports [repeated controls in labelled rows](docs/AndroidUiTesting.md#repeated-controls-in-labelled-rows). This lets a fixture identify one repeated control through its adjacent label, while retaining page checks and refusal of ambiguous targets. Use adapter 1.9.0 or later for these selectors.
 
+Adapter 1.11.0 adds [guarded extension-page scrolling](docs/AndroidUiTesting.md#scrolling-within-an-extension-page) and bounded saved-endpoint inspection on smaller screens. Fixtures retain responsibility for verifying each viewport, complete control coverage and restoration.
+
 Successful CI workflows can also remove their own stored test packages with `removeTestPackageAfterSuccessfulRun`, preserving pre-existing/manual packages and reporting catalogue entries that remain cached until a planned reboot. Deployment retains the original package filename. See [cleanup and interrupted runs](docs/ContinuousIntegration.md#cleanup-and-interrupted-runs).
 
 Optional [installed-driver controls](docs/InstalledDriverControls.md) capture physical state through a read-only probe, verify command completion and independently observe restoration. [Artifact reuse](docs/ArtifactReuse.md) can retain verified build bytes across runs while rerunning every required test stage. Both features are opt-in. [Guarded code rollback](docs/DriverRollback.md) additionally requires a known previous package and a driver-specific configuration verifier; it preserves current settings and tokens.

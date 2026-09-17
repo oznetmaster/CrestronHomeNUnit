@@ -97,6 +97,37 @@ public sealed class CrestronHomeExtensionNavigation
 		await _session.CaptureAsync (checkId, hierarchy => verify (Page (hierarchy)), token).ConfigureAwait (false);
 		}
 
+	/// <summary>Send one downward viewport gesture on the verified front page. The caller verifies newly visible content separately.</summary>
+	public Task ScrollDownAsync (Action<AndroidHierarchy> validatePage, CancellationToken token = default)
+		=> ScrollPageAsync (true, validatePage, token);
+
+	/// <summary>Send one upward viewport gesture on the verified front page. This does not assert the original scroll position was restored.</summary>
+	public Task ScrollUpAsync (Action<AndroidHierarchy> validatePage, CancellationToken token = default)
+		=> ScrollPageAsync (false, validatePage, token);
+
+	private async Task ScrollPageAsync (bool down, Action<AndroidHierarchy> validatePage, CancellationToken token)
+		{
+		ArgumentNullException.ThrowIfNull (validatePage);
+		await ConfirmDepartureAsync (token).ConfigureAwait (false);
+		if (_selectionOpen)
+			throw new InvalidOperationException ("Close the selection list before scrolling the extension page.");
+		var titles = Titles;
+		void Guard (AndroidHierarchy hierarchy)
+			{
+			_session.VerifyActive ();
+			validatePage (CrestronHomeExtensionPages.RequirePage (hierarchy, titles));
+			}
+		AndroidElement Select (AndroidHierarchy hierarchy) => CrestronHomeExtensionPages.RequirePage (hierarchy, titles)
+			.RequireUnique (CrestronHomePages.Resource ("customdevices_componentRecyclerView"));
+		_session.VerifyActive ();
+		if (down)
+			await _session.Device.ScrollDownAsync (Select, Guard, _session.VerifyActive, token).ConfigureAwait (false);
+		else
+			await _session.Device.ScrollUpAsync (Select, Guard, _session.VerifyActive, token).ConfigureAwait (false);
+		await WaitAsync (PageGuard (), token).ConfigureAwait (false);
+		// The gesture is never repeated and returning does not imply movement, full coverage or a restored position.
+		}
+
 	public async Task ClosePageAsync (CancellationToken token = default)
 		{
 		await ConfirmDepartureAsync (token).ConfigureAwait (false);
