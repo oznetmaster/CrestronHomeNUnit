@@ -93,6 +93,23 @@ The stage builds a .NET 10 NUnit test project into a fresh private run directory
 
 Discovery receives no Android session context. Fixture constructors, static initialization and `TestCaseSource` providers must be deterministic and free of device operations; open the session only in setup. Device state and discovery timestamps must not determine test identities. These are requirements for trusted fixture authors, not a sandbox around arbitrary test code. The supported adapter protocol was validated with NUnit3TestAdapter 6.3.0 using its normal TRX naming and discovery dump; alternate adapter naming settings must preserve those identities or the comparison will fail.
 
+### Declared case selection (source development after 1.11.1)
+
+The current source branch adds optional `androidTests.requiredTests`. The released 1.11.1 package does not yet provide it. Omit the property to keep the complete-project behavior above. When present, supply a nonempty list of exact NUnit full names, including parameter values:
+
+```json
+"requiredTests": [
+  "Example.AndroidTests.Navigation.HomeIsReadable",
+  "Example.AndroidTests.Control.RestoresOriginalState(False)"
+]
+```
+
+Discovery still records the complete runnable project. Every requested name must exist before execution starts. A selected name includes all cases with that same full name; duplicate display names cannot reduce required execution. The workflow generates an escaped [NUnit test selection expression](https://docs.nunit.org/articles/nunit/running-tests/Test-Selection-Language.html), rather than accepting an arbitrary filter. It requires exactly the selected cases to pass, preserving multiplicity. Missing, additional, skipped or failed results fail the stage.
+
+The private `selection.json` records the discovered, required and excluded inventories and the hash of generated `selection.runsettings`. Both are written before execution and checked afterwards against coordinator-held hashes. Selected runs use producer receipt schema 2 with `SelectionSha256`; complete-project runs retain schema 1. `coverage.json` includes the same selection hash. Evidence consumers must explicitly support schema 2 and independently retain the selection hash; they must not infer full-project coverage from a passing subset. Older consumers should reject selected runs.
+
+This chooses cases within an ordinary combined workflow. It does not skip other workflow stages, enable reuse of an already-installed equal-version Release candidate, or prove that a project's intended coverage is complete. Keep the intended case groups under source control and review exclusions. Existing physical-state restoration and reservation rules apply unchanged.
+
 ### Retained test program integrity
 
 Workflow version 1.11.1 and later writes `producer-manifest.json` and `producer-pin.json` after discovery and before execution. The manifest lists every file in the retained `assembly/` directory with its relative path and SHA-256, including dependency assemblies, runtime settings, nested resources and discovery output. The receipt records the run, candidate package, manifest hash and discovery hash. Use the DevTools v1.8.0 source tag or later for the matching offline auditor.

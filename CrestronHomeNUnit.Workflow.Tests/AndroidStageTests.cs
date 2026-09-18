@@ -193,4 +193,85 @@ public sealed class AndroidStageTests
 		Assert.That (File.Exists (_profile.LockPath), Is.True);
 		Assert.That (File.Exists (Path.Combine (output, "completion.json")), Is.False);
 		}
+
+	[Test]
+	public async Task ExactSelectionUsesRealAdapterAndCannotRunUnselectedFailure ()
+		{
+		File.WriteAllText (_project, """
+			<Project Sdk="Microsoft.NET.Sdk">
+			<PropertyGroup><TargetFramework>net10.0</TargetFramework><IsTestProject>true</IsTestProject></PropertyGroup>
+			<ItemGroup>
+			<PackageReference Include="NUnit" Version="4.6.1" />
+			<PackageReference Include="NUnit3TestAdapter" Version="6.3.0" />
+			<PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
+			</ItemGroup></Project>
+			""");
+		File.WriteAllText (Path.Combine (_root, "Cases.cs"), """"
+			using NUnit.Framework;
+			namespace Example;
+			public class Cases
+			{
+			    [TestCase(1, TestName = "Same"), TestCase(2, TestName = "Same")]
+			    public void Duplicates(int number) { Assert.That(number, Is.GreaterThan(0)); }
+			    [TestCase("ignored", TestName = """Chosen("a,b" / 'x' \ or test == 'Other')""")]
+			    public void Special(string value) { Assert.Pass(); }
+			    [Test] public void Other() { Assert.Fail("Unselected physical actions must not execute."); }
+			}
+			"""");
+		using var lease = AndroidSessionLease.Acquire (_profile.LockPath, _owner);
+		using var deadline = new CancellationTokenSource (TimeSpan.FromMinutes (3));
+		var output = Path.Combine (_root, "selected-results");
+		var plan = new AndroidTestPlan (_project, "unused")
+			{
+			RequiredTests = ["Example.Cases.Same", """Example.Cases.Chosen("a,b" / 'x' \ or test == 'Other')"""]
+			};
+		var outcome = await WorkflowAndroid.RunAsync (plan, _profile, _owner, "192.0.2.1", 7, _package, new ('B', 64), output, deadline.Token);
+		Assert.That (outcome.Tests.MeetsGate, Is.True, File.ReadAllText (Path.Combine (output, "Tests.log")) + File.ReadAllText (Directory.GetFiles (output, "TestResult*.trx").Single ()) + File.ReadAllText (Path.Combine (output, "selection.runsettings")));
+		Assert.That (outcome.Tests.Passed, Is.EqualTo (3));
+		Assert.That (outcome.RestorationConfirmed, Is.False, "No Android or physical device is accessed by this acceptance test.");
+		using var selection = JsonDocument.Parse (File.ReadAllBytes (Path.Combine (output, "selection.json")));
+		Assert.That (selection.RootElement.GetProperty ("DiscoveredTests").GetArrayLength (), Is.EqualTo (4));
+		Assert.That (selection.RootElement.GetProperty ("ExpectedTests").GetArrayLength (), Is.EqualTo (3));
+		Assert.That (selection.RootElement.GetProperty ("ExcludedTests")[0].GetString (), Is.EqualTo ("Example.Cases.Other"));
+		using var pin = JsonDocument.Parse (File.ReadAllBytes (Path.Combine (output, "producer-pin.json")));
+		Assert.That (pin.RootElement.GetProperty ("SchemaVersion").GetInt32 (), Is.EqualTo (2));
+		Assert.That (pin.RootElement.GetProperty ("SelectionSha256").GetString (), Is.EqualTo
+			(Convert.ToHexString (SHA256.HashData (File.ReadAllBytes (Path.Combine (output, "selection.json"))))));
+		}
+
+	[TestCase ("unknown"), TestCase ("missing-result"), TestCase ("extra-result"), TestCase ("selection"), TestCase ("settings")]
+	public async Task SelectedStageRejectsMissingCoverageOrChangedSelection (string fault)
+		{
+		using var lease = AndroidSessionLease.Acquire (_profile.LockPath, _owner);
+		var output = Path.Combine (_root, "selection-fault");
+		int executions = 0;
+		var plan = new AndroidTestPlan (_project, "unused") { RequiredTests = [fault == "unknown" ? "Example.Absent" : "Example.Home"] };
+		async Task<int> Run (string executable, IEnumerable<string> arguments, string directory, string log, CancellationToken token, IReadOnlyDictionary<string, string>? environment)
+			{
+			if (arguments.Contains ("--list-tests"))
+				{
+				Assert.That (arguments, Does.Not.Contain ("--settings"), "Discovery must retain the entire project.");
+				var dump = Path.Combine (output, "assembly", "Dump");
+				Directory.CreateDirectory (dump);
+				await File.WriteAllTextAsync (Path.Combine (dump, "D_Example.dll.dump"),
+					"<NUnitXml><test-run runstate=\"Runnable\" testcasecount=\"2\"><test-case id=\"1\" fullname=\"Example.Home\" runstate=\"Runnable\" /><test-case id=\"2\" fullname=\"Example.Other\" runstate=\"Runnable\" /></test-run></NUnitXml>", token);
+				return 0;
+				}
+			executions++;
+			Assert.That (arguments, Does.Contain ("--settings"));
+			if (fault is "selection" or "settings")
+				await File.AppendAllTextAsync (Path.Combine (output, fault == "selection" ? "selection.json" : "selection.runsettings"), " ", token);
+			string name = fault == "extra-result" ? "Other" : "Home";
+			string outcome = fault == "missing-result" ? "NotExecuted" : "Passed";
+			await File.WriteAllTextAsync (Path.Combine (output, "TestResult.trx"),
+				$"<TestRun><ResultSummary outcome=\"Completed\"><Counters total=\"1\" passed=\"{(outcome == "Passed" ? 1 : 0)}\" failed=\"0\" /></ResultSummary><Results><UnitTestResult testId=\"1\" executionId=\"unique\" outcome=\"{outcome}\" /></Results><TestDefinitions><UnitTest id=\"1\" name=\"{name}\"><TestMethod className=\"Example\" adapterTypeName=\"executor://nunit3testexecutor/\" /></UnitTest></TestDefinitions></TestRun>", token);
+			return 0;
+			}
+		Task<AndroidTestOutcome> Execute () => WorkflowAndroid.RunAsync (plan, _profile, _owner, "192.0.2.1", 7, _package, new ('B', 64), output, CancellationToken.None, Run);
+		if (fault is "unknown" or "selection" or "settings")
+			Assert.ThrowsAsync<InvalidDataException> (Execute);
+		else
+			Assert.That ((await Execute ()).Tests.MeetsGate, Is.False);
+		Assert.That (executions, Is.EqualTo (fault == "unknown" ? 0 : 1));
+		}
 	}

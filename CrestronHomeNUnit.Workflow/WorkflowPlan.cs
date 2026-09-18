@@ -109,6 +109,7 @@ public sealed record WorkflowPlan
 		if (AndroidTests != null)
 			{
 			AndroidTests.ValidateManagedChildren ();
+			AndroidTestSelection.Validate (AndroidTests.RequiredTests);
 			if (ActualDriver == null || !Path.IsPathFullyQualified (AndroidTests.Project) || !File.Exists (AndroidTests.Project) ||
 				!Path.IsPathFullyQualified (AndroidTests.ProfilePath) || !File.Exists (AndroidTests.ProfilePath) ||
 				!SourceRoots.Any (root => Path.GetFullPath (AndroidTests.Project).StartsWith (Path.GetFullPath (root).TrimEnd (Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)))
@@ -154,6 +155,7 @@ public sealed record LocalTestPlan (string Project, int MinimumPassed, string? F
 public sealed record AndroidTestPlan (string Project, string ProfilePath)
 	{
 	public IReadOnlyList<AndroidManagedChildPlan> ManagedChildren { get; init; } = [];
+	public IReadOnlyList<string>? RequiredTests { get; init; }
 
 	internal void ValidateManagedChildren ()
 		{
