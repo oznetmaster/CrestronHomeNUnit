@@ -20,6 +20,8 @@ Adapter 1.11.0 adds [guarded extension-page scrolling](docs/AndroidUiTesting.md#
 
 Version 1.11.1 verifies the [complete retained Android test program](docs/AndroidUiTesting.md#retained-test-program-integrity), including dependencies and runtime settings, against reference hashes captured before execution. Changed files prevent a passing stage; independent worker authentication remains a separate responsibility.
 
+Version 1.12.0 adds [explicit Android case selection](docs/AndroidUiTesting.md#declared-case-selection-1120-and-later) and an [installed-driver test phase](docs/InstalledDriverTests.md). Run selected C# NUnit fixtures against an existing driver without redeploying it, retaining separate test, restoration, cleanup and candidate-verification results. The adapter and CLI use DevTools 1.9.0; the dedicated phase has passed offline package acceptance, with complete hardware validation still pending.
+
 Successful CI workflows can also remove their own stored test packages with `removeTestPackageAfterSuccessfulRun`, preserving pre-existing/manual packages and reporting catalogue entries that remain cached until a planned reboot. Deployment retains the original package filename. See [cleanup and interrupted runs](docs/ContinuousIntegration.md#cleanup-and-interrupted-runs).
 
 Optional [installed-driver controls](docs/InstalledDriverControls.md) capture physical state through a read-only probe, verify command completion and independently observe restoration. [Artifact reuse](docs/ArtifactReuse.md) can retain verified build bytes across runs while rerunning every required test stage. Both features are opt-in. [Guarded code rollback](docs/DriverRollback.md) additionally requires a known previous package and a driver-specific configuration verifier; it preserves current settings and tokens.
@@ -28,7 +30,7 @@ To run hardware checks from GitHub Actions on your own Windows computer and proc
 
 Run NUnit tests **on a Crestron Home processor**, using a Windows runner, automation CLI or a standalone test tile in Crestron Home. This checks your code in the processor's Mono-based environment, where SDK, filesystem and networking behavior can differ from Windows.
 
-[Download the latest release](https://github.com/oznetmaster/CrestronHomeNUnit/releases/latest) Ã‚Â· [Changelog](CHANGELOG.md) Ã‚Â· [Full user and developer guide](docs/UserGuide.md) Ã‚Â· [Create your own test package](docs/ProcessorTestPackages.md)
+[Download the latest release](https://github.com/oznetmaster/CrestronHomeNUnit/releases/latest) | [Changelog](CHANGELOG.md) | [Full user and developer guide](docs/UserGuide.md) | [Create your own test package](docs/ProcessorTestPackages.md)
 
 Copyright (c) 2026 Neil Colvin. Project-owned code is [MIT licensed](LICENSE). NUnit and other dependencies retain their own licenses and notices.
 

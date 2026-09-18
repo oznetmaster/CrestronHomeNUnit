@@ -1,18 +1,17 @@
-# Crestron Home NUnit v1.11.1
+# Crestron Home NUnit v1.12.0
 
-The Android workflow now preserves and verifies the complete test program used for a run. Previously, evidence consumers could identify the main fixture assembly without detecting a changed dependency or runtime setting.
+Run selected Android NUnit fixtures against an already-installed driver without rebuilding or redeploying it. The new `installed-tests` CLI command and `InstalledDriverTests.RunAsync` C# entry point verify the selected driver and its extracted package files before and after the test phase.
 
-- Record `producer-manifest.json` and a run-bound `producer-pin.json` after discovery and before execution. The inventory covers all retained assemblies, dependencies, runtime settings, resources and discovery output.
-- Compare the retained files, manifest, receipt and discovery against coordinator-held reference hashes after execution. Changed, missing or added files stop the stage before it can report a passing result, including when a dependency and its manifest are replaced together.
-- Bound inventory size and reject links, junctions and ambiguous paths. Fixtures must write results to their private evidence directory, leaving the retained `assembly/` directory unchanged.
-- Extend isolated NuGet acceptance to execute the dependency-integrity regressions against the packaged Workflow assembly and verify its bytes against the release archive.
+- Add optional `androidTests.requiredTests` to select exact discovered NUnit case names, including parameter values. Retain the full discovery list and selected/excluded cases; missing, extra, skipped or failed required results fail the stage. Omitting the option continues to require the complete project.
+- Verify retained selection settings against hashes captured before execution. Selected runs use producer receipt schema 2; evidence consumers must support and independently verify that selection rather than treating a passing subset as complete-project coverage.
+- Reserve the processor and Android session for the dedicated installed-driver phase. Validate the reviewed driver identity, version, catalogue association and pinned package contents, and manage only explicitly declared temporary children.
+- Report test outcome, restoration, child cleanup, candidate verification and reservation release separately. Uncertain restoration or cleanup retains reservations for inspection; physical commands are not automatically replayed.
+- Raise the adapter/workflow DevTools dependency to 1.9.0 for package-file comparison. NUnit remains 4.6.1 and processor host behavior is unchanged.
 
-Validation: the offline workflow and evidence-integrity tests passed. Isolated package checks exercised Android regressions, workflow integrity checks, adapter discovery, ordinary NUnit consumption and refusal of missing private configuration. Cross-language verification consumed a manifest from the actual .NET implementation using the DevTools Python auditor and rejected an altered NUnit dependency. These checks used no processor, emulator or physical-device commands.
-
-These are retained-file integrity checks, not worker authentication or proof that arbitrary fixture code executed honestly. Consumers must retain trusted pre-execution pins to verify the original test program. Old evidence cannot gain a pre-execution inventory retroactively.
+Validation: the offline workflow suite and isolated NuGet/CLI acceptance passed, covering selection integrity, installed-phase handling, plan validation and rejection before hardware access. Package checks compared executed assemblies with their archives and used no source-project dependency override. Complete hardware validation of the new dedicated phase remains pending. File and identity checks do not attest running process memory or an uninterrupted driver lifetime.
 
 ## Updating
 
-Update **CrestronHomeNUnit.TestAdapter** and the desktop workflow tools to **1.11.1**. Existing processor test hosts do not need redeployment for this desktop evidence fix. NUnit remains 4.6.1; the adapter/workflow's minimum DevTools dependency remains 1.6.0.
+Update **CrestronHomeNUnit.TestAdapter** and the desktop workflow tools to **1.12.0**. The adapter restores **CrestronHomeDevTools 1.9.0** as a dependency; the Windows CLI download includes it. Existing processor test hosts do not need redeployment for these desktop workflow additions.
 
-See [retained test program integrity](docs/AndroidUiTesting.md#retained-test-program-integrity) and [workflow stages](docs/ProcessorTestWorkflow.md).
+See [testing an unchanged installed driver](docs/InstalledDriverTests.md), [declared case selection](docs/AndroidUiTesting.md#declared-case-selection-1120-and-later), and [workflow stages](docs/ProcessorTestWorkflow.md).

@@ -35,3 +35,9 @@ The repository's `tools/Test-AdapterPackage.ps1` restores a clean consumer using
 Version 1.10.0 adds optional `androidTests.managedChildren` targets to the combined workflow. The selected actual driver supplies the parent identity; the fixture receives actual created child IDs through `session.Context.RequireManagedDevice(alias)`. Setup and cleanup use DevTools 1.6.0 under the existing reservations. Cleanup requires independently confirmed restoration, preserves failed test outcomes and removes only the run's own children. Existing plans without targets keep their previous context format.
 
 See the [plan example, fixture contract and recovery rules](https://github.com/oznetmaster/CrestronHomeNUnit/blob/main/docs/AndroidUiTesting.md#temporary-managed-children-for-a-test-run). The normal workflow passed a CP4-R development run with one selected editor Cancel fixture and verified restoration/removal. This is not final submission-candidate acceptance or certification.
+
+## Selected cases and an existing driver
+
+Version 1.12.0 adds `androidTests.requiredTests` for exact discovered NUnit case names. A passing subset records its excluded cases and does not claim full-project coverage. The package also exposes `InstalledDriverTests.RunAsync` for a separate test phase against an already-installed driver, using DevTools 1.9.0 to compare the pinned package with extracted processor files. It retains separate test, restoration, owned-child cleanup and candidate-verification results without redeploying the parent driver.
+
+See [installed-driver testing](https://github.com/oznetmaster/CrestronHomeNUnit/blob/main/docs/InstalledDriverTests.md) for the CLI equivalent, private bindings and recovery rules. Offline package acceptance passed; a complete hardware run of this dedicated phase remains pending.

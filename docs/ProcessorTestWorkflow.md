@@ -14,6 +14,8 @@ Private run plans, logs, device bindings and deployment credentials are kept out
 
 ## One build, separate results
 
+Version 1.12.0 also offers a separate [installed-driver test phase](InstalledDriverTests.md) when the candidate is already deployed. It runs declared Android fixtures and verifies the selected driver and package files without repeating deployment. Its results remain separate from the earlier build and processor-test gates.
+
 A run identifies the source revision and working-tree changes, builds the library/driver and its processor-test package from the same source, and records package hashes and versions. Rebuilding after testing invalidates deployment eligibility. Credentials, processor selection, device bindings and deployment paths belong in private local configuration or CI secrets, never committed examples.
 
 Test Explorer should distinguish Local, Processor, Processor Live and Deployed Driver Live results. The CLI must use the same orchestration and result rules. Deployment/update happens once per package per run, with exclusive access to its processor throughout the run. Test discovery must not deploy or operate physical devices.

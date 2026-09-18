@@ -1,6 +1,6 @@
 # Test an unchanged installed driver
 
-This is **local work after 1.11.1**, not a released command. It requires DevTools with `DriverPayloadInspection` (after DevTools 1.8.0). Isolated local NuGet packages and the CLI distribution have passed offline acceptance without a source-project dependency override. Publication, the normal dependency-version update and hardware validation remain pending; currently published DevTools cannot supply this API. Joint source builds can use `DevToolsProject` until the prerequisite package is released.
+This command requires **Crestron Home NUnit 1.12.0** and **CrestronHomeDevTools 1.9.0** or later. The adapter declares the DevTools dependency; the Windows CLI download includes it. Isolated NuGet and CLI acceptance covers plan validation, selected-case execution rules, retained evidence and refusal of invalid inputs. A complete hardware run of this dedicated phase remains to be validated; earlier full-workflow hardware runs do not establish that result.
 
 The `installed-tests` phase runs Android NUnit fixtures against a deliberately selected, already-installed candidate. It does not build, install, update, reload, remove or renumber that parent driver. It complements the full deployment workflow: earlier local, processor and deployment results remain separate evidence. A later UI phase does not retroactively make an earlier gate pass.
 

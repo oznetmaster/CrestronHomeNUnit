@@ -2,7 +2,7 @@
 
 New to Google Android Emulator, BlueStacks or Android test setup? Start with [setting up an Android emulator on Windows](AndroidEmulatorSetup.md), including the copyable NUnit sample and first-run checks.
 
-Local source also provides an [installed-driver test phase](InstalledDriverTests.md) for selected fixtures against unchanged candidate bytes. It does not update the driver and is not yet included in a released package; the linked guide identifies its dependency and validation limits.
+Version 1.12.0 provides an [installed-driver test phase](InstalledDriverTests.md) for selected fixtures against unchanged candidate bytes. It does not update the driver; the linked guide identifies its dependency and validation limits.
 
 The optional Android stage requires **CrestronHomeNUnit 1.7.0 or later**. It extends the shared CLI/Test Explorer development workflow for ordinary driver regression testing, whether or not the driver will ever be submitted to Crestron. A combined sample driver development workflow passed on real hardware on 16 September 2026.
 
@@ -95,9 +95,9 @@ The stage builds a .NET 10 NUnit test project into a fresh private run directory
 
 Discovery receives no Android session context. Fixture constructors, static initialization and `TestCaseSource` providers must be deterministic and free of device operations; open the session only in setup. Device state and discovery timestamps must not determine test identities. These are requirements for trusted fixture authors, not a sandbox around arbitrary test code. The supported adapter protocol was validated with NUnit3TestAdapter 6.3.0 using its normal TRX naming and discovery dump; alternate adapter naming settings must preserve those identities or the comparison will fail.
 
-### Declared case selection (source development after 1.11.1)
+### Declared case selection (1.12.0 and later)
 
-The current source branch adds optional `androidTests.requiredTests`. The released 1.11.1 package does not yet provide it. Omit the property to keep the complete-project behavior above. When present, supply a nonempty list of exact NUnit full names, including parameter values:
+Version 1.12.0 adds optional `androidTests.requiredTests`. Omit the property to keep the complete-project behavior above. When present, supply a nonempty list of exact NUnit full names, including parameter values:
 
 ```json
 "requiredTests": [
