@@ -2,6 +2,8 @@
 
 New to Google Android Emulator, BlueStacks or Android test setup? Start with [setting up an Android emulator on Windows](AndroidEmulatorSetup.md), including the copyable NUnit sample and first-run checks.
 
+Local source also provides an [installed-driver test phase](InstalledDriverTests.md) for selected fixtures against unchanged candidate bytes. It does not update the driver and is not yet included in a released package; the linked guide identifies its dependency and validation limits.
+
 The optional Android stage requires **CrestronHomeNUnit 1.7.0 or later**. It extends the shared CLI/Test Explorer development workflow for ordinary driver regression testing, whether or not the driver will ever be submitted to Crestron. A combined sample driver development workflow passed on real hardware on 16 September 2026.
 
 Client and library projects can use desktop and processor tests without an Android stage. These helpers also support ordinary driver development. Optional Crestron submission requirements and delivery are documented separately in [CrestronHomeDevTools](https://github.com/oznetmaster/CrestronHomeDevTools/blob/main/docs/CrestronSubmission.md).

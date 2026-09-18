@@ -6,10 +6,10 @@ using System.Text.Json;
 using CrestronHomeNUnit.Client;
 using CrestronHomeNUnit.Transport;
 
-if (args.FirstOrDefault () == "workflow")
+if (args.FirstOrDefault () is "workflow" or "installed-tests")
 	{
 #if PROCESSOR_WORKFLOW
-	return await WorkflowCommand.RunAsync (args.Skip (1).ToArray ());
+	return await WorkflowCommand.RunAsync (args.Skip (1).ToArray (), args[0] == "installed-tests");
 #else
 	Console.Error.WriteLine ("Workflow support was disabled in this build. Build with EnableProcessorWorkflow=true; see docs/ProcessorTestWorkflow.md.");
 	return 2;
@@ -36,6 +36,9 @@ static async Task<int> RunAsync (string[] arguments)
                                             Release that exact manual reservation
               workflow --plan private.json --results directory [--settings private.json]
                                             Test, deploy, activate and gate a Debug driver update
+              installed-tests --plan private.json --results directory [--settings private.json]
+                                            Verify an existing candidate and run Android fixtures
+                                            without deploying, updating or reloading its driver
               suites --processor IP-or-name --package name
               discover --processor IP-or-name --package name --suite id --results directory
               run --processor IP-or-name --package name --suite id --results directory
