@@ -148,6 +148,17 @@ try {
     [IO.File]::WriteAllText($androidProjectPath, $androidProject)
     & (Join-Path $PSScriptRoot 'Test-DiscoveredCoverage.ps1') -Stage Desktop -Project $androidProjectPath -Framework net10.0 -RequiredCategories @('unit') -ResultsDirectory (Join-Path $root 'android-coverage')
     if ($LASTEXITCODE -ne 0) { throw "Packaged Android regression coverage failed. See $root." }
+    # Check the integrity guard in the packaged Workflow assembly as well. The
+    # friend assembly permits the same adversarial tests used by source CI;
+    # there are no production ProjectReferences in this isolated consumer.
+    $workflowRoot = Join-Path $root 'workflow-regressions'
+    [IO.Directory]::CreateDirectory($workflowRoot) | Out-Null
+    Copy-Item (Join-Path (Split-Path $PSScriptRoot) 'CrestronHomeNUnit.Workflow.Tests/AndroidProducerInventoryTests.cs') $workflowRoot
+    $workflowProject = $androidProject.Replace('CrestronHomeNUnit.Android.Tests', 'CrestronHomeNUnit.Workflow.Tests')
+    $workflowProjectPath = Join-Path $workflowRoot 'WorkflowPackageTests.csproj'
+    [IO.File]::WriteAllText($workflowProjectPath, $workflowProject)
+    & (Join-Path $PSScriptRoot 'Test-DiscoveredCoverage.ps1') -Stage Desktop -Project $workflowProjectPath -Framework net10.0 -RequiredCategories @('unit') -ResultsDirectory (Join-Path $root 'workflow-coverage')
+    if ($LASTEXITCODE -ne 0) { throw "Packaged workflow integrity regressions failed. See $root." }
     # Source mapping pins this adapter to the local feed; byte comparison also
     # proves that execution used this archive rather than a same-version cache.
     $archive = [IO.Compression.ZipFile]::OpenRead($packagePath)
@@ -157,11 +168,13 @@ try {
             $stream = $entry.Open()
             try { $expectedHash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($stream)) }
             finally { $stream.Dispose() }
-            $executedFile = Join-Path $androidRoot "bin/Release/net10.0/CrestronHomeNUnit.$assembly.dll"
-            if ((Get-FileHash -LiteralPath $executedFile -Algorithm SHA256).Hash -cne $expectedHash) { throw "Packaged $assembly assembly bytes differ from the tested output." }
+            foreach ($consumerRoot in @($androidRoot, $workflowRoot)) {
+                $executedFile = Join-Path $consumerRoot "bin/Release/net10.0/CrestronHomeNUnit.$assembly.dll"
+                if ((Get-FileHash -LiteralPath $executedFile -Algorithm SHA256).Hash -cne $expectedHash) { throw "Packaged $assembly assembly bytes differ from the tested output." }
+            }
         }
     } finally { $archive.Dispose() }
-    Write-Host 'Packaged adapter: isolated restore, workflow discovery, NUnit Android API use, complete Android regression coverage, archive byte verification and fail-closed execution passed.'
+    Write-Host 'Packaged adapter: isolated restore, workflow discovery, NUnit Android API use, complete Android regression coverage, workflow integrity regressions, archive byte verification and fail-closed execution passed.'
     Write-Host "Private acceptance evidence: $root"
 } finally { Pop-Location }
 

@@ -1,18 +1,20 @@
-# Crestron Home NUnit v1.11.0
+# Crestron Home NUnit v1.11.1
 
-Android UI fixtures can now inspect extension pages whose controls do not fit on one screen. The shared navigation session exposes guarded scrolling in both directions, and saved-processor endpoint verification can reveal the local port on smaller screens.
+The Android workflow now preserves and verifies the complete test program used for a run. Previously, evidence consumers could identify the main fixture assembly without detecting a changed dependency or runtime setting.
 
-- Add `CrestronHomeExtensionNavigation.ScrollDownAsync` and `ScrollUpAsync`. Each validates the expected front page and caller assertions, sends one gesture within its observed viewport, and confirms the expected page afterward. Uncertain gestures are never automatically repeated.
-- Reject ambiguous, disabled or unusable front-page viewports, open selection overlays, failed assertions and cancellation before sending a scroll.
-- Replace the single-scroll assumption in saved-endpoint verification with an observed search of at most eight gestures. Incorrect or ambiguous fields, no progress, an exhausted search and uncertain input fail the check while retaining bounded Home restoration.
-- Document fixture responsibilities for complete coverage, edge-clipped accessibility bounds, non-saving cancellation and independent device-state restoration. Scrolling alone does not prove movement, visual correctness or complete page coverage.
+- Record `producer-manifest.json` and a run-bound `producer-pin.json` after discovery and before execution. The inventory covers all retained assemblies, dependencies, runtime settings, resources and discovery output.
+- Compare the retained files, manifest, receipt and discovery against coordinator-held reference hashes after execution. Changed, missing or added files stop the stage before it can report a passing result, including when a dependency and its manifest are replaced together.
+- Bound inventory size and reject links, junctions and ambiguous paths. Fixtures must write results to their private evidence directory, leaving the retained `assembly/` directory unchanged.
+- Extend isolated NuGet acceptance to execute the dependency-integrity regressions against the packaged Workflow assembly and verify its bytes against the release archive.
 
-Validation: 139 Android regressions passed from source and through an isolated private adapter package. Package acceptance also checked ordinary NUnit API use, workflow discovery, execution guards and the identity of executed assembly bytes. A focused development run on a headless Google Android emulator used a reduced viewport, verified the saved endpoint through two observed scrolls, and inspected all expected labelled controls across two editor views. Independent device state, Home, emulator size, original inventory, temporary-child removal and reservation release were verified. This is development integration evidence, not final submission-candidate acceptance or certification.
+Validation: the full offline workflow suite and submission-audit suite passed. Isolated package checks exercised Android regressions, workflow integrity checks, adapter discovery, ordinary NUnit consumption and refusal of missing private configuration. Cross-language verification consumed a manifest from the actual .NET implementation using the DevTools Python auditor and rejected an altered NUnit dependency. These checks used no processor, emulator or physical-device commands.
+
+These are retained-file integrity checks, not worker authentication or proof that arbitrary fixture code executed honestly. Independent submission auditing still requires trusted pre-execution pins, complete applicable test coverage and device-state restoration. Old evidence cannot gain a pre-execution inventory retroactively.
 
 ## Updating
 
-Update **CrestronHomeNUnit.TestAdapter** to **1.11.0** in Android fixture projects that need extension-page scrolling or smaller-screen endpoint verification. Use `InspectAsync` to record and check each viewport, bound searches explicitly, and supply reviewed navigation and non-saving close controls. These APIs do not infer physical-device operations or restoration.
+Update **CrestronHomeNUnit.TestAdapter** and the desktop workflow tools to **1.11.1**. Existing processor test hosts do not need redeployment for this desktop evidence fix. NUnit remains 4.6.1; the adapter/workflow's minimum DevTools dependency remains 1.6.0.
 
-The Windows runner and CLI are versioned with the release. Existing processor test hosts do not need redeployment for these desktop Android-navigation changes. NUnit remains 4.6.1 and DevTools remains 1.6.0 for the adapter/workflow dependencies.
+For the independent offline audit, use `tools/submission/audit_android.py` from the **CrestronHomeDevTools v1.8.0 source tag or later**, including its required `--producer-manifest-sha256` argument. The Python auditor is distributed in that source tag, not in the DevTools NuGet package.
 
-See [extension-page scrolling](docs/AndroidUiTesting.md#scrolling-within-an-extension-page), [emulator setup](docs/AndroidEmulatorSetup.md) and [workflow stages](docs/ProcessorTestWorkflow.md).
+See [retained test program integrity](docs/AndroidUiTesting.md#retained-test-program-integrity) and [workflow stages](docs/ProcessorTestWorkflow.md).
