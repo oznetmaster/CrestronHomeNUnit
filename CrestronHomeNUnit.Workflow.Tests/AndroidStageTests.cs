@@ -49,35 +49,35 @@ public sealed class AndroidStageTests
 		var outcome = await WorkflowAndroid.RunAsync (new (_project, "unused-by-stage"), _profile, _owner, "192.0.2.1", 7, _package,
 			new ('B', 64), output, CancellationToken.None, async (executable, arguments, directory, log, token, environment) =>
 				{
-				Assert.That (executable, Is.EqualTo ("dotnet"));
-				Assert.That (arguments, Does.Contain (_project).And.Contain ("-p:DeployAfterBuild=false").And.Contain ("-p:BuildForTests=true"));
-				Assert.That (directory, Is.EqualTo (_root));
-				if (arguments.Contains ("--list-tests"))
-					{
-					Assert.That (environment![AndroidWorkflowSession.CONTEXT_VARIABLE], Is.Empty, "Discovery must not receive an Android session.");
-					var dumpDirectory = Path.Combine (output, "assembly", "Dump");
-					Directory.CreateDirectory (dumpDirectory);
-					await File.WriteAllTextAsync (Path.Combine (dumpDirectory, "D_Example.dll.dump"),
-						"<NUnitXml><test-run runstate=\"Runnable\" testcasecount=\"1\"><test-case id=\"1\" fullname=\"Example.Home\" runstate=\"Runnable\" /></test-run></NUnitXml>", token);
-					return 0;
-					}
-				Assert.That (arguments, Does.Contain ("--no-build").And.Contain ("--no-restore"));
-				var context = AndroidWorkflowSession.Read<AndroidRunContext> (environment![AndroidWorkflowSession.CONTEXT_VARIABLE]);
-				AndroidWorkflowSession.VerifyContext (context);
-				Assert.That (context.ProcessorAddress, Is.EqualTo ("192.0.2.1"));
-				Assert.That (context.InstalledDriverId, Is.EqualTo (7));
-				Assert.That (context.RequireManagedDevice ("child").DeviceId, Is.EqualTo (19));
-				Assert.That (context.DriverVersion, Is.EqualTo ("1.2.3.8"));
-				Assert.That (context.PackageSha256, Is.EqualTo (Convert.ToHexString (SHA256.HashData (File.ReadAllBytes (_package)))));
-				Assert.That (context.SourceSha256, Is.EqualTo (new string ('B', 64)));
-				Assert.That (context.ReleaseSourceCommit, Is.EqualTo (new string ('d', 40)));
-				Assert.That (context.EvidenceDirectory, Is.EqualTo (output));
-				if (completionMode != "missing")
-					await File.WriteAllTextAsync (Path.Combine (output, "completion.json"), JsonSerializer.Serialize (new AndroidRunCompletion
-						(1, context.RunId, completionMode == "wrong-package" ? new ('C', 64) : context.PackageSha256, completionMode != "unrestored")), token);
-				await File.WriteAllTextAsync (Path.Combine (output, "TestResult.trx"),
-					"<TestRun><ResultSummary outcome=\"Completed\"><Counters total=\"1\" passed=\"1\" failed=\"0\" /></ResultSummary><Results><UnitTestResult testId=\"1\" executionId=\"unique\" outcome=\"Passed\" /></Results><TestDefinitions><UnitTest id=\"1\" name=\"Home\"><TestMethod className=\"Example\" adapterTypeName=\"executor://nunit3testexecutor/\" /></UnitTest></TestDefinitions></TestRun>", token);
-				return exit;
+					Assert.That (executable, Is.EqualTo ("dotnet"));
+					Assert.That (arguments, Does.Contain (_project).And.Contain ("-p:DeployAfterBuild=false").And.Contain ("-p:BuildForTests=true"));
+					Assert.That (directory, Is.EqualTo (_root));
+					if (arguments.Contains ("--list-tests"))
+						{
+						Assert.That (environment![AndroidWorkflowSession.CONTEXT_VARIABLE], Is.Empty, "Discovery must not receive an Android session.");
+						var dumpDirectory = Path.Combine (output, "assembly", "Dump");
+						Directory.CreateDirectory (dumpDirectory);
+						await File.WriteAllTextAsync (Path.Combine (dumpDirectory, "D_Example.dll.dump"),
+							"<NUnitXml><test-run runstate=\"Runnable\" testcasecount=\"1\"><test-case id=\"1\" fullname=\"Example.Home\" runstate=\"Runnable\" /></test-run></NUnitXml>", token);
+						return 0;
+						}
+					Assert.That (arguments, Does.Contain ("--no-build").And.Contain ("--no-restore"));
+					var context = AndroidWorkflowSession.Read<AndroidRunContext> (environment![AndroidWorkflowSession.CONTEXT_VARIABLE]);
+					AndroidWorkflowSession.VerifyContext (context);
+					Assert.That (context.ProcessorAddress, Is.EqualTo ("192.0.2.1"));
+					Assert.That (context.InstalledDriverId, Is.EqualTo (7));
+					Assert.That (context.RequireManagedDevice ("child").DeviceId, Is.EqualTo (19));
+					Assert.That (context.DriverVersion, Is.EqualTo ("1.2.3.8"));
+					Assert.That (context.PackageSha256, Is.EqualTo (Convert.ToHexString (SHA256.HashData (File.ReadAllBytes (_package)))));
+					Assert.That (context.SourceSha256, Is.EqualTo (new string ('B', 64)));
+					Assert.That (context.ReleaseSourceCommit, Is.EqualTo (new string ('d', 40)));
+					Assert.That (context.EvidenceDirectory, Is.EqualTo (output));
+					if (completionMode != "missing")
+						await File.WriteAllTextAsync (Path.Combine (output, "completion.json"), JsonSerializer.Serialize (new AndroidRunCompletion
+							(1, context.RunId, completionMode == "wrong-package" ? new ('C', 64) : context.PackageSha256, completionMode != "unrestored")), token);
+					await File.WriteAllTextAsync (Path.Combine (output, "TestResult.trx"),
+						"<TestRun><ResultSummary outcome=\"Completed\"><Counters total=\"1\" passed=\"1\" failed=\"0\" /></ResultSummary><Results><UnitTestResult testId=\"1\" executionId=\"unique\" outcome=\"Passed\" /></Results><TestDefinitions><UnitTest id=\"1\" name=\"Home\"><TestMethod className=\"Example\" adapterTypeName=\"executor://nunit3testexecutor/\" /></UnitTest></TestDefinitions></TestRun>", token);
+					return exit;
 				}, releaseSourceCommit: new ('d', 40), managedDevices: [new ("child", 19, 7, "Example Child", "CI Child", 3)]);
 		Assert.That (outcome.Tests.MeetsGate, Is.EqualTo (passes));
 		Assert.That (outcome.RestorationConfirmed, Is.EqualTo (restored));
@@ -93,8 +93,49 @@ public sealed class AndroidStageTests
 		Assert.That (legacy.RootElement.TryGetProperty ("ManagedDevices", out _), Is.False,
 			"Old UI fixture packages reject this unknown field, even when it is empty.");
 		using var managed = JsonDocument.Parse (WorkflowAndroid.SerializeContext (context with
-			{ ManagedDevices = [new ("room", 19, 7, "Example Child", "CI Child", 3)] }));
+			{
+			ManagedDevices = [new ("room", 19, 7, "Example Child", "CI Child", 3)]
+			}));
 		Assert.That (managed.RootElement.GetProperty ("ManagedDevices")[0].GetProperty ("DeviceId").GetInt32 (), Is.EqualTo (19));
+		}
+
+	[TestCase ("dependency"), TestCase ("manifest-and-dependency"), TestCase ("discovery"), TestCase ("receipt")]
+	public void ChangedProducerOrDiscoveryCannotReportAPassingStage (string change)
+		{
+		using var lease = AndroidSessionLease.Acquire (_profile.LockPath, _owner);
+		var output = Path.Combine (_root, "changed-producer");
+		Assert.ThrowsAsync<InvalidDataException> (() => WorkflowAndroid.RunAsync (new (_project, "unused"), _profile, _owner,
+			"192.0.2.1", 7, _package, new ('B', 64), output, CancellationToken.None,
+			async (_, arguments, _, _, token, _) =>
+				{
+					string assembly = Path.Combine (output, "assembly");
+					if (arguments.Contains ("--list-tests"))
+						{
+						Directory.CreateDirectory (Path.Combine (assembly, "Dump"));
+						await File.WriteAllTextAsync (Path.Combine (assembly, "dependency.dll"), "original dependency", token);
+						await File.WriteAllTextAsync (Path.Combine (assembly, "Dump", "D_Example.dll.dump"),
+							"<NUnitXml><test-run runstate=\"Runnable\" testcasecount=\"1\"><test-case id=\"1\" fullname=\"Example.Home\" runstate=\"Runnable\" /></test-run></NUnitXml>", token);
+						return 0;
+						}
+					string manifest = Path.Combine (output, "producer-manifest.json");
+					using var pin = JsonDocument.Parse (File.ReadAllBytes (Path.Combine (output, "producer-pin.json")));
+					Assert.That (pin.RootElement.GetProperty ("ProducerManifestSha256").GetString (),
+						Is.EqualTo (Convert.ToHexString (SHA256.HashData (File.ReadAllBytes (manifest)))), "The coordinator records the inventory before starting tests.");
+					if (change == "receipt")
+						await File.WriteAllTextAsync (Path.Combine (output, "producer-pin.json"), "{}", token);
+					else if (change == "discovery")
+						await File.AppendAllTextAsync (Path.Combine (output, "discovery.dump"), "changed", token);
+					else
+						await File.WriteAllTextAsync (Path.Combine (assembly, "dependency.dll"), "changed dependency", token);
+					if (change == "manifest-and-dependency")
+						{
+						File.Delete (manifest);
+						AndroidProducerInventory.Capture (assembly, token).Save (manifest);
+						}
+					return 0;
+				}));
+		Assert.That (File.Exists (Path.Combine (output, "coverage.json")), Is.False);
+		Assert.That (File.Exists (_profile.LockPath), Is.True);
 		}
 
 	[Test]
@@ -106,10 +147,10 @@ public sealed class AndroidStageTests
 			"192.0.2.1", 7, _package, new ('B', 64), Path.Combine (_root, "failed-discovery"), CancellationToken.None,
 			(_, arguments, _, _, _, environment) =>
 				{
-				calls++;
-				Assert.That (arguments, Does.Contain ("--list-tests"));
-				Assert.That (environment![AndroidWorkflowSession.CONTEXT_VARIABLE], Is.Empty);
-				return Task.FromResult (1);
+					calls++;
+					Assert.That (arguments, Does.Contain ("--list-tests"));
+					Assert.That (environment![AndroidWorkflowSession.CONTEXT_VARIABLE], Is.Empty);
+					return Task.FromResult (1);
 				}));
 		Assert.That (calls, Is.EqualTo (1));
 		Assert.That (File.Exists (_profile.LockPath), Is.True);
@@ -119,7 +160,8 @@ public sealed class AndroidStageTests
 	public async Task RealNUnitDiscoveryAndExecutionMatchWithoutAndroidAccess ()
 		{
 		var repository = new DirectoryInfo (TestContext.CurrentContext.TestDirectory);
-		while (repository != null && !File.Exists (Path.Combine (repository.FullName, "CrestronHomeNUnit.sln"))) repository = repository.Parent;
+		while (repository != null && !File.Exists (Path.Combine (repository.FullName, "CrestronHomeNUnit.sln")))
+			repository = repository.Parent;
 		Assert.That (repository, Is.Not.Null, "This source acceptance test requires the repository checkout.");
 		var project = Path.Combine (repository!.FullName, "CrestronHomeNUnit.Android.Tests", "CrestronHomeNUnit.Android.Tests.csproj");
 		using var lease = AndroidSessionLease.Acquire (_profile.LockPath, _owner);
@@ -131,6 +173,13 @@ public sealed class AndroidStageTests
 		Assert.That (result.Tests.Passed, Is.EqualTo (AndroidTestCoverage.ReadDiscovery (Path.Combine (output, "discovery.dump")).Length));
 		Assert.That (result.RestorationConfirmed, Is.False, "The offline suite produces no Android session completion.");
 		Assert.That (File.Exists (Path.Combine (output, "coverage.json")), Is.True);
+		using var pin = JsonDocument.Parse (File.ReadAllBytes (Path.Combine (output, "producer-pin.json")));
+		using var manifest = JsonDocument.Parse (File.ReadAllBytes (Path.Combine (output, "producer-manifest.json")));
+		var names = manifest.RootElement.GetProperty ("files").EnumerateArray ().Select (entry => entry.GetProperty ("relativePath").GetString ()).ToArray ();
+		Assert.That (names, Does.Contain ("nunit.framework.dll").And.Contain ("CrestronHomeNUnit.Android.Tests.dll")
+			.And.Contain ("CrestronHomeNUnit.Android.Tests.deps.json"));
+		Assert.That (pin.RootElement.GetProperty ("ProducerManifestSha256").GetString (), Is.EqualTo
+			(Convert.ToHexString (SHA256.HashData (File.ReadAllBytes (Path.Combine (output, "producer-manifest.json"))))));
 		}
 
 	[Test]

@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 
 using CrestronHomeDevTools;
+
 using CrestronHomeNUnit.Android;
 using CrestronHomeNUnit.Client;
 
@@ -31,7 +32,11 @@ internal static class WorkflowAndroid
 		using var coordinator = Process.GetCurrentProcess ();
 		var context = new AndroidRunContext (1, owner, Environment.MachineName, coordinator.Id, coordinator.StartTime.ToUniversalTime ().Ticks,
 			host, deviceId, identity.DriverId, identity.Version, Convert.ToHexString (SHA256.HashData (await File.ReadAllBytesAsync (package, token).ConfigureAwait (false))),
-			source, profile, Path.GetFullPath (directory)) { ReleaseSourceCommit = releaseSourceCommit, ManagedDevices = Array.AsReadOnly ((managedDevices ?? []).ToArray ()) };
+			source, profile, Path.GetFullPath (directory))
+			{
+			ReleaseSourceCommit = releaseSourceCommit,
+			ManagedDevices = Array.AsReadOnly ((managedDevices ?? []).ToArray ())
+			};
 		AndroidWorkflowSession.VerifyContext (context);
 		var contextPath = Path.Combine (directory, "context.json");
 		await File.WriteAllTextAsync (contextPath, SerializeContext (context), token).ConfigureAwait (false);
@@ -50,12 +55,40 @@ internal static class WorkflowAndroid
 		var discoveryPath = Path.Combine (directory, "discovery.dump");
 		File.Copy (dumps[0], discoveryPath, overwrite: false);
 		var inventory = AndroidTestCoverage.ReadDiscovery (discoveryPath);
+		var discoverySha256 = Convert.ToHexString (SHA256.HashData (await File.ReadAllBytesAsync (discoveryPath, token).ConfigureAwait (false)));
+		var producer = AndroidProducerInventory.Capture (assemblyDirectory, token);
+		var manifestPath = Path.Combine (directory, "producer-manifest.json");
+		producer.Save (manifestPath);
+		// Keep the reference digest in coordinator memory, not in mutable worker output alone.
+		var pinPath = Path.Combine (directory, "producer-pin.json");
+		var pinBytes = JsonSerializer.SerializeToUtf8Bytes (new
+			{
+			SchemaVersion = 1,
+			context.RunId,
+			context.PackageSha256,
+			ProducerManifestSha256 = producer.Sha256,
+			DiscoverySha256 = discoverySha256
+			});
+		using (var pinFile = new FileStream (pinPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read))
+			{
+			await pinFile.WriteAsync (pinBytes, token).ConfigureAwait (false);
+			pinFile.Flush (flushToDisk: true);
+			}
 		AndroidSessionLease.VerifyOwner (profile.LockPath, owner);
 		var arguments = common.Concat (new[] { "--no-build", "--no-restore",
 			"--logger", "trx;LogFilePrefix=TestResult", "--results-directory", directory });
 		int exit = await runProcess ("dotnet", arguments, Path.GetDirectoryName (plan.Project)!, Path.Combine (directory, "Tests.log"), token,
 			new Dictionary<string, string> { [AndroidWorkflowSession.CONTEXT_VARIABLE] = contextPath }).ConfigureAwait (false);
 		AndroidSessionLease.VerifyOwner (profile.LockPath, owner);
+		producer.RequireUnchanged (assemblyDirectory, manifestPath, token);
+		AndroidProducerInventory.RequireOrdinaryPath (pinPath);
+		if (new FileInfo (pinPath).Length != pinBytes.Length)
+			throw new InvalidDataException ("Android coordinator producer receipt changed during execution.");
+		var retainedPin = await File.ReadAllBytesAsync (pinPath, token).ConfigureAwait (false);
+		if (!pinBytes.AsSpan ().SequenceEqual (retainedPin))
+			throw new InvalidDataException ("Android coordinator producer receipt changed during execution.");
+		if (Convert.ToHexString (SHA256.HashData (await File.ReadAllBytesAsync (discoveryPath, token).ConfigureAwait (false))) != discoverySha256)
+			throw new InvalidDataException ("Android discovery evidence changed during execution.");
 		var completionPath = Path.Combine (directory, "completion.json");
 		bool restored = false;
 		if (File.Exists (completionPath))
@@ -66,8 +99,13 @@ internal static class WorkflowAndroid
 		var coverage = AndroidTestCoverage.Evaluate (inventory, Directory.GetFiles (directory, "TestResult*.trx"), exit);
 		await File.WriteAllTextAsync (Path.Combine (directory, "coverage.json"), JsonSerializer.Serialize (new
 			{
-			context.RunId, context.PackageSha256, context.ReleaseSourceCommit, DiscoverySha256 = Convert.ToHexString (SHA256.HashData (await File.ReadAllBytesAsync (discoveryPath, token).ConfigureAwait (false))),
-			ExpectedTests = inventory, Results = coverage
+			context.RunId,
+			context.PackageSha256,
+			context.ReleaseSourceCommit,
+			DiscoverySha256 = discoverySha256,
+			ProducerManifestSha256 = producer.Sha256,
+			ExpectedTests = inventory,
+			Results = coverage
 			}), token).ConfigureAwait (false);
 		return new (coverage, restored);
 		}
@@ -77,7 +115,8 @@ internal static class WorkflowAndroid
 		var json = JsonSerializer.SerializeToNode (context)!.AsObject ();
 		// Older fixture packages reject unknown context fields. Existing plans with
 		// no managed children must keep their original wire contract.
-		if (context.ManagedDevices.Count == 0) json.Remove (nameof (context.ManagedDevices));
+		if (context.ManagedDevices.Count == 0)
+			json.Remove (nameof (context.ManagedDevices));
 		return json.ToJsonString ();
 		}
 
