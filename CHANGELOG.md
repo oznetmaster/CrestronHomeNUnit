@@ -9,9 +9,9 @@ The Android workflow now preserves and verifies the complete test program used f
 - Bound inventory size and reject links, junctions and ambiguous paths. Fixtures must write results to their private evidence directory, leaving the retained `assembly/` directory unchanged.
 - Extend isolated NuGet acceptance to execute the dependency-integrity regressions against the packaged Workflow assembly and verify its bytes against the release archive.
 
-Validation: the full offline workflow suite and submission-audit suite passed. Isolated package checks exercised Android regressions, workflow integrity checks, adapter discovery, ordinary NUnit consumption and refusal of missing private configuration. Cross-language verification consumed a manifest from the actual .NET implementation using the DevTools Python auditor and rejected an altered NUnit dependency. These checks used no processor, emulator or physical-device commands.
+Validation: the offline workflow and evidence-integrity tests passed. Isolated package checks exercised Android regressions, workflow integrity checks, adapter discovery, ordinary NUnit consumption and refusal of missing private configuration. Cross-language verification consumed a manifest from the actual .NET implementation using the DevTools Python auditor and rejected an altered NUnit dependency. These checks used no processor, emulator or physical-device commands.
 
-These are retained-file integrity checks, not worker authentication or proof that arbitrary fixture code executed honestly. Independent submission auditing still requires trusted pre-execution pins, complete applicable test coverage and device-state restoration. Old evidence cannot gain a pre-execution inventory retroactively.
+These are retained-file integrity checks, not worker authentication or proof that arbitrary fixture code executed honestly. Consumers must retain trusted pre-execution pins to verify the original test program. Old evidence cannot gain a pre-execution inventory retroactively.
 
 ## 1.11.0 - 2026-09-17
 
@@ -22,7 +22,7 @@ Android UI fixtures can now inspect extension pages whose controls do not fit on
 - Replace the single-scroll assumption in saved-endpoint verification with an observed search of at most eight gestures. Incorrect or ambiguous fields, no progress, an exhausted search and uncertain input fail the check while retaining bounded Home restoration.
 - Document fixture responsibilities for complete coverage, edge-clipped accessibility bounds, non-saving cancellation and independent device-state restoration. Scrolling alone does not prove movement, visual correctness or complete page coverage.
 
-Validation: 139 Android regressions passed from source and through an isolated private adapter package. Package acceptance also checked ordinary NUnit API use, workflow discovery, execution guards and the identity of executed assembly bytes. A focused development run on a headless Google Android emulator used a reduced viewport, verified the saved endpoint through two observed scrolls, and inspected all expected labelled controls across two editor views. Independent device state, Home, emulator size, original inventory, temporary-child removal and reservation release were verified. This is development integration evidence, not final submission-candidate acceptance or certification.
+Validation: 139 Android regressions passed from source and through an isolated private adapter package. Package acceptance also checked ordinary NUnit API use, workflow discovery, execution guards and the identity of executed assembly bytes. A focused development run on a headless Google Android emulator used a reduced viewport, verified the saved endpoint through two observed scrolls, and inspected all expected labelled controls across two editor views. Independent device state, Home, emulator size, original inventory, temporary-child removal and reservation release were verified. The hardware results cover the exercised development workflow and viewport.
 
 ## 1.10.0 - 2026-09-17
 
@@ -34,7 +34,7 @@ The combined CLI/Test Explorer workflow can now create temporary managed childre
 - Read processor-package metadata from the actual package archive, including ManifestUtil 29 output layouts. Reject missing, misplaced or ambiguous metadata instead of trusting a stale sidecar file.
 - Expand isolated adapter acceptance to run all discovered Android regression fixtures using the installed package and compare executed assembly bytes with the archive. The adapter and workflow now depend on DevTools 1.6.0; NUnit remains 4.6.1.
 
-Validation: full workflow and Android regression suites passed. A private adapter candidate passed isolated installation, ordinary NUnit API use, workflow discovery and execution guards. A normal combined CLI workflow passed on a CP4-R with local tests, processor tests, read-only hub tests, an actual Debug driver update, temporary-child commissioning, one selected Android editor Cancel test, independently checked restoration and cleanup. Fresh inventory confirmed the original device identities and rooms were preserved, the owned child/test instance were absent, uploaded test-package storage was removed and reservations were released. Home retained cached catalogue metadata until a later planned reboot. The selected UI test sent no heating-control or schedule-save command. This is development integration evidence, not final driver submission-candidate acceptance, complete visual coverage or certification.
+Validation: full workflow and Android regression suites passed. A private adapter candidate passed isolated installation, ordinary NUnit API use, workflow discovery and execution guards. A normal combined CLI workflow passed on a CP4-R with local tests, processor tests, read-only hub tests, an actual Debug driver update, temporary-child commissioning, one selected Android editor Cancel test, independently checked restoration and cleanup. Fresh inventory confirmed the original device identities and rooms were preserved, the owned child/test instance were absent, uploaded test-package storage was removed and reservations were released. Home retained cached catalogue metadata until a later planned reboot. The selected UI test sent no heating-control or schedule-save command. These results cover the selected test and workflow; complete visual coverage remains the consuming fixture's responsibility.
 
 ## 1.9.0 - 2026-09-17
 
@@ -42,7 +42,7 @@ Identify repeated Android controls by the label beside them. `AndroidSelector.Si
 
 Missing, duplicate, nested or foreign-application labels cannot select a different row. Multiple matching rows remain ambiguous. Taps still capture fresh bounds, run the fixture's page assertion and send at most one input. Fixture-specific labels, physical actions and restoration remain the consuming project's responsibility.
 
-Validation: the complete Android regression suite passed, including labelled-row selection, invalid or ambiguous targets and uncertain-input handling. An isolated consumer restored the private adapter candidate, used the new API in an ordinary NUnit fixture, discovered the workflow and verified its execution guards. These checks do not establish every consuming fixture's physical behavior or driver certification.
+Validation: the complete Android regression suite passed, including labelled-row selection, invalid or ambiguous targets and uncertain-input handling. An isolated consumer restored the private adapter candidate, used the new API in an ordinary NUnit fixture, discovered the workflow and verified its execution guards. These checks cover the shared helpers; each consuming fixture must verify its own physical behavior.
 
 ## 1.8.2 - 2026-09-17
 
@@ -50,7 +50,7 @@ Fix final verification and cleanup after long Android UI test stages. The workfl
 
 Processor reservation ownership is checked before and after connecting. A failed connection or ownership check stops that step; device commands are not automatically replayed. Existing candidate identity, source checks, test evidence and restoration requirements remain in force.
 
-Validation: all 245 workflow regression tests passed. A complete development workflow passed desktop tests, processor tests, live reads, the driver update, three Android inspection cases, final driver verification and temporary-instance cleanup. Both reservations were released. This verifies the exercised development workflow, not complete driver acceptance or certification.
+Validation: all 245 workflow regression tests passed. A complete development workflow passed desktop tests, processor tests, live reads, the driver update, three Android inspection cases, final driver verification and temporary-instance cleanup. Both reservations were released. Hardware validation covers the exercised development workflow.
 
 ## 1.8.1 - 2026-09-16
 
@@ -58,7 +58,7 @@ Fix room extension inspection when a named tile is below the initial viewport. T
 
 The search stops on an unchanged or repeated viewport, an ambiguous or disabled tile, an unexpected room title, or an uncertain gesture result. Scrolls are never retried after a lost response. A missing tile fails the inspection and still triggers observed Home restoration.
 
-Validation: the complete Android regression suite passed against both source and an isolated adapter package. Package restore, workflow discovery and execution guards also passed. In the minimized Google emulator, a visible room extension was inspected successfully; a missing tile stopped the search and restored Home under both large and compact heading layouts. The checked device state and inventory were preserved and reservations released. Physical control tests and end-to-end submission acceptance remain separate work; these checks do not establish certification.
+Validation: the complete Android regression suite passed against both source and an isolated adapter package. Package restore, workflow discovery and execution guards also passed. In the minimized Google emulator, a visible room extension was inspected successfully; a missing tile stopped the search and restored Home under both large and compact heading layouts. The checked device state and inventory were preserved and reservations released. Physical control tests were not part of this read-only validation.
 
 ## 1.8.0 - 2026-09-16
 
@@ -66,7 +66,7 @@ Add room and nested-page inspection to the Crestron Home NUnit UI automation lib
 
 The navigation helpers restore the original Home screen after successful checks or assertion failures. Nested pages use explicitly supplied close/cancel controls. Unknown layouts stop navigation; uncertain taps, Back commands and scrolls are never replayed. Selection inspection handles clipped viewport-edge rows while preserving the strict coordinate checks used for input.
 
-Validation: all 91 Android regression tests passed, including against a private packaged adapter. Read-only checks in the minimized Google emulator verified complete selection lists and their selected values for the exercised fixture. Editing was cancelled, Home and checked device settings were preserved, both reservations were released, and all 13 accepted capture pairs matched their retained hashes. Earlier controlled failures also restored Home and preserved checked state. This validates the helpers against an already-installed Debug driver; it is not full submission acceptance or certification.
+Validation: all 91 Android regression tests passed, including against a private packaged adapter. Read-only checks in the minimized Google emulator verified complete selection lists and their selected values for the exercised fixture. Editing was cancelled, Home and checked device settings were preserved, both reservations were released, and all 13 accepted capture pairs matched their retained hashes. Earlier controlled failures also restored Home and preserved checked state. This validates the helpers against an already-installed Debug driver.
 
 ## 1.7.1 - 2026-09-16
 
@@ -74,7 +74,7 @@ Fix saved-connection inspection on portrait Android screens where the local-port
 
 The setup guide now covers Visual Studio's Android SDK Manager, Windows acceleration, and installing the Crestron Home APK without a Google account. It also explains how to avoid conflicting ADB versions when BlueStacks and Google's emulator share a computer.
 
-Validation: all 67 local Android tests passed. Both read-only sample driver gateway cases passed through a private packaged adapter candidate with Google's Pixel 7 Android emulator minimized. Eight screenshot/hierarchy pairs were verified; gateway state was unchanged, Home was restored and both reservations were released. These results cover a logged-in Windows session and an already-installed Debug driver, not service-session operation or complete submission acceptance.
+Validation: all 67 local Android tests passed. Both read-only sample driver gateway cases passed through a private packaged adapter candidate with Google's Pixel 7 Android emulator minimized. Eight screenshot/hierarchy pairs were verified; gateway state was unchanged, Home was restored and both reservations were released. These results cover a logged-in Windows session and an already-installed Debug driver, not service-session operation.
 
 ## 1.7.0 - 2026-09-16
 
@@ -88,7 +88,7 @@ An existing Debug-version reconciliation problem is fixed: driver manifests name
 
 Validation: the complete sample driver development workflow passed with the packaged UI automation library, including desktop and processor tests, live reads, the actual-driver update, installed health checks and both Android UI cases. Gateway and room state was preserved, Home was restored and reservations were released. Automated workflow, Android, adapter and isolated-package checks also passed; see [validation details](Validation.md).
 
-Android hardware validation currently covers read-only gateway checks with minimized BlueStacks in a logged-in Windows session. Physical UI controls, service-session operation, exact Release-candidate hardware validation and the final Crestron submission workflow remain work in progress.
+Hardware validation for this release covered read-only gateway checks with minimized BlueStacks in a logged-in Windows session. Physical UI controls, service-session operation and exact Release-candidate hardware validation were not established by those checks.
 
 ## 1.6.0 - 2026-09-16
 
