@@ -1,6 +1,6 @@
 # Test an unchanged installed driver
 
-This is **local source work after 1.11.1**, not a released command. It requires the corresponding DevTools source with `DriverPayloadInspection` (after DevTools 1.8.0). Publication and hardware validation remain pending. Joint source builds use `DevToolsProject`; the released DevTools package cannot supply this new API yet.
+This is **local work after 1.11.1**, not a released command. It requires DevTools with `DriverPayloadInspection` (after DevTools 1.8.0). Isolated local NuGet packages and the CLI distribution have passed offline acceptance without a source-project dependency override. Publication, the normal dependency-version update and hardware validation remain pending; currently published DevTools cannot supply this API. Joint source builds can use `DevToolsProject` until the prerequisite package is released.
 
 The `installed-tests` phase runs Android NUnit fixtures against a deliberately selected, already-installed candidate. It does not build, install, update, reload, remove or renumber that parent driver. It complements the full deployment workflow: earlier local, processor and deployment results remain separate evidence. A later UI phase does not retroactively make an earlier gate pass.
 

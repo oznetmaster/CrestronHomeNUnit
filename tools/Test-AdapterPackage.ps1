@@ -3,13 +3,20 @@
 #Requires -Version 7.0
 param(
     [Parameter(Mandatory)][string] $PackageDirectory,
-    [Parameter(Mandatory)][string] $Version
+    [Parameter(Mandatory)][string] $Version,
+    [ValidatePattern('^\d+\.\d+\.\d+$')][string] $LocalDevToolsVersion
 )
 $ErrorActionPreference = 'Stop'
 if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw 'Use a stable three-part version.' }
 $packageDirectoryPath = [IO.Path]::GetFullPath($PackageDirectory)
 $packagePath = Join-Path $packageDirectoryPath "CrestronHomeNUnit.TestAdapter.$Version.nupkg"
 if (-not (Test-Path -LiteralPath $packagePath -PathType Leaf)) { throw 'Adapter package not found.' }
+$localDependencyMapping = ''
+if ($LocalDevToolsVersion) {
+    $devToolsPackagePath = Join-Path $packageDirectoryPath "CrestronHomeDevTools.$LocalDevToolsVersion.nupkg"
+    if (-not (Test-Path -LiteralPath $devToolsPackagePath -PathType Leaf)) { throw 'Requested local DevTools package not found.' }
+    $localDependencyMapping = "<package pattern='CrestronHomeDevTools'/>"
+}
 $archive = [IO.Compression.ZipFile]::OpenRead($packagePath)
 try {
     foreach ($assembly in @('TestAdapter', 'Workflow', 'Client', 'Transport', 'Android')) {
@@ -92,7 +99,7 @@ public sealed class AndroidHelpers
 [IO.File]::WriteAllText((Join-Path $root 'AndroidHelpers.cs'), $androidConsumer)
 [IO.File]::WriteAllText((Join-Path $root 'Workflows.xml'), "<Workflows><Workflow id='acceptance' name='Packaged workflow acceptance' settingsEnvironment='$manifestEnvironment' /></Workflows>")
 $escapedSource = [Security.SecurityElement]::Escape($packageDirectoryPath)
-[IO.File]::WriteAllText((Join-Path $root 'NuGet.Config'), "<configuration><packageSources><clear/><add key='release' value='$escapedSource'/><add key='nuget.org' value='https://api.nuget.org/v3/index.json'/></packageSources><packageSourceMapping><packageSource key='release'><package pattern='CrestronHomeNUnit.TestAdapter'/></packageSource><packageSource key='nuget.org'><package pattern='*'/></packageSource></packageSourceMapping></configuration>")
+[IO.File]::WriteAllText((Join-Path $root 'NuGet.Config'), "<configuration><packageSources><clear/><add key='release' value='$escapedSource'/><add key='nuget.org' value='https://api.nuget.org/v3/index.json'/></packageSources><packageSourceMapping><packageSource key='release'><package pattern='CrestronHomeNUnit.TestAdapter'/>$localDependencyMapping</packageSource><packageSource key='nuget.org'><package pattern='*'/></packageSource></packageSourceMapping></configuration>")
 Push-Location $root
 try {
     # Isolate the package cache: a same-version package from an earlier check must not hide missing files.
@@ -154,6 +161,8 @@ try {
     $workflowRoot = Join-Path $root 'workflow-regressions'
     [IO.Directory]::CreateDirectory($workflowRoot) | Out-Null
     Copy-Item (Join-Path (Split-Path $PSScriptRoot) 'CrestronHomeNUnit.Workflow.Tests/AndroidProducerInventoryTests.cs') $workflowRoot
+    Copy-Item (Join-Path (Split-Path $PSScriptRoot) 'CrestronHomeNUnit.Workflow.Tests/InstalledDriverPhaseTests.cs') $workflowRoot
+    Copy-Item (Join-Path (Split-Path $PSScriptRoot) 'CrestronHomeNUnit.Workflow.Tests/AndroidSelectionTests.cs') $workflowRoot
     $workflowProject = $androidProject.Replace('CrestronHomeNUnit.Android.Tests', 'CrestronHomeNUnit.Workflow.Tests')
     $workflowProjectPath = Join-Path $workflowRoot 'WorkflowPackageTests.csproj'
     [IO.File]::WriteAllText($workflowProjectPath, $workflowProject)
@@ -174,6 +183,20 @@ try {
             }
         }
     } finally { $archive.Dispose() }
+    if ($LocalDevToolsVersion) {
+        $dependencyArchive = [IO.Compression.ZipFile]::OpenRead($devToolsPackagePath)
+        try {
+            $entry = $dependencyArchive.GetEntry('lib/net10.0/CrestronHomeDevTools.dll')
+            if ($null -eq $entry) { throw 'Local DevTools package is missing its implementation assembly.' }
+            $stream = $entry.Open()
+            try { $expectedHash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($stream)) }
+            finally { $stream.Dispose() }
+            foreach ($consumerRoot in @($androidRoot, $workflowRoot)) {
+                $executedFile = Join-Path $consumerRoot 'bin/Release/net10.0/CrestronHomeDevTools.dll'
+                if ((Get-FileHash -LiteralPath $executedFile -Algorithm SHA256).Hash -cne $expectedHash) { throw 'Local DevTools package bytes differ from the tested dependency.' }
+            }
+        } finally { $dependencyArchive.Dispose() }
+    }
     Write-Host 'Packaged adapter: isolated restore, workflow discovery, NUnit Android API use, complete Android regression coverage, workflow integrity regressions, archive byte verification and fail-closed execution passed.'
     Write-Host "Private acceptance evidence: $root"
 } finally { Pop-Location }
