@@ -21,6 +21,9 @@ Licensed under the MIT License. See LICENSE in the repository root.
     <MSBuild Projects="$(ProcessorTestSdkRoot)\ProcessorTestPackage.Validation\ProcessorTestPackage.Validation.csproj" Targets="Restore;Build" Properties="Configuration=$(Configuration);BuildProjectReferences=true;DeployAfterBuild=false" />
   </Target>
   <Target Name="ValidateProcessorPackage" DependsOnTargets="BuildProcessorPackageValidator" AfterTargets="StagePackageFiles" BeforeTargets="PackageDriver" Condition="'$(DesignTimeBuild)' != 'true' And '$(CreateDriverPackage)' == 'true'">
-    <Exec Command="&quot;$(ProcessorPackageValidator)&quot; &quot;$(PatchedDriverPath)&quot; &quot;$(TargetDir)validation&quot; $(ProcessorExpectedTestCount)" />
+    <PropertyGroup>
+      <_ProcessorDiscoveryOption Condition="'$(ProcessorReportInvalidTests)' == 'true'">--report-invalid-tests</_ProcessorDiscoveryOption>
+    </PropertyGroup>
+    <Exec Command="&quot;$(ProcessorPackageValidator)&quot; &quot;$(PatchedDriverPath)&quot; &quot;$(TargetDir)validation&quot; $(ProcessorExpectedTestCount) $(_ProcessorDiscoveryOption)" />
   </Target>
 </Project>

@@ -1,0 +1,15 @@
+<!-- Copyright (c) 2026 Neil Colvin. Licensed under the MIT License; see ../../LICENSE. -->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="NUnit" Version="$(NUnitVersion)" />
+    <PackageReference Include="Crestron.DeviceDrivers.DevKit" Version="27.0.24" />
+    <Compile Include="..\..\CrestronHomeNUnit.Runtime\*.cs" Link="Host\%(Filename)%(Extension)" />
+    <ProjectReference Include="..\..\CrestronHomeNUnit.Transport\CrestronHomeNUnit.Transport.csproj" />
+    <ProjectReference Include="..\CrestronHomeNUnit.NUnit5.SelfTests\CrestronHomeNUnit.NUnit5.SelfTests.csproj" />
+    <ProjectReference Include="..\CrestronHomeNUnit.NUnit5.CompatibilityTests\CrestronHomeNUnit.NUnit5.CompatibilityTests.csproj" />
+  </ItemGroup>
+</Project>

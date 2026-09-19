@@ -1,0 +1,524 @@
+// Copyright (c) Charlie Poole, Rob Prouse and Contributors. MIT License - see LICENSE.txt
+
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Collections.Specialized;
+using System.Linq;
+using System.Threading;
+using NUnit.Framework.Constraints;
+using NUnit.Framework.Internal;
+using NUnit.Framework.Tests.TestUtilities.Collections;
+using NUnit.Framework.Tests.TestUtilities.Comparers;
+
+namespace NUnit.Framework.Tests.Constraints;
+
+public class CollectionEquivalentConstraintTests
+{
+    [Test]
+    public void EqualCollectionsAreEquivalent()
+    {
+        ICollection set1 = new SimpleObjectCollection("x", "y", "z");
+        ICollection set2 = new SimpleObjectCollection("x", "y", "z");
+
+        Assert.That(new CollectionEquivalentConstraint(set1).ApplyTo(set2).IsSuccess);
+    }
+
+    [Test]
+    public void WorksWithCollectionsOfArrays()
+    {
+        byte[] array1 = { 0x20, 0x44, 0x56, 0x76, 0x1e, 0xff };
+        byte[] array2 = { 0x42, 0x52, 0x72, 0xef };
+        byte[] array3 = { 0x20, 0x44, 0x56, 0x76, 0x1e, 0xff };
+        byte[] array4 = { 0x42, 0x52, 0x72, 0xef };
+
+        ICollection set1 = new SimpleObjectCollection(array1, array2);
+        ICollection set2 = new SimpleObjectCollection(array3, array4);
+
+        Constraint constraint = new CollectionEquivalentConstraint(set1);
+        Assert.That(constraint.ApplyTo(set2).IsSuccess);
+
+        set2 = new SimpleObjectCollection(array4, array3);
+        Assert.That(constraint.ApplyTo(set2).IsSuccess);
+    }
+
+    [Test]
+    public void WorksWithDefaultImmutableArrays()
+    {
+        ImmutableArray<int> array1 = default;
+        ImmutableArray<int> array2 = default;
+
+        Assert.That(new CollectionEquivalentConstraint(array1).ApplyTo(array2).IsSuccess);
+    }
+
+    [Test]
+    public void EquivalentIgnoresOrder()
+    {
+        ICollection set1 = new SimpleObjectCollection("x", "y", "z");
+        ICollection set2 = new SimpleObjectCollection("z", "y", "x");
+
+        Assert.That(new CollectionEquivalentConstraint(set1).ApplyTo(set2).IsSuccess);
+    }
+
+    [Test]
+    public void EquivalentFailsWithDuplicateElementInActual()
+    {
+        ICollection set1 = new SimpleObjectCollection("x", "y", "z");
+        ICollection set2 = new SimpleObjectCollection("x", "y", "x");
+
+        Assert.That(new CollectionEquivalentConstraint(set1).ApplyTo(set2).IsSuccess, Is.False);
+    }
+
+    [Test]
+    public void EquivalentFailsWithDuplicateElementInExpected()
+    {
+        ICollection set1 = new SimpleObjectCollection("x", "y", "x");
+        ICollection set2 = new SimpleObjectCollection("x", "y", "z");
+
+        Assert.That(new CollectionEquivalentConstraint(set1).ApplyTo(set2).IsSuccess, Is.False);
+    }
+
+    [Test]
+    public void EquivalentFailsWithExtraItemsInActual()
+    {
+        ICollection set1 = new SimpleObjectCollection("x", "y");
+        ICollection set2 = new SimpleObjectCollection("x", "x", "y");
+
+        Assert.That(new CollectionEquivalentConstraint(set1).ApplyTo(set2).IsSuccess, Is.False);
+    }
+
+    [TestCaseSource(nameof(GetNullTestCases))]
+    public void EquivalentHandlesNull(IEnumerable set1, IEnumerable set2)
+    {
+        Assert.That(new CollectionEquivalentConstraint(set1).ApplyTo(set2).IsSuccess);
+    }
+
+    [TestCase(TypeArgs = [typeof(ArrayList)], Description = "Non-generics path")]
+    [TestCase(TypeArgs = [typeof(List<int?>)], Description = "Generics path")]
+    public void EquivalentHandlesNull_FailureScenario<T>()
+        where T : IList, new()
+    {
+        T set1 = [1];
+        T set2 = [1, null];
+
+        var result = new CollectionEquivalentConstraint(set1).ApplyTo(set2) as CollectionEquivalentConstraintResult;
+
+        var output = new TextMessageWriter();
+        result!.WriteMessageTo(output);
+
+        string expectedMsg =
+            "  Expected: equivalent to < 1 >" + Environment.NewLine +
+            "  But was:  < 1, null >" + Environment.NewLine +
+            "  Extra (1): < null >" + Environment.NewLine;
+
+        Assert.That(output.ToString(), Is.EqualTo(expectedMsg));
+    }
+
+    private static IEnumerable<object[]> GetNullTestCases()
+    {
+        yield return new object[] { new SimpleObjectCollection(null, "x", null, "z"), new SimpleObjectCollection("z", null, "x", null) };
+        yield return new object[] { new string?[] { null, "x", null, "z" }, new string?[] { "z", null, "x", null } };
+    }
+
+    [TestCaseSource(nameof(GetIgnoreCaseTestCases))]
+    public void EquivalentHonorsIgnoreCase(IEnumerable set1, IEnumerable set2)
+    {
+        Assert.That(new CollectionEquivalentConstraint(set1).IgnoreCase.ApplyTo(set2).IsSuccess);
+    }
+
+    private static IEnumerable<object[]> GetIgnoreCaseTestCases()
+    {
+        yield return new object[] { new SimpleObjectCollection("x", "y", "z"), new SimpleObjectCollection("z", "Y", "X") };
+        yield return new object[] { new string?[] { "x", "y", "z" }, new string?[] { "z", "Y", "X" } };
+    }
+
+    [TestCaseSource(nameof(GetIgnoreWhiteSpaceTestCases))]
+    public void EquivalentHonorsIgnoreWhiteSpace(IEnumerable set1, IEnumerable set2)
+    {
+        Assert.That(new CollectionEquivalentConstraint(set1).IgnoreWhiteSpace.ApplyTo(set2).IsSuccess);
+    }
+
+    private static IEnumerable<object[]> GetIgnoreWhiteSpaceTestCases()
+    {
+        yield return new object[] { new SimpleObjectCollection("abc", "def", "ghi"), new SimpleObjectCollection("g h i", "d e f", "a b c") };
+        yield return new object[] { new string?[] { "abc", "def", "ghi" }, new string?[] { "g h i", "d e f", "a b c" } };
+    }
+
+    [TestCaseSource(nameof(GetIgnoreLineEndingFormatTestCases))]
+    public void EquivalentHonorsIgnoreLineEndingFormat(IEnumerable set1, IEnumerable set2)
+    {
+        Assert.That(new CollectionEquivalentConstraint(set1).IgnoreLineEndingFormat.ApplyTo(set2).IsSuccess);
+    }
+
+    private static IEnumerable<object[]> GetIgnoreLineEndingFormatTestCases()
+    {
+        yield return new object[] { new SimpleObjectCollection("a\nb\r\nc\r", "d\r\ne\rf\n", "g\rh\ni\r\n"), new SimpleObjectCollection("g\rh\ni\r\n", "d\ne\r\nf\r", "a\r\nb\rc\n") };
+        yield return new object[] { new string?[] { "a\nb\r\nc\r", "d\r\ne\rf\n", "g\rh\ni\r\n" }, new string?[] { "g\rh\ni\r\n", "d\ne\r\nf\r", "a\r\nb\rc\n" } };
+    }
+
+    [Test]
+    [TestCaseSource(typeof(IgnoreCaseDataProvider), nameof(IgnoreCaseDataProvider.TestCases))]
+    public void HonorsIgnoreCase(IEnumerable expected, IEnumerable actual)
+    {
+        var constraint = new CollectionEquivalentConstraint(expected).IgnoreCase;
+        var constraintResult = constraint.ApplyTo(actual);
+        if (!constraintResult.IsSuccess)
+        {
+            MessageWriter writer = new TextMessageWriter();
+            constraintResult.WriteMessageTo(writer);
+            Assert.Fail(writer.ToString());
+        }
+    }
+
+    public class IgnoreCaseDataProvider
+    {
+        public static IEnumerable TestCases
+        {
+            get
+            {
+                yield return new TestCaseData(new SimpleObjectCollection("x", "y", "z"), new SimpleObjectCollection("z", "Y", "X"));
+                yield return new TestCaseData(new[] { 'A', 'B', 'C' }, new object[] { 'a', 'c', 'b' });
+                yield return new TestCaseData(new[] { "a", "b", "c" }, new object[] { "A", "C", "B" });
+                yield return new TestCaseData(new Dictionary<int, string> { { 2, "b" }, { 1, "a" } }, new Dictionary<int, string> { { 1, "A" }, { 2, "b" } });
+                yield return new TestCaseData(new Dictionary<int, char> { { 1, 'A' } }, new Dictionary<int, char> { { 1, 'a' } });
+                yield return new TestCaseData(new Dictionary<string, int> { { "b", 2 }, { "a", 1 } }, new Dictionary<string, int> { { "A", 1 }, { "b", 2 } });
+                yield return new TestCaseData(new Dictionary<char, int> { { 'A', 1 } }, new Dictionary<char, int> { { 'a', 1 } });
+
+                yield return new TestCaseData(new Hashtable { { 1, "a" }, { 2, "b" } }, new Hashtable { { 1, "A" }, { 2, "B" } });
+                yield return new TestCaseData(new Hashtable { { 1, 'A' }, { 2, 'B' } }, new Hashtable { { 1, 'a' }, { 2, 'b' } });
+                yield return new TestCaseData(new Hashtable { { "b", 2 }, { "a", 1 } }, new Hashtable { { "A", 1 }, { "b", 2 } });
+                yield return new TestCaseData(new Hashtable { { 'A', 1 } }, new Hashtable { { 'a', 1 } });
+            }
+        }
+    }
+
+    [Test]
+    public void EquivalentHonorsUsing()
+    {
+        ICollection set1 = new SimpleObjectCollection("x", "y", "z");
+        ICollection set2 = new SimpleObjectCollection("z", "Y", "X");
+
+        Assert.That(new CollectionEquivalentConstraint(set1)
+                    .Using<string>((x, y) => StringComparer.InvariantCultureIgnoreCase.Compare(x, y))
+                    .ApplyTo(set2).IsSuccess);
+    }
+
+    [Test]
+    public void EquivalentHonorsUsingWhenCollectionsAreOfDifferentTypes()
+    {
+        ICollection strings = new SimpleObjectCollection("1", "2", "3");
+        ICollection ints = new SimpleObjectCollection(1, 2, 3);
+
+        Assert.That(ints, Is.EquivalentTo(strings).Using<int, string>((i, s) => i.ToString() == s));
+    }
+
+    [Test]
+    public static void UsesProvidedGenericEqualityComparison()
+    {
+        var comparer = new GenericEqualityComparison<int>();
+        Assert.That(new[] { 1 }, Is.EquivalentTo(new[] { 1 }).Using<int>(comparer.Delegate));
+        Assert.That(comparer.WasCalled, "Comparer was not called");
+    }
+
+    [Test]
+    public static void UsesBooleanReturningDelegateWithImplicitParameterTypes()
+    {
+        Assert.That(new[] { 1 }, Is.EquivalentTo(new[] { 1 }).Using<int>((x, y) => x.Equals(y)));
+    }
+
+    [Test]
+    public void CheckCollectionEquivalentConstraintResultIsReturned()
+    {
+        IEnumerable<string> set1 = new List<string>() { "one" };
+        IEnumerable<string> set2 = new List<string>() { "two" };
+
+        Assert.That(new CollectionEquivalentConstraint(set1).ApplyTo(set2), Is.InstanceOf(typeof(CollectionEquivalentConstraintResult)));
+    }
+
+    /// <summary>
+    /// A singular point test to ensure that the <see cref="ConstraintResult"/> returned by
+    /// <see cref="CollectionEquivalentConstraint"/> includes the feature of describing both
+    /// extra and missing elements when the collections are not equivalent.
+    /// </summary>
+    /// <remarks>
+    /// This is not intended to fully test the display of missing/extra elements, but to ensure
+    /// that the functionality is actually there.
+    /// </remarks>
+    [Test]
+    public void TestConstraintResultMessageDisplaysMissingAndExtraElements()
+    {
+        List<string> expectedCollection = new List<string>() { "one", "two" };
+        List<string> actualCollection = new List<string>() { "three", "one" };
+
+        ConstraintResult cr = new CollectionEquivalentConstraint(expectedCollection).ApplyTo(actualCollection);
+
+        TextMessageWriter writer = new TextMessageWriter();
+        cr.WriteMessageTo(writer);
+
+        string expectedMsg =
+            "  Expected: equivalent to < \"one\", \"two\" >" + Environment.NewLine +
+            "  But was:  < \"three\", \"one\" >" + Environment.NewLine +
+            "  Missing (1): < \"two\" >" + Environment.NewLine +
+            "  Extra (1): < \"three\" >" + Environment.NewLine;
+        Assert.That(writer.ToString(), Is.EqualTo(expectedMsg));
+    }
+
+    [Test]
+    public void WorksWithHashSets()
+    {
+        var hash1 = new HashSet<string>(new[] { "presto", "abracadabra", "hocuspocus" });
+        var hash2 = new HashSet<string>(new[] { "abracadabra", "presto", "hocuspocus" });
+
+        Assert.That(new CollectionEquivalentConstraint(hash1).ApplyTo(hash2).IsSuccess);
+    }
+
+    [Test]
+    public void WorksWithHashSetAndArray()
+    {
+        var hash = new HashSet<string>(new[] { "presto", "abracadabra", "hocuspocus" });
+        var array = new[] { "abracadabra", "presto", "hocuspocus" };
+
+        var constraint = new CollectionEquivalentConstraint(hash);
+        Assert.That(constraint.ApplyTo(array).IsSuccess);
+    }
+
+    [Test]
+    public void WorksWithArrayAndHashSet()
+    {
+        var hash = new HashSet<string>(new[] { "presto", "abracadabra", "hocuspocus" });
+        var array = new[] { "abracadabra", "presto", "hocuspocus" };
+
+        var constraint = new CollectionEquivalentConstraint(array);
+        Assert.That(constraint.ApplyTo(hash).IsSuccess);
+    }
+
+    [TestCaseSource(nameof(ArrayCompatibilitySource))]
+    public void WorksWithArraysOfCompatibleYetDifferentTypes<T1, T2>(T1 actual, T2 expected)
+        where T1 : IEnumerable
+        where T2 : IEnumerable
+    {
+        Assert.That(actual, Is.EquivalentTo(expected));
+        Assert.That(expected, Is.EquivalentTo(actual));
+    }
+
+    private static IEnumerable<TestCaseParameters> ArrayCompatibilitySource()
+    {
+        yield return new TestCaseData<long[], int[]>([1L, 2L, 3L], [1, 2, 3]);
+        yield return new TestCaseData<long[], object[]>([1L, 2L, 3L], [1, 2, 3]);
+        yield return new TestCaseData<object[], object[]>([1L, 2L, 3L], [1, 2, 3]);
+        yield return new TestCaseData<int[], double[]>([1, 2, 3], [1.0d, 2.0d, 3.0d]);
+        yield return new TestCaseData<decimal[], double[]>([1.0m, 2.0m, 3.0m], [1.0d, 2.0d, 3.0d]);
+        yield return new TestCaseData<string, char[]>("NUnit", ['t', 'i', 'n', 'U', 'N']);
+    }
+
+    [Test]
+    public void FailureWithIncompatibleActualValue()
+    {
+        var expected = new int[] { 1, 2, 3 };
+        var actual = new { hello = "world" };
+
+        var ex = Assert.Throws<ArgumentException>(() => Assert.That(actual, Is.EquivalentTo(expected)));
+
+        Assert.That(ex, Is.Not.Null);
+        Assert.That(ex.ParamName, Is.EqualTo("actual"));
+        Assert.That(ex.Message, Does.Contain(actual.GetType().Name));
+    }
+
+    [Test]
+    public void FailureMessageWithHashSetAndArray()
+    {
+        var hash = new HashSet<string>(new[] { "presto", "abracadabra", "hocuspocus" });
+        var array = new[] { "abracadabra", "presto", "hocusfocus" };
+
+        var constraint = new CollectionEquivalentConstraint(hash);
+        var constraintResult = constraint.ApplyTo(array);
+        Assert.That(constraintResult.IsSuccess, Is.False);
+
+        TextMessageWriter writer = new TextMessageWriter();
+        constraintResult.WriteMessageTo(writer);
+
+        var expectedMessage =
+            "  Expected: equivalent to < \"presto\", \"abracadabra\", \"hocuspocus\" >" + Environment.NewLine +
+            "  But was:  < \"abracadabra\", \"presto\", \"hocusfocus\" >" + Environment.NewLine +
+            "  Missing (1): < \"hocuspocus\" >" + Environment.NewLine +
+            "  Extra (1): < \"hocusfocus\" >" + Environment.NewLine;
+
+        Assert.That(writer.ToString(), Is.EqualTo(expectedMessage));
+    }
+
+    [Test]
+    public void WorksWithNonIComparableTuples()
+    {
+        var message3 = new object();
+        var message4 = new object();
+        var actual = new[]
+        {
+            new Tuple<int, object, CancellationToken>(1, message3, CancellationToken.None),
+            new Tuple<int, object, CancellationToken>(2, message3, CancellationToken.None),
+            new Tuple<int, object, CancellationToken>(1, message4, CancellationToken.None),
+            new Tuple<int, object, CancellationToken>(2, message4, CancellationToken.None)
+        };
+
+        var expected = new[]
+        {
+            new Tuple<int, object, CancellationToken>(1, message4, CancellationToken.None),
+            new Tuple<int, object, CancellationToken>(2, message4, CancellationToken.None),
+            new Tuple<int, object, CancellationToken>(1, message3, CancellationToken.None),
+            new Tuple<int, object, CancellationToken>(2, message3, CancellationToken.None)
+        };
+
+        var constraint = new CollectionEquivalentConstraint(expected);
+        var result = constraint.ApplyTo(actual);
+
+        Assert.That(result.IsSuccess);
+    }
+
+    [Test]
+    public void WorksWithImmutableDictionary()
+    {
+        var numbers = Enumerable.Range(1, 3).ToList();
+        var test1 = numbers.ToImmutableDictionary(t => t);
+        var test2 = numbers.ToImmutableDictionary(t => t);
+
+        Assert.That(test1, Is.EquivalentTo(test2));
+    }
+
+    [Test(Description = "Issue #4252 - CollectionAssert.AreEquivalent with multidimensional arrays throws System.RankException")]
+    public void WorksWithMultiRankArray()
+    {
+        var expected = new string[,,] { { { "value1", "value2", "value3" } } };
+        var actual = new string[,,] { { { "value2", "value3", "value1" } } };
+
+        var constraint = new CollectionEquivalentConstraint(expected);
+        var constraintResult = constraint.ApplyTo(actual);
+
+        Assert.That(constraintResult.IsSuccess, Is.True);
+    }
+
+    [TestFixture]
+    public static class Performance
+    {
+        private const int Size = 10000; // For large collection tests
+
+        // The following tests are each running in 2ms to 8ms on my machine.
+        // Based on that, warn at 50ms and fail at 250ms.
+        private const int LargeCollectionWarnTime = 50;
+        private const int LargeCollectionFailTime = 250;
+
+        [Test, MaxTime(LargeCollectionFailTime, WarningTime = LargeCollectionWarnTime)]
+        public static void LargeDoubleCollectionsInSameOrder()
+        {
+            var actual = Enumerable.Range(0, Size).Select(x => (double)x);
+            var expected = Enumerable.Range(0, Size).Select(x => (double)x);
+
+            var constraint = new CollectionEquivalentConstraint(expected);
+            var constraintResult = constraint.ApplyTo(actual);
+            Assert.That(constraintResult.IsSuccess, Is.True);
+        }
+
+        [Test(Description = "Issue #2799 - CollectionAssert.AreEquivalent is extremely slow")]
+        [MaxTime(LargeCollectionFailTime, WarningTime = LargeCollectionWarnTime)]
+        public static void LargeIntCollectionsInSameOrder()
+        {
+            var actual = Enumerable.Range(0, Size);
+            var expected = Enumerable.Range(0, Size);
+
+            var constraint = new CollectionEquivalentConstraint(expected);
+            var constraintResult = constraint.ApplyTo(actual);
+            Assert.That(constraintResult.IsSuccess, Is.True);
+        }
+
+        [Test(Description = "Issue #2799 - CollectionAssert.AreEquivalent is extremely slow")]
+        [MaxTime(LargeCollectionFailTime, WarningTime = LargeCollectionWarnTime)]
+        public static void LargeIntCollectionsInReversedOrder()
+        {
+            var actual = Enumerable.Range(0, Size);
+            var expected = Enumerable.Range(0, Size).Select(i => Size - i - 1);
+
+            var constraint = new CollectionEquivalentConstraint(expected);
+            var constraintResult = constraint.ApplyTo(actual);
+            Assert.That(constraintResult.IsSuccess, Is.True);
+        }
+
+        [Test(Description = "Issue #2799 - CollectionAssert.AreEquivalent is extremely slow")]
+        [MaxTime(LargeCollectionFailTime, WarningTime = LargeCollectionWarnTime)]
+        public static void LargeStringCollectionsInSameOrder()
+        {
+            var actual = Enumerable.Range(0, Size).Select(i => i.ToString()).ToList();
+            var expected = Enumerable.Range(0, Size).Select(i => i.ToString()).ToList();
+
+            var constraint = new CollectionEquivalentConstraint(expected);
+            var constraintResult = constraint.ApplyTo(actual);
+            Assert.That(constraintResult.IsSuccess, Is.True);
+        }
+
+        [Test(Description = "Issue #2799 - CollectionAssert.AreEquivalent is extremely slow")]
+        [MaxTime(LargeCollectionFailTime, WarningTime = LargeCollectionWarnTime)]
+        public static void LargeStringCollectionsInReversedOrder()
+        {
+            var actual = Enumerable.Range(0, Size).Select(i => i.ToString()).ToList();
+            var expected = Enumerable.Range(0, Size).Select(i => (Size - i - 1).ToString()).ToList();
+
+            var constraint = new CollectionEquivalentConstraint(expected);
+            var constraintResult = constraint.ApplyTo(actual);
+            Assert.That(constraintResult.IsSuccess, Is.True);
+        }
+
+        [Test(Description = "Issue #2799 - CollectionAssert.AreEquivalent is extremely slow")]
+        [MaxTime(LargeCollectionFailTime, WarningTime = LargeCollectionWarnTime)]
+        public static void LargeStringCollection()
+        {
+            var actual = new StringCollection();
+            var expected = new StringCollection();
+            foreach (var i in Enumerable.Range(0, Size))
+            {
+                actual.Add(i.ToString());
+                expected.Add(i.ToString());
+            }
+
+            var constraint = new CollectionEquivalentConstraint(expected);
+            var constraintResult = constraint.ApplyTo(actual);
+            Assert.That(constraintResult.IsSuccess, Is.True);
+        }
+
+        [Test(Description = "Issue #2598 - Is.Not.EquivalentTo is extremely slow")]
+        [MaxTime(LargeCollectionFailTime, WarningTime = LargeCollectionWarnTime)]
+        public static void LargeByteCollectionsNotEquivalent()
+        {
+            byte[] data = new byte[Size];
+            byte[] encrypted = new byte[Size];
+            encrypted[0] = 2;
+            encrypted[1] = 3;
+
+            var constraint = new CollectionEquivalentConstraint(data);
+            var constraintResult = constraint.ApplyTo(encrypted);
+            Assert.That(constraintResult.IsSuccess, Is.False);
+        }
+
+        [Test(Description = "Issue #2598 - Is.Not.EquivalentTo is extremely slow")]
+        [MaxTime(LargeCollectionFailTime, WarningTime = LargeCollectionWarnTime)]
+        public static void LargeByteCollectionsNotEquivalentAtEnd()
+        {
+            byte[] data = new byte[Size];
+            byte[] encrypted = new byte[Size];
+            encrypted[Size - 2] = 2;
+            encrypted[Size - 1] = 3;
+
+            var constraint = new CollectionEquivalentConstraint(data);
+            var constraintResult = constraint.ApplyTo(encrypted);
+            Assert.That(constraintResult.IsSuccess, Is.False);
+        }
+
+        [Test, MaxTime(LargeCollectionFailTime, WarningTime = LargeCollectionWarnTime)]
+        public static void LargeValueTupleCollectionsInSameOrder()
+        {
+            var actual = Enumerable.Range(0, Size).Select(x => (x, Size - x));
+            var expected = Enumerable.Range(0, Size).Select(x => (x, Size - x));
+
+            var constraint = new CollectionEquivalentConstraint(expected);
+            var constraintResult = constraint.ApplyTo(actual);
+            Assert.That(constraintResult.IsSuccess, Is.True);
+        }
+    }
+}

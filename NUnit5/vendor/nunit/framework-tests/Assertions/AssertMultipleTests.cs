@@ -1,0 +1,329 @@
+// Copyright (c) Charlie Poole, Rob Prouse and Contributors. MIT License - see LICENSE.txt
+
+using System;
+using System.Threading.Tasks;
+using NUnit.Framework.Interfaces;
+using NUnit.Framework.Internal;
+using NUnit.TestData.AssertMultipleData;
+using NUnit.Framework.Tests.TestUtilities;
+using AM = NUnit.TestData.AssertMultipleData.AssertMultipleFixture;
+using System.Linq;
+
+namespace NUnit.Framework.Tests.Assertions
+{
+    public class AssertMultipleTests
+    {
+        private static readonly ComplexNumber Complex = new ComplexNumber(5.2, 3.9);
+
+        [TestCase(nameof(AM.EmptyBlock), 0)]
+        [TestCase(nameof(AM.SingleAssertSucceeds), 1)]
+        [TestCase(nameof(AM.TwoAssertsSucceed), 2)]
+        [TestCase(nameof(AM.ThreeAssertsSucceed), 3)]
+        [TestCase(nameof(AM.NestedBlock_ThreeAssertsSucceed), 3)]
+        [TestCase(nameof(AM.TwoNestedBlocks_ThreeAssertsSucceed), 3)]
+        [TestCase(nameof(AM.NestedBlocksInMethodCalls), 3)]
+        [TestCase(nameof(AM.ThreeWarnIf_AllPass), 3)]
+        [TestCase(nameof(AM.ThreeWarnUnless_AllPass), 3)]
+        [TestCase(nameof(AM.ThreeAssertsSucceed_Async), 3)]
+        [TestCase(nameof(AM.ThreeAssertsSucceed_Async_EnterScope), 3)]
+        [TestCase(nameof(AM.NestedBlock_ThreeAssertsSucceed_Async), 3)]
+        [TestCase(nameof(AM.TwoNestedBlocks_ThreeAssertsSucceed_Async), 3)]
+        [TestCase(nameof(AM.TwoNestedBlocks_ThreeAssertsSucceed_Async_EnterScope), 3)]
+        [TestCase(nameof(AM.ScopeReleasedTwice), 2)]
+        [TestCase(nameof(AM.MultithreadedAssertMultipleSuccess), 1000)]
+        public void AssertMultipleSucceeds(string methodName, int asserts)
+        {
+            CheckResult(methodName, ResultState.Success, asserts);
+        }
+
+        [TestCase(nameof(AM.TwoAsserts_FirstAssertFails), 2, "RealPart")]
+        [TestCase(nameof(AM.TwoAsserts_SecondAssertFails), 2, "ImaginaryPart")]
+        [TestCase(nameof(AM.TwoAsserts_BothAssertsFail), 2, "RealPart", "ImaginaryPart")]
+        [TestCase(nameof(AM.NestedBlock_FirstAssertFails), 3, "Expected: 5")]
+        [TestCase(nameof(AM.NestedBlock_TwoAssertsFail), 3, "Expected: 5", "ImaginaryPart")]
+        [TestCase(nameof(AM.TwoNestedBlocks_FirstAssertFails), 3, "Expected: 5")]
+        [TestCase(nameof(AM.TwoNestedBlocks_TwoAssertsFail), 3, "Expected: 5", "ImaginaryPart")]
+        [TestCase(nameof(AM.MethodCallsFail), 0, "Message from Assert.Fail")]
+        [TestCase(nameof(AM.MethodCallsFailAfterTwoAssertsFail), 2, "Expected: 5", "ImaginaryPart", "Message from Assert.Fail")]
+        [TestCase(nameof(AM.TwoAssertsFailAfterWarning), 2, "WARNING", "Expected: 5", "ImaginaryPart")]
+        [TestCase(nameof(AM.WarningAfterTwoAssertsFail), 2, "Expected: 5", "ImaginaryPart", "WARNING")]
+        [TestCase(nameof(AM.TwoAsserts_BothAssertsFail_Async), 2, "RealPart", "ImaginaryPart")]
+        [TestCase(nameof(AM.TwoNestedBlocks_TwoAssertsFail_Async), 3, "Expected: 5", "ImaginaryPart")]
+        [TestCase(nameof(AM.TwoNestedBlocks_TwoAssertsFail_Async_EnterScope), 3, "Expected: 5", "ImaginaryPart")]
+        public void AssertMultipleFails(string methodName, int asserts, params string[] assertionMessages)
+        {
+            CheckResult(methodName, ResultState.Failure, asserts, assertionMessages);
+        }
+
+        [Test]
+        public void AssertMultipleFailsUndeterministic()
+        {
+            // We know this test fails, but due to the nature of multithreading,
+            // the number of assertions and the number of failures is nondeterministic.
+            ITestResult result = TestBuilder.RunTestCase(typeof(AssertMultipleFixture), nameof(AM.MultithreadedAssertMultipleFailure));
+
+            Assert.Multiple(() =>
+            {
+                // ResultState should be Failure, but Parallel.For aggregates exceptions.
+                // It therefore sometimes returns Error instead of Failure.
+                Assert.That(result.ResultState.Status, Is.EqualTo(TestStatus.Failed), "TestStatus");
+                Assert.That(result.AssertCount, Is.GreaterThan(0), "AssertCount");
+                Assert.That(result.AssertionResults, Is.Not.Empty, "Number of AssertionResults");
+            });
+        }
+
+        [TestCase(nameof(AM.ThreeAssertWarns), 0, "WARNING1", "WARNING2", "WARNING3")]
+        [TestCase(nameof(AM.ThreeWarnIf_TwoFail), 3, "WARNING1", "WARNING3")]
+        [TestCase(nameof(AM.ThreeWarnUnless_TwoFail), 3, "WARNING1", "WARNING3")]
+        public void AssertMultipleWarns(string methodName, int asserts, params string[] assertionMessages)
+        {
+            CheckResult(methodName, ResultState.Warning, asserts, assertionMessages);
+        }
+
+        [TestCase(nameof(AM.ExceptionThrown), 0, "Simulated Error")]
+        [TestCase(nameof(AM.ExceptionThrownAfterWarning), 0, "WARNING", "Simulated Error")]
+        [TestCase(nameof(AM.ExceptionThrownAfterTwoFailures), 2, "Failure 1", "Failure 2", "Simulated Error", ExcludePlatform = PlatformNames.Mono)]
+        [TestCase(nameof(AM.ExceptionThrownAfterTwoFailures_EnterScope), 2, "Failure 1", "Failure 2", "Simulated Error", ExcludePlatform = PlatformNames.Mono)]
+        public void AssertMultipleErrorTests(string methodName, int asserts, params string[] assertionMessages)
+        {
+            CheckResult(methodName, ResultState.Error, asserts, assertionMessages);
+        }
+
+        /// <summary>
+        /// Issue #3849: Assert.Catch inside Assert.Multiple with wrong exception type
+        /// should report a clear assertion failure, not throw InvalidCastException.
+        /// </summary>
+        [Test]
+        public void AssertCatchInsideMultiple_WrongExceptionType_ShouldReportFailure()
+        {
+            ITestResult result = TestBuilder.RunTestCase(typeof(AssertMultipleFixture), nameof(AM.AssertCatchWithWrongExceptionType));
+
+            // The test should fail with a proper assertion message, not Error with InvalidCastException
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.ResultState.Status, Is.EqualTo(TestStatus.Failed), "Should be Failed, not Error");
+                Assert.That(result.ResultState, Is.Not.EqualTo(ResultState.Error), "Should not be Error state");
+                Assert.That(result.Message, Does.Not.Contain("InvalidCastException"), "Should not contain InvalidCastException");
+                Assert.That(result.Message, Does.Contain("ArgumentException").Or.Contain("InvalidOperationException"),
+                    "Should mention the expected or actual exception type");
+            });
+        }
+
+        /// <summary>
+        /// Issue #3849: Multiple failures including Assert.Catch inside Assert.Multiple
+        /// should all be reported clearly.
+        /// </summary>
+        [Test]
+        public void AssertCatchInsideMultiple_MultipleFailures_ShouldReportAll()
+        {
+            ITestResult result = TestBuilder.RunTestCase(typeof(AssertMultipleFixture), nameof(AM.AssertCatchWithMultipleFailures));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.ResultState.Status, Is.EqualTo(TestStatus.Failed), "Should be Failed");
+                Assert.That(result.ResultState, Is.Not.EqualTo(ResultState.Error), "Should not be Error state");
+                // Should have multiple assertion failures reported
+                Assert.That(result.AssertionResults.Count, Is.GreaterThanOrEqualTo(2),
+                    "Should report multiple assertion failures");
+            });
+        }
+
+        [TestCase(nameof(AM.AssertPassInBlock), "Assert.Pass")]
+        [TestCase(nameof(AM.AssertIgnoreInBlock), "Assert.Ignore")]
+        [TestCase(nameof(AM.AssertInconclusiveInBlock), "Assert.Inconclusive")]
+        [TestCase(nameof(AM.AssumptionInBlock), "Assume.That")]
+        public void AssertMultiple_InvalidAssertThrowsException(string methodName, string invalidAssert)
+        {
+            CheckResult(methodName, ResultState.Error, 0,
+                $"{invalidAssert} may not be used in a multiple assertion block.");
+        }
+
+        [TestCase(nameof(AM.NonReleasedScope), 2, "Test completed with 1 active assertion scope(s)")]
+        [TestCase(nameof(AM.NonReleasedScopes), 3, "Test completed with 2 active assertion scope(s)")]
+        public void NonReleaseScope(string methodName, int asserts, string errorMessage)
+        {
+            ITestResult result = CheckResult(methodName, ResultState.Error, asserts);
+            Assert.That(result.Message, Contains.Substring(errorMessage));
+        }
+
+        [TestCase(nameof(AM.ScopeReleasedOutOfOrder), 3)]
+        public void OutOfOrderReleaseScope(string methodName, int asserts)
+        {
+            // This now succeeds, Enter and Dispose can be in any order to support multi-threading inside an Assert.
+            CheckResult(methodName, ResultState.Success, asserts);
+        }
+
+        [Test]
+        public async Task AssertMultipleAsyncSucceeds()
+        {
+            await Assert.MultipleAsync(async () =>
+            {
+                await Assert.ThatAsync(() => Task.FromResult(42), Is.EqualTo(42));
+                Assert.That("hello", Is.EqualTo("hello"));
+                await Assert.ThatAsync(() => Task.FromException(new ArgumentNullException()), Throws.ArgumentNullException);
+            });
+        }
+
+        private static ITestResult CheckResult(string methodName, ResultState expectedResultState, int expectedAsserts, params string[] assertionMessageRegex)
+        {
+            ITestResult result = TestBuilder.RunTestCase(typeof(AssertMultipleFixture), methodName);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.ResultState, Is.EqualTo(expectedResultState), "ResultState");
+                Assert.That(result.AssertCount, Is.EqualTo(expectedAsserts), "AssertCount");
+                Assert.That(result.AssertionResults, Has.Count.EqualTo(assertionMessageRegex.Length), "Number of AssertionResults");
+            });
+
+            PlatformInconsistency.MonoMethodInfoInvokeLosesStackTrace.SkipOnAffectedPlatform(() =>
+            {
+                if (result.ResultState.Status == TestStatus.Failed && result.StackTrace is not null)
+                    Assert.That(result.StackTrace, Does.Contain(methodName), "StackTrace");
+            });
+
+            if (result.AssertionResults.Count > 0)
+            {
+                int numFailures = result.AssertionResults.Count;
+                if (expectedResultState == ResultState.Error)
+                    --numFailures;
+
+                if (numFailures > 1)
+                    Assert.That(result.Message, Contains.Substring(TestResult.MULTIPLE_FAILURES_OR_WARNINGS_MESSAGE));
+
+                int i = 0;
+                foreach (var assertion in result.AssertionResults)
+                {
+                    // Since the order of argument evaluation is not guaranteed, we don't
+                    // want 'i' to appear more than once in the Assert statement.
+                    string errmsg = $"AssertionResult {i + 1}";
+                    Assert.That(assertion.Message, Does.Match(assertionMessageRegex[i++]), errmsg);
+                    Assert.That(result.Message, Contains.Substring(assertion.Message), errmsg);
+
+                    // NOTE: This test expects the stack trace to contain the name of the method
+                    // that actually caused the failure. To ensure it is not optimized away, we
+                    // compile the testdata assembly with optimizations disabled.
+                    PlatformInconsistency.MonoMethodInfoInvokeLosesStackTrace.SkipOnAffectedPlatform(
+                        () => Assert.That(assertion.StackTrace, Is.Not.Null.And.Contains(methodName), errmsg));
+                }
+            }
+
+            return result;
+        }
+
+        [Test]
+        public void AssertMultiple_OnlyThrowsForCurrentScope()
+        {
+            try
+            {
+                // Place one failure in the context
+                Assert.That(false);
+            }
+            catch
+            {
+            }
+
+            var currentResult = TestExecutionContext.CurrentContext.CurrentResult;
+            var previousFailureCount = currentResult.AssertionResultCount;
+            Assume.That(previousFailureCount, Is.GreaterThan(0));
+
+            Assert.Multiple(() => { });
+
+            // The assert multiple shouldn't've triggered a failure
+            Assert.That(currentResult.AssertionResultCount, Is.EqualTo(previousFailureCount));
+
+            // If we get this far, the test is good so we should clean up the context from the intentional failure above
+            currentResult.ClearResult();
+        }
+
+        [Test]
+        public void CanDetectFailuresInCurrentScope()
+        {
+            Test test = TestBuilder.MakeTestFromMethod(typeof(AssertMultipleFixture), nameof(AM.CanDetectFailuresInsideMultiple));
+
+            Assert.That(test.HasChildren, Is.True, "Test.HasChildren");
+            ParameterizedMethodSuite suite = (ParameterizedMethodSuite)test;
+
+            object instance = new AssertMultipleFixture();
+            using (Assert.EnterMultipleScope())
+            {
+                foreach (var testcase in suite.Tests.Cast<Test>())
+                {
+                    ITestResult result = TestBuilder.RunTest(testcase, instance);
+
+                    if (result.ResultState.Status == TestStatus.Passed)
+                    {
+                        Assert.That(result.AssertionResultCount, Is.Zero, $"ResultState for {testcase.Name}");
+                    }
+                    else
+                    {
+                        Assert.That(result.ResultState, Is.EqualTo(ResultState.Failure), $"ResultState for {testcase.Name}");
+                        Assert.That(result.AssertionResultCount, Is.EqualTo(1));
+                        string? expectedMessage = (string?)testcase.Arguments[2];
+                        Assert.That(result.Message, Does.Contain(expectedMessage), $"Message for {testcase.Name}");
+                    }
+                }
+            }
+        }
+    }
+
+    [Explicit("Used to display error messages for visual confirmation")]
+    public class MultipleAssertDemo
+    {
+        private static readonly ComplexNumber Complex = new ComplexNumber(5.2, 3.9);
+
+        [Test]
+        // Shows multiple failures including one from Assert.Fail
+        public void MultipleAssertFailureDemo()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(Complex.RealPart, Is.EqualTo(5.0), "RealPart");
+                Assert.That(Complex.ImaginaryPart, Is.EqualTo(4.2), "ImaginaryPart");
+                Assert.Fail("Assert.Fail Called");
+            });
+        }
+
+        [Test]
+        // Shows two failures followed by an exception
+        public void MultipleAssertErrorDemo()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(Complex.RealPart, Is.EqualTo(5.0), "RealPart");
+                Assert.That(Complex.ImaginaryPart, Is.EqualTo(4.2), "ImaginaryPart");
+                throw new Exception("Simulated Error");
+            });
+        }
+    }
+
+    [Explicit("Used to verify that further failures do not skip the rest of the execution")]
+    public class MultipleAssertFailureAccumulationDemo
+    {
+        [TearDown]
+        public void TearDown()
+        {
+            Console.WriteLine("Teardown Start, expect to see a Teardown End message");
+            Assert.Multiple(() => Assert.That(true));
+            Console.WriteLine("Teardown End");
+        }
+
+        [Test]
+        public void AssertFailureAccumulationDemo()
+        {
+            Console.WriteLine("Test Start");
+            Assert.That(false);
+        }
+    }
+
+    internal class ComplexNumber
+    {
+        public ComplexNumber(double realPart, double imaginaryPart)
+        {
+            RealPart = realPart;
+            ImaginaryPart = imaginaryPart;
+        }
+
+        public double RealPart;
+        public double ImaginaryPart;
+    }
+}

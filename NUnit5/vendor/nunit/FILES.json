@@ -1,0 +1,842 @@
+[
+  {
+    "path": ".editorconfig",
+    "upstreamPath": ".editorconfig",
+    "sha256": "45bc89cb727134b44156c4db29d83319e0598267c410493a9c1eac242d48efd2"
+  },
+  {
+    "path": "LICENSE.txt",
+    "upstreamPath": "LICENSE.txt",
+    "sha256": "921d503dbf57e3f92331858fb610a99880dc69bde51cd842e9752606589f216a"
+  },
+  {
+    "path": "NOTICES.md",
+    "upstreamPath": "NOTICES.md",
+    "sha256": "6297c81b09c1d819b18a29b13674f7f5fe1dabcf98f3eb30c2347c1d301915b1"
+  },
+  {
+    "path": "nunit.snk",
+    "upstreamPath": "src/nunit.snk",
+    "sha256": "10aca7ef89199cd1d09c5f76fad270268584751c26d807247d9956e176fdea8d"
+  },
+  {
+    "path": "THIRD_PARTY_NOTICES_DEV.md",
+    "upstreamPath": "THIRD_PARTY_NOTICES_DEV.md",
+    "sha256": "00a7da653ad12c6af14b838c3755e2d1f315ac42a04348b12e88d8b3cc9f214e"
+  },
+  {
+    "path": "THIRD_PARTY_NOTICES.md",
+    "upstreamPath": "THIRD_PARTY_NOTICES.md",
+    "sha256": "94f1f35320f4e433bd12b223f6e97a680f15e462f5040f66b2e53a57048f1028"
+  },
+  {
+    "path": "framework-tests/TestText1.txt",
+    "upstreamPath": "src/NUnitFramework/tests/TestText1.txt",
+    "sha256": "9467df1c0d5004c965dd9adf9da7387f6906085be6ef519b63bf90c6a2ac3857"
+  },
+  {
+    "path": "framework-tests/Assertions/AdhocTestExecutionTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Assertions/AdhocTestExecutionTests.cs",
+    "sha256": "8bc448317d198a4816d2bb99d95fca7ec7b6139e171d20a05da3c2d2bfb3dfc9"
+  },
+  {
+    "path": "framework-tests/Assertions/ArrayEqualsFailureMessageFixture.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Assertions/ArrayEqualsFailureMessageFixture.cs",
+    "sha256": "a273da09940f1cb821195e280a5b0d1ed4c16e9f73fbf40e8fcf28b062665264"
+  },
+  {
+    "path": "framework-tests/Assertions/ArrayEqualsFixture.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Assertions/ArrayEqualsFixture.cs",
+    "sha256": "a68388ba5e58dd9823b0dea80f863a50aee6f31e990842202e8c98b5a0a68128"
+  },
+  {
+    "path": "framework-tests/Assertions/AssertFailTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Assertions/AssertFailTests.cs",
+    "sha256": "97dd3b1f3e2411a0f55f22d6df0ff135416bc2ed2e70bb93761aec2ebf745ca5"
+  },
+  {
+    "path": "framework-tests/Assertions/AssertIgnoreTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Assertions/AssertIgnoreTests.cs",
+    "sha256": "bf2e82b3e684a642bec2336508cc872b056d7890c6491ecf90149b679d6a505d"
+  },
+  {
+    "path": "framework-tests/Assertions/AssertInconclusiveTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Assertions/AssertInconclusiveTests.cs",
+    "sha256": "97ec7d92db236bee8c0b8e570b583e616db6fb326aaafcc26bbc1345c57bbefd"
+  },
+  {
+    "path": "framework-tests/Assertions/AssertMultipleOfTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Assertions/AssertMultipleOfTests.cs",
+    "sha256": "6a2edfef15261f68c383f3970cac8e7c8f5e22d52011ada5e10a2f93bef475ac"
+  },
+  {
+    "path": "framework-tests/Assertions/AssertMultipleTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Assertions/AssertMultipleTests.cs",
+    "sha256": "97ce3fb2b25eb249b09814afa3ff16f9880804308b29089dfa1af06acbcda76d"
+  },
+  {
+    "path": "framework-tests/Assertions/AssertPassTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Assertions/AssertPassTests.cs",
+    "sha256": "5f3349e7593dd5ec23bab2184da1c4c6ebab489d1ca01609662377448b19fad4"
+  },
+  {
+    "path": "framework-tests/Assertions/AssertPolarityTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Assertions/AssertPolarityTests.cs",
+    "sha256": "257fba8d0023446a2e4ba98ddde6e9b66bf0ef1010b03eec5564486795b81fd6"
+  },
+  {
+    "path": "framework-tests/Assertions/AssertThatAsyncTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Assertions/AssertThatAsyncTests.cs",
+    "sha256": "288519eb0458c6cf79b5d663b57dfadae29de84c3b85b101a5d8c74f7a5c36f2"
+  },
+  {
+    "path": "framework-tests/Assertions/AssertThatTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Assertions/AssertThatTests.cs",
+    "sha256": "b5ccacf6c60c3a1b5cd0b0cb592b5ce04818bd9ff715c79b1f18bdfd69055a8b"
+  },
+  {
+    "path": "framework-tests/Assertions/AssertThrowsAsyncTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Assertions/AssertThrowsAsyncTests.cs",
+    "sha256": "2ad2adebb4daa3c4f5666d16bc63a168bf39a83982bb1ad57d78f3c649a4cb1a"
+  },
+  {
+    "path": "framework-tests/Assertions/AssertThrowsTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Assertions/AssertThrowsTests.cs",
+    "sha256": "0df67f5b6657f828ea61725a85526fec78b1c53eb1eb02080db0b3ce0f2e4896"
+  },
+  {
+    "path": "framework-tests/Assertions/AssertWarnTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Assertions/AssertWarnTests.cs",
+    "sha256": "d60c380aef75b1c04a65c547f35e141e9b6ab860ac77ca632c8cbd6619e5457d"
+  },
+  {
+    "path": "framework-tests/Assertions/AssertZeroTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Assertions/AssertZeroTests.cs",
+    "sha256": "c640c69a2f499f86a8a974763aef7563625eb5430e60b6bea4d0d6cf1d3a2b53"
+  },
+  {
+    "path": "framework-tests/Assertions/AssumeEqualsTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Assertions/AssumeEqualsTests.cs",
+    "sha256": "686c306f3e685df459743eba3552dbef200f6c2ca5ef37a7be42a37e12f91605"
+  },
+  {
+    "path": "framework-tests/Assertions/AssumeThatTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Assertions/AssumeThatTests.cs",
+    "sha256": "9ca26200969c7427c6010f26db5dec70e8c9138683fbee7cb5bf5d149d86c9ac"
+  },
+  {
+    "path": "framework-tests/Assertions/AsyncThrowsTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Assertions/AsyncThrowsTests.cs",
+    "sha256": "788ea255c0b4a6c8d8ced0048a4451368e3f5801bb48f6f167de8c35e189d13f"
+  },
+  {
+    "path": "framework-tests/Assertions/HasTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Assertions/HasTests.cs",
+    "sha256": "12495002cad9a3833455c849a1e69b3cde1af40b1cac0549871a26a282019a3a"
+  },
+  {
+    "path": "framework-tests/Assertions/ListContentsTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Assertions/ListContentsTests.cs",
+    "sha256": "d3b066b0e802f29276d69a3486d35f6454055108c900678fb78d0aa40eb70b52"
+  },
+  {
+    "path": "framework-tests/Assertions/LowTrustFixture.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Assertions/LowTrustFixture.cs",
+    "sha256": "2de8192d3bfb51ce9790d7a01e75fb95e0d65892f3b57c4c4809d2d1d6786327"
+  },
+  {
+    "path": "framework-tests/Assertions/NullableTypesTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Assertions/NullableTypesTests.cs",
+    "sha256": "dd346833e7e3f3a27d19b7aae17c7a04ed7f8eeff52050283b9d78d1cfefdff5"
+  },
+  {
+    "path": "framework-tests/Assertions/SameFixture.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Assertions/SameFixture.cs",
+    "sha256": "3722e80849b7798ec6682c1d4f9919001b4223a26e9582672173c2db0dbcb83a"
+  },
+  {
+    "path": "framework-tests/Assertions/ThrowsIfToStringIsCalled.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Assertions/ThrowsIfToStringIsCalled.cs",
+    "sha256": "1e1db931c6c166338ab1e0d5da5a47aad3cee0ec6f4953dd01e6388fca45404e"
+  },
+  {
+    "path": "framework-tests/Assertions/TypeAssertTest.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Assertions/TypeAssertTest.cs",
+    "sha256": "50462f74c5885dfff9dc50b50b53d5bf42e8de2a32b46479a1b773b0398bbe06"
+  },
+  {
+    "path": "framework-tests/Assertions/WarningTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Assertions/WarningTests.cs",
+    "sha256": "49b513e23cbc7c261cebee6610c3e659056a84d52a39f65a74b27cbfd3c0937c"
+  },
+  {
+    "path": "framework-tests/Constraints/AllItemsConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/AllItemsConstraintTests.cs",
+    "sha256": "9a1fe1e1b82a04f5130dfa640a03a28386efb54e3a5e7661a935413f819bb365"
+  },
+  {
+    "path": "framework-tests/Constraints/AndConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/AndConstraintTests.cs",
+    "sha256": "654447f117a41d5af089fef381cfb21fbf06918619545ab6c4859845e732a479"
+  },
+  {
+    "path": "framework-tests/Constraints/AnyOfConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/AnyOfConstraintTests.cs",
+    "sha256": "fc609c65a728c76be4272341ed8d66d5b046e2fb44fe081769dc70c07e727118"
+  },
+  {
+    "path": "framework-tests/Constraints/AssignableFromConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/AssignableFromConstraintTests.cs",
+    "sha256": "565fc5d29a53e677858ce43679175782f8125ebd152bca712a57e50cf71964f2"
+  },
+  {
+    "path": "framework-tests/Constraints/AssignableTestScenarios.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/AssignableTestScenarios.cs",
+    "sha256": "1f453caedc3deb0a8cc4d35266e0395342cc373e5f7e2b30ef25c9f733510be6"
+  },
+  {
+    "path": "framework-tests/Constraints/AssignableToConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/AssignableToConstraintTests.cs",
+    "sha256": "e04c6f48e7d96ceb54317ec9a7417e5de680ffd678ff64cc646ea3209cb47aca"
+  },
+  {
+    "path": "framework-tests/Constraints/AsyncDelayedConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/AsyncDelayedConstraintTests.cs",
+    "sha256": "50bb35cd899384a4bf53a98d4f7c0013a1817b6819285518f41f12ac0fbb5837"
+  },
+  {
+    "path": "framework-tests/Constraints/AttributeConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/AttributeConstraintTests.cs",
+    "sha256": "5169e888d0662b0d5513cc1401ae92b11e1ec4a44fee40656e0d03fd897d319d"
+  },
+  {
+    "path": "framework-tests/Constraints/BasicConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/BasicConstraintTests.cs",
+    "sha256": "a1297a7cd09605b2906db3a18fd6d6b78a57d8d99d5c1d20769178cd4298bc67"
+  },
+  {
+    "path": "framework-tests/Constraints/CollectionEqualsTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/CollectionEqualsTests.cs",
+    "sha256": "4951c1f72c85b5b7fca4d666fbe6d3388cbe4eb60d12724331b4347890f1bd88"
+  },
+  {
+    "path": "framework-tests/Constraints/CollectionEquivalentConstraintResultTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/CollectionEquivalentConstraintResultTests.cs",
+    "sha256": "d59713f7862385ad7deeb591ac656fc854fcc0da1bfe692c8616ccf766349095"
+  },
+  {
+    "path": "framework-tests/Constraints/CollectionEquivalentConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/CollectionEquivalentConstraintTests.cs",
+    "sha256": "96432fbf5c3983a12ce1a54c7ffefb61c962c4f30cf4426bd4260eecda800d54"
+  },
+  {
+    "path": "framework-tests/Constraints/CollectionOrderedConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/CollectionOrderedConstraintTests.cs",
+    "sha256": "81e5363551b94973dc1b8581a52df028d2024588dd19d587f673c07ab34b1611"
+  },
+  {
+    "path": "framework-tests/Constraints/CollectionSubsetConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/CollectionSubsetConstraintTests.cs",
+    "sha256": "bd8b8ba7500174cca2d6a4ebfea6464850da4012e2786f82013bb5b9f6faff8e"
+  },
+  {
+    "path": "framework-tests/Constraints/CollectionSupersetConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/CollectionSupersetConstraintTests.cs",
+    "sha256": "a553be61a5150644c15ca6174ffd5bd2709807ed9f6230e121d983efc1dac298"
+  },
+  {
+    "path": "framework-tests/Constraints/ComparisonAdapterTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/ComparisonAdapterTests.cs",
+    "sha256": "b865fbd1a7c5a79c9b29ef98d33bdb90872ae76f69bb64056c7acd20519d637e"
+  },
+  {
+    "path": "framework-tests/Constraints/ComparisonConstraintTestBase.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/ComparisonConstraintTestBase.cs",
+    "sha256": "760ff69e3f085b9facf1078e672a443c6fce3c1e2416f9e2c4cad95b44864559"
+  },
+  {
+    "path": "framework-tests/Constraints/ConstraintCastingTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/ConstraintCastingTests.cs",
+    "sha256": "efe5c4495befe763b2a120b3708e8a45439a5ebad2cf628ef2c1e744d2485fb2"
+  },
+  {
+    "path": "framework-tests/Constraints/ConstraintExpressionTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/ConstraintExpressionTests.cs",
+    "sha256": "03497ab5b6b91f2a73bda73e4ae16cc686936cc750aac76f33b3d2f701571cc4"
+  },
+  {
+    "path": "framework-tests/Constraints/ConstraintTestBase.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/ConstraintTestBase.cs",
+    "sha256": "a42a1316c6b9d10c04e36d1857eeea3d82b74290195fc99850ca220a31e39d0c"
+  },
+  {
+    "path": "framework-tests/Constraints/ContainsConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/ContainsConstraintTests.cs",
+    "sha256": "efe686855eef248b3696c56d1a1d890ce397fc2575b2d0d969226078f3641c78"
+  },
+  {
+    "path": "framework-tests/Constraints/DateTimesTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/DateTimesTests.cs",
+    "sha256": "95c074670a82d11ad01447208717994b9cf2b18cb6c19f7a7a43d59a933b0e9c"
+  },
+  {
+    "path": "framework-tests/Constraints/DefaultConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/DefaultConstraintTests.cs",
+    "sha256": "f850c189105b60a86687b7a1238195ad218a52b31ef505a9fcda0754a4e765b2"
+  },
+  {
+    "path": "framework-tests/Constraints/DelayedConstraintFixtureLifecycleTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/DelayedConstraintFixtureLifecycleTests.cs",
+    "sha256": "b2c88d595b136881cfcaf715f1f050ea2919ced354c1f87bc0f76b05ea722495"
+  },
+  {
+    "path": "framework-tests/Constraints/DelayedConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/DelayedConstraintTests.cs",
+    "sha256": "2db4fe6c8966d863860dc781e1ba018234ce1d9b5d4ed89f7752afdc13eb896e"
+  },
+  {
+    "path": "framework-tests/Constraints/DictionaryContainsKeyConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/DictionaryContainsKeyConstraintTests.cs",
+    "sha256": "3ce0e778207e98aafce42102648a6b7f071eb8edc8096b72d4f5b8f970c452a3"
+  },
+  {
+    "path": "framework-tests/Constraints/DictionaryContainsKeyValueConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/DictionaryContainsKeyValueConstraintTests.cs",
+    "sha256": "e1d01209b22c6e9bcebbeefe7c80201430eda798cfeb94dd733aa922f32fc390"
+  },
+  {
+    "path": "framework-tests/Constraints/DictionaryContainsValueConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/DictionaryContainsValueConstraintTests.cs",
+    "sha256": "fdb2697e4a621c947200a5642e1ebbd302b0214e0fec46f1eb9c4549e5ba2fb9"
+  },
+  {
+    "path": "framework-tests/Constraints/EmptyConstraintTest.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/EmptyConstraintTest.cs",
+    "sha256": "d095864e3d8da7bae35850736532ba48bd3ed7242569d4769c89e2160e5c10bb"
+  },
+  {
+    "path": "framework-tests/Constraints/EndsWithConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/EndsWithConstraintTests.cs",
+    "sha256": "1f623af36dbfbcbbd18330d1053fe245acf0e109b53c544f93e9d0d5ea501c33"
+  },
+  {
+    "path": "framework-tests/Constraints/EqualConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/EqualConstraintTests.cs",
+    "sha256": "b44db7f84b3b80c7c118383c902dc416d18bec6286658a10e3d3451927e384de"
+  },
+  {
+    "path": "framework-tests/Constraints/EqualityAdapterTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/EqualityAdapterTests.cs",
+    "sha256": "1a3bd43cfac294b4f76754a0496580e792370530865fb150f396bf845cc26e99"
+  },
+  {
+    "path": "framework-tests/Constraints/EqualTest.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/EqualTest.cs",
+    "sha256": "8829ba08e681739f03578ff06a082088043848b576e53fcdac2c42c94618081e"
+  },
+  {
+    "path": "framework-tests/Constraints/ExactCountConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/ExactCountConstraintTests.cs",
+    "sha256": "9b3bac323fc9c30b210ab04f9f4854c64ee1a44ab1288aaaa4aaec5c8cedf7d0"
+  },
+  {
+    "path": "framework-tests/Constraints/ExactlyOneConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/ExactlyOneConstraintTests.cs",
+    "sha256": "293d41f6fb72798985fd960c85784b1437d16375cd7c99d3931d4a64d9e03967"
+  },
+  {
+    "path": "framework-tests/Constraints/ExactTypeConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/ExactTypeConstraintTests.cs",
+    "sha256": "a0e14b6a6efb02700e264e1711b4a89c8b061b01daac5fcc7dedf87e0d36e7e2"
+  },
+  {
+    "path": "framework-tests/Constraints/FileOrDirectoryExistsConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/FileOrDirectoryExistsConstraintTests.cs",
+    "sha256": "ec462fc99c2e38338bdb1c1837be8e14e1182f5605513baa88505fc99916c603"
+  },
+  {
+    "path": "framework-tests/Constraints/FloatingPointNumericsTest.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/FloatingPointNumericsTest.cs",
+    "sha256": "d7dcc2150bedbebf6cdff9dd0df94e2f3658fb99e941811233f32f057cc927ad"
+  },
+  {
+    "path": "framework-tests/Constraints/GreaterThanConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/GreaterThanConstraintTests.cs",
+    "sha256": "26c7622624b92c2d51bd95963ec34c57f7232dfee136b1da4dbd46c6c584db9b"
+  },
+  {
+    "path": "framework-tests/Constraints/GreaterThanOrEqualConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/GreaterThanOrEqualConstraintTests.cs",
+    "sha256": "48b0b23f74236fa348599e45e90e2b7b4b7e48022a8d6a00cbcdfe1a9d8425d5"
+  },
+  {
+    "path": "framework-tests/Constraints/IndexerConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/IndexerConstraintTests.cs",
+    "sha256": "b9886fde89f0a4447c55f6048a20d6f0452833393409743b280eac08ccf37663"
+  },
+  {
+    "path": "framework-tests/Constraints/InstanceOfTypeConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/InstanceOfTypeConstraintTests.cs",
+    "sha256": "abe41bf925cc62a88c40f5512414f3995730b7eaa3ace48328cdd0ec97eeda04"
+  },
+  {
+    "path": "framework-tests/Constraints/IntervalTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/IntervalTests.cs",
+    "sha256": "25f6cbdd5a3f935ede54630d81fcab702f569b8f4943f709a1e5e30cd3ca1297"
+  },
+  {
+    "path": "framework-tests/Constraints/LessThanConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/LessThanConstraintTests.cs",
+    "sha256": "bbea3e5c96e691d4b29c638537c88b7237206eaf595e5c4b7069f7a32edd67e9"
+  },
+  {
+    "path": "framework-tests/Constraints/LessThanOrEqualConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/LessThanOrEqualConstraintTests.cs",
+    "sha256": "3e63bc8c2bb2b0ce845bf3d7be3cc7ea8821bc1b8c9914de76bf65abd3e2c425"
+  },
+  {
+    "path": "framework-tests/Constraints/MsgUtilTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/MsgUtilTests.cs",
+    "sha256": "0275a8eba81eebc43c91dec99289b0755b7f4403307bfd84687589b1d3b4f0da"
+  },
+  {
+    "path": "framework-tests/Constraints/NoItemConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/NoItemConstraintTests.cs",
+    "sha256": "93f6dbebe2e066c9d7249d89abd330cd68b7668ac6b957e15579044f406bffd8"
+  },
+  {
+    "path": "framework-tests/Constraints/NotConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/NotConstraintTests.cs",
+    "sha256": "320074f9d94a835340efddbe7ee166a2fe7ffa98ac6836ba1703de761c94486c"
+  },
+  {
+    "path": "framework-tests/Constraints/NumericsTest.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/NumericsTest.cs",
+    "sha256": "374eee6a263182e3edef03cb6e269b0916190f52a9ba2648ad1d0dd30dd6a8c3"
+  },
+  {
+    "path": "framework-tests/Constraints/NUnitComparerTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/NUnitComparerTests.cs",
+    "sha256": "f0c911b4767759ccac47b8e3b82507ec4fe50baf6b315b24ff58b452589e5e29"
+  },
+  {
+    "path": "framework-tests/Constraints/NUnitEqualityComparerTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/NUnitEqualityComparerTests.cs",
+    "sha256": "7ec93914026d2a8a5371f2926318149af3ff63e9356d34d40781471bc315e28c"
+  },
+  {
+    "path": "framework-tests/Constraints/OrConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/OrConstraintTests.cs",
+    "sha256": "0435cb57d4c4ebd9b219ad03fe31d38f946af0aced9d55c8ee46ad406ce7fee6"
+  },
+  {
+    "path": "framework-tests/Constraints/PathConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/PathConstraintTests.cs",
+    "sha256": "a86c4996dc83c3341ef9861464296a346a298fb1be5e4ca8c2230625beb35c18"
+  },
+  {
+    "path": "framework-tests/Constraints/PredicateConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/PredicateConstraintTests.cs",
+    "sha256": "542e3283224be5cdee6ceb438bc2d4b929b1b1763a344b4cbe458129ccf82ae7"
+  },
+  {
+    "path": "framework-tests/Constraints/PropertyConstraintTypeHierarchyTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/PropertyConstraintTypeHierarchyTests.cs",
+    "sha256": "e82130b05ea15fa1f0dcfc1ab86b3967d9a59ac09c69f4f4d75e31b07a045699"
+  },
+  {
+    "path": "framework-tests/Constraints/PropertyTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/PropertyTests.cs",
+    "sha256": "d5d8d14845db414eb6dc1b342018e693a47e747f9f1190a5f919663f233f89c2"
+  },
+  {
+    "path": "framework-tests/Constraints/RangeConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/RangeConstraintTests.cs",
+    "sha256": "21c281e8081cd0f2f5d7d7836dddc329d40b8283dfe665e4004728fe4015e6fb"
+  },
+  {
+    "path": "framework-tests/Constraints/RangeTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/RangeTests.cs",
+    "sha256": "78b57fef5bfcfac1e41f61ac1d42c656dda6a84c6f072b4c4dcdb17f96ab5952"
+  },
+  {
+    "path": "framework-tests/Constraints/RegexConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/RegexConstraintTests.cs",
+    "sha256": "a79836bf95a287fddf443da0bbf5e9c6b84de8d8fa8824297596e85bdc3cb6b4"
+  },
+  {
+    "path": "framework-tests/Constraints/ReusableConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/ReusableConstraintTests.cs",
+    "sha256": "874154f6acc833fdbb7ef8a35aca7bc14aba8bae3bfee90f045c58ef3c9eda16"
+  },
+  {
+    "path": "framework-tests/Constraints/SameAsTest.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/SameAsTest.cs",
+    "sha256": "1e5b2a9c88efb42e87a493b751f05c54c0b1bb3ca763566332ec9c7fe741b59c"
+  },
+  {
+    "path": "framework-tests/Constraints/SomeItemsConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/SomeItemsConstraintTests.cs",
+    "sha256": "59e03bdd6eb08e7eaa068c0f4682ecdb27d2970a28fc4a1e0eee8abcac75b11f"
+  },
+  {
+    "path": "framework-tests/Constraints/StartsWithConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/StartsWithConstraintTests.cs",
+    "sha256": "98711bb5760b6786d40c4c349e7def9fa7f1857a884e980dd2d3ea0d4772c84b"
+  },
+  {
+    "path": "framework-tests/Constraints/StreamsComparerTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/StreamsComparerTests.cs",
+    "sha256": "ddc3a05a3b6c21ce421386e2595afe40d714303037a2881478b587f7d76b6f92"
+  },
+  {
+    "path": "framework-tests/Constraints/StringConstraintTest.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/StringConstraintTest.cs",
+    "sha256": "2b0bd28fb62da0842c0f07a6fac19e10a5f2cd5c1b3363be1b46c5a070261ba0"
+  },
+  {
+    "path": "framework-tests/Constraints/SubstringConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/SubstringConstraintTests.cs",
+    "sha256": "ab2ba2f66092cbc9c28f2d8c4c5ed9ec14988a651816a7de93ae94ee72b154b5"
+  },
+  {
+    "path": "framework-tests/Constraints/ThrowsConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/ThrowsConstraintTests.cs",
+    "sha256": "2651788fc23b3f4e02940fb5854b1896ad3a3aa662b1be1d7c2a1af1ab7ba68d"
+  },
+  {
+    "path": "framework-tests/Constraints/ThrowsExceptionConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/ThrowsExceptionConstraintTests.cs",
+    "sha256": "ae034c21e5f319e52db74fe257e5a43bcf06d40bb3ed5821b925709151183a55"
+  },
+  {
+    "path": "framework-tests/Constraints/ToleranceTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/ToleranceTests.cs",
+    "sha256": "0b6b2ded735aa483870c60414469efa3256d599a5a3b461c038b3d557364a951"
+  },
+  {
+    "path": "framework-tests/Constraints/ToStringTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/ToStringTests.cs",
+    "sha256": "aff7a3d7078c91a158f2cddf724414a40cdfcc4981a9bdcc0852a8ea95368ef5"
+  },
+  {
+    "path": "framework-tests/Constraints/TupleEqualityTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/TupleEqualityTests.cs",
+    "sha256": "69234f496894a54e25edeeeaeca83e3be2e91c6051368c8602dd343454a96d04"
+  },
+  {
+    "path": "framework-tests/Constraints/UniqueItemsConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/UniqueItemsConstraintTests.cs",
+    "sha256": "f9b706a2b8477d966d3cf8074ab7e4079a91e2587294d7380a627869d12b3365"
+  },
+  {
+    "path": "framework-tests/Constraints/ValueTupleEqualityTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/ValueTupleEqualityTests.cs",
+    "sha256": "c3de91e7ead0c1488011c62fcfc58a9dbf31c90ba9c38f44b22a55ad5cb16e73"
+  },
+  {
+    "path": "framework-tests/Constraints/WhiteSpaceContraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/WhiteSpaceContraintTests.cs",
+    "sha256": "3fd029a68e6aa5c4b59b36b10200542a72f99ee5c0065e7ff39ddbf7b4209c9f"
+  },
+  {
+    "path": "framework-tests/Constraints/XmlSerializableTest.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Constraints/XmlSerializableTest.cs",
+    "sha256": "ffdf9502f60dbfec1eb8994535afa7d14428670c31e820640ce47041f8d581a5"
+  },
+  {
+    "path": "framework-tests/Properties/AssemblyInfo.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Properties/AssemblyInfo.cs",
+    "sha256": "b307dc02c650bb781edeaa2204a57eb0a6dbd2f6e99ae9b748a49cad695fba07"
+  },
+  {
+    "path": "framework-tests/Syntax/AfterTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Syntax/AfterTests.cs",
+    "sha256": "4163647b1cbe518d16c0a11e146a7d9deaa6930886ab0fbf4428292bdfd2ad83"
+  },
+  {
+    "path": "framework-tests/Syntax/AnyOfTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Syntax/AnyOfTests.cs",
+    "sha256": "126e9155299b48a3cb4e14a2e159b8804cf7ea9d6d807cdbfac429191b64c7fc"
+  },
+  {
+    "path": "framework-tests/Syntax/ArbitraryConstraintMatchingTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Syntax/ArbitraryConstraintMatchingTests.cs",
+    "sha256": "b5c4d32ac9b37984e747083467c9d12b99334bbceca96253114953ce401879e9"
+  },
+  {
+    "path": "framework-tests/Syntax/CollectionTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Syntax/CollectionTests.cs",
+    "sha256": "7c99603932e67835a6728d03bfeb245b80c66c6e3864cca2f834a7472c55595c"
+  },
+  {
+    "path": "framework-tests/Syntax/ComparisonTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Syntax/ComparisonTests.cs",
+    "sha256": "89e8ff2451e91442652d8f18c1bbd259f98381032e8f6c8659dc9007331601a5"
+  },
+  {
+    "path": "framework-tests/Syntax/DefaultConstraintSyntaxTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Syntax/DefaultConstraintSyntaxTests.cs",
+    "sha256": "688f6a8c007db00944810e4254cc2dc06752f4a61ee2a5760a9828c8450e4be3"
+  },
+  {
+    "path": "framework-tests/Syntax/EqualityTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Syntax/EqualityTests.cs",
+    "sha256": "29a9603b21653fdd97c703968443dd4d263059434bb1227d945f042881c1b6d4"
+  },
+  {
+    "path": "framework-tests/Syntax/InvalidCodeTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Syntax/InvalidCodeTests.cs",
+    "sha256": "4069b0aa55415348264f646f59fe068fee6e4fe48db5ebbbeb3dbc05933e70d3"
+  },
+  {
+    "path": "framework-tests/Syntax/OperatorOverridesTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Syntax/OperatorOverridesTests.cs",
+    "sha256": "5acf16f1b0e79dde0a1f4c0697ac15cf787e3c4ec3d211476efc63894d92ea1a"
+  },
+  {
+    "path": "framework-tests/Syntax/OperatorTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Syntax/OperatorTests.cs",
+    "sha256": "c8fa1436f1cc6d68040b34037ae393506d797879db506a94d9158727f480b521"
+  },
+  {
+    "path": "framework-tests/Syntax/PathConstraintTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Syntax/PathConstraintTests.cs",
+    "sha256": "a5181787c46c8ec87bc4fa1c04d58106765bfa1325563e064921b39e7460e5a7"
+  },
+  {
+    "path": "framework-tests/Syntax/PropertyTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Syntax/PropertyTests.cs",
+    "sha256": "1ec8e2b7d828dd175e42d0fbc7dfa1585942f5ef53d5266d21de40004e801728"
+  },
+  {
+    "path": "framework-tests/Syntax/SerializableConstraintsTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Syntax/SerializableConstraintsTests.cs",
+    "sha256": "c4bd879face292cf55307160d8cc63317258e85105c5539cfe39b3dbcf20cbc0"
+  },
+  {
+    "path": "framework-tests/Syntax/SimpleConstraintsTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Syntax/SimpleConstraintsTests.cs",
+    "sha256": "fbb0d9a61b9ea6f59b2c5ca3cf3bc8277e5b8b13f37754ce177178a0994913ce"
+  },
+  {
+    "path": "framework-tests/Syntax/StringConstraintsTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Syntax/StringConstraintsTests.cs",
+    "sha256": "ebb6c9ca72cbb2cae2a9c5b472883715e4b0eaa756f1eb8ff90dc5b1e927d382"
+  },
+  {
+    "path": "framework-tests/Syntax/SyntaxHelperExtensionTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Syntax/SyntaxHelperExtensionTests.cs",
+    "sha256": "018ba7a342e5a7c484f5d58b22295c50887296521b363389870a218a72838cfa"
+  },
+  {
+    "path": "framework-tests/Syntax/SyntaxTest.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Syntax/SyntaxTest.cs",
+    "sha256": "7f877b4c046f8042eeb1b5106b5ff0cebc5037df974a7c24bcee9e8d5a53be79"
+  },
+  {
+    "path": "framework-tests/Syntax/ThrowsTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Syntax/ThrowsTests.cs",
+    "sha256": "910660a6de2aa07bb68976762d1c3855e47f480b9716a80af549db1ed4c44243"
+  },
+  {
+    "path": "framework-tests/Syntax/TypeConstraintsTests.cs",
+    "upstreamPath": "src/NUnitFramework/tests/Syntax/TypeConstraintsTests.cs",
+    "sha256": "2d5eeee96226def34c25fec325bad92b69dada4e5e8e8b9138fd217eadec8629"
+  },
+  {
+    "path": "framework-tests/TestUtilities/AsyncTestDelegates.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/AsyncTestDelegates.cs",
+    "sha256": "61df9e9ebb66b8f7375624bbdda0184aa79e75452b204e22faf3ffde15c9ce77"
+  },
+  {
+    "path": "framework-tests/TestUtilities/CallbackEventHandler.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/CallbackEventHandler.cs",
+    "sha256": "dd8c1cc9e3f11bf984863efbe11169e2ce1108519b803622aba2ca18d9b2dcc6"
+  },
+  {
+    "path": "framework-tests/TestUtilities/CallbackWatcher.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/CallbackWatcher.cs",
+    "sha256": "5293890711b0ff0b28fb23d4a4de7d3c6d291b9f8172307a7bef295635478c8f"
+  },
+  {
+    "path": "framework-tests/TestUtilities/DummyConstraint.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/DummyConstraint.cs",
+    "sha256": "e454f8746b7f755e1f532786b66eca0308e827379e12129f18ffff07e590067f"
+  },
+  {
+    "path": "framework-tests/TestUtilities/IEnumerableExtensions.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/IEnumerableExtensions.cs",
+    "sha256": "b386f01edc9de35793dd8bb92681d998a03328091ab9b008ddb39d72037698b4"
+  },
+  {
+    "path": "framework-tests/TestUtilities/ResultSummary.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/ResultSummary.cs",
+    "sha256": "97ecebd806caffef0c7ad3770314194d80db3a8e1231e88e85cb6915d8479830"
+  },
+  {
+    "path": "framework-tests/TestUtilities/StressUtility.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/StressUtility.cs",
+    "sha256": "fbc186d24d9486a7cb0bdf6bfb08a055f54042fecda25e6ccac118ce3398103b"
+  },
+  {
+    "path": "framework-tests/TestUtilities/TestAssert.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/TestAssert.cs",
+    "sha256": "83ea404d29a5f8dd200cf683096cf280696c5dc97d85a475dac1f8027ae6555c"
+  },
+  {
+    "path": "framework-tests/TestUtilities/TestCompiler.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/TestCompiler.cs",
+    "sha256": "4970ff5bdb23bf628c52ecb1342c3138868e09d5e21c3972e64321ab7f2bc31d"
+  },
+  {
+    "path": "framework-tests/TestUtilities/TestDelegates.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/TestDelegates.cs",
+    "sha256": "c81f0e340ff348390c0a5a74fb7da0658af2ab67453366a0bc298fc32f0eb813"
+  },
+  {
+    "path": "framework-tests/TestUtilities/TestDirectory.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/TestDirectory.cs",
+    "sha256": "71c8c2e083e4763c363cd0c3711f861796c92afb7262dd599d2dcc9072d12211"
+  },
+  {
+    "path": "framework-tests/TestUtilities/TestFinder.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/TestFinder.cs",
+    "sha256": "13c0c7d4fae2da9a3bdce0870c6812bf511f33a0a895702087e2dc1f5dc1178e"
+  },
+  {
+    "path": "framework-tests/TestUtilities/TestUtils.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/TestUtils.cs",
+    "sha256": "bcc5ba658ad9dd7c2cd5ea1d95183a24635af65b1c4337a6bedb28bba0f6db01"
+  },
+  {
+    "path": "framework-tests/TestUtilities/UniqueValues.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/UniqueValues.cs",
+    "sha256": "5c5b3de3f0da1826e6a7731b5f2a8ee9885827fce0d923b28e1b151ad858090a"
+  },
+  {
+    "path": "framework-tests/TestUtilities/Collections/SimpleEnumerable.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/Collections/SimpleEnumerable.cs",
+    "sha256": "71f69197a5ba0438574b5a8ca9b3c3e313bb7c084db161aa6ad7e634f25c2fc8"
+  },
+  {
+    "path": "framework-tests/TestUtilities/Collections/SimpleEnumerableWithIEquatable.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/Collections/SimpleEnumerableWithIEquatable.cs",
+    "sha256": "c8cb508a86ca7382dc08c2ec948a6fa0916de7c89b48211863f60cbc58643125"
+  },
+  {
+    "path": "framework-tests/TestUtilities/Collections/SimpleObjectCollection.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/Collections/SimpleObjectCollection.cs",
+    "sha256": "62c55f5a505309e46758a8d3df3b91186be5a1542f11f302752a358c2e8a16ad"
+  },
+  {
+    "path": "framework-tests/TestUtilities/Collections/SimpleObjectList.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/Collections/SimpleObjectList.cs",
+    "sha256": "2b8b03c67047556751a6b5dc0cd416920506717ed60d81d2e020551a043dad03"
+  },
+  {
+    "path": "framework-tests/TestUtilities/Comparers/AlwaysEqualComparer.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/Comparers/AlwaysEqualComparer.cs",
+    "sha256": "7bb5582dff925c1de662a0b9062eccc516e9aae17454ad88e80b9b2612e2b1f3"
+  },
+  {
+    "path": "framework-tests/TestUtilities/Comparers/GenericComparer.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/Comparers/GenericComparer.cs",
+    "sha256": "1351709079626a8c60e483a444e7bbf597804940806eba71caee6d98355492a5"
+  },
+  {
+    "path": "framework-tests/TestUtilities/Comparers/GenericComparison.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/Comparers/GenericComparison.cs",
+    "sha256": "11bf8d264f5a86cdbcba1797c74f9a807cb6e00d498bf1622609a839120f05ed"
+  },
+  {
+    "path": "framework-tests/TestUtilities/Comparers/GenericEqualityComparer.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/Comparers/GenericEqualityComparer.cs",
+    "sha256": "ce853472297079d16a5461c5922e8745af0484673d036dcefae2f210b00444c0"
+  },
+  {
+    "path": "framework-tests/TestUtilities/Comparers/GenericEqualityComparison.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/Comparers/GenericEqualityComparison.cs",
+    "sha256": "6a65092c0dbfb5cc1c64d6eeb7daa6b50e51ee75da186996175ed7b31b1853e2"
+  },
+  {
+    "path": "framework-tests/TestUtilities/Comparers/ObjectComparer.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/Comparers/ObjectComparer.cs",
+    "sha256": "4b67a3578d3dd9e8e275a8412c714d8ea435ce5abafcb4618b6e75befa6c533f"
+  },
+  {
+    "path": "framework-tests/TestUtilities/Comparers/ObjectEqualityComparer.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/Comparers/ObjectEqualityComparer.cs",
+    "sha256": "6ffea2b6f8b0156b2ed4f9d083f16fa507e42fe731be27502e9c3becd217ac92"
+  },
+  {
+    "path": "framework-tests/TestUtilities/Comparers/ObjectToStringComparer.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/Comparers/ObjectToStringComparer.cs",
+    "sha256": "e13772cf771c317290a016f2b102d8ab3deb575a6151fa6dcc7b33944d19dfaa"
+  },
+  {
+    "path": "framework-tests/TestUtilities/Comparers/TestComparer.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/Comparers/TestComparer.cs",
+    "sha256": "c8eae359ff9b7d45309c435407b05bf3a28662a67cbe4bf37b8ffcbb70781dac"
+  },
+  {
+    "path": "testdata/AssertCountFixture.cs",
+    "upstreamPath": "src/NUnitFramework/testdata/AssertCountFixture.cs",
+    "sha256": "e0904bb0e31d275c4efb2d3eda4b2eea334ccc48f95529785bfbbf01da48f279"
+  },
+  {
+    "path": "testdata/AssertFailFixture.cs",
+    "upstreamPath": "src/NUnitFramework/testdata/AssertFailFixture.cs",
+    "sha256": "b315bdd5476e8a287f726aa693eba0966748a576f15165cc8565b87435c66909"
+  },
+  {
+    "path": "testdata/AssertIgnoreData.cs",
+    "upstreamPath": "src/NUnitFramework/testdata/AssertIgnoreData.cs",
+    "sha256": "340eb6945d9bf4147a161352a2d841dffc61ec6645d6aed520549b107a9caf40"
+  },
+  {
+    "path": "testdata/AssertMultipleData.cs",
+    "upstreamPath": "src/NUnitFramework/testdata/AssertMultipleData.cs",
+    "sha256": "963fdcb46b8e9f00d7d1b864477df400f94113054e28dc817d952eb76ccf215e"
+  },
+  {
+    "path": "testdata/WarningFixture.cs",
+    "upstreamPath": "src/NUnitFramework/testdata/WarningFixture.cs",
+    "sha256": "ffbab2b6d2cdaa4ea613ce5da39d3a4f7494785b87a68f0f78d9bd0683362205"
+  },
+  {
+    "path": "TestUtilities/Fakes.cs",
+    "upstreamPath": "src/NUnitFramework/Fakes.cs",
+    "sha256": "4e99ee5f93c459f9ed07a50a6ab657192c8bc607d63fdccf3ce73ca134f35654"
+  },
+  {
+    "path": "TestUtilities/HelperConstraints.cs",
+    "upstreamPath": "src/NUnitFramework/tests/HelperConstraints.cs",
+    "sha256": "bb0fb6ea9132d072c1806420af9b8883e7cf5b9c337e5ebc78c8da1661a38454"
+  },
+  {
+    "path": "TestUtilities/PlatformInconsistency.cs",
+    "upstreamPath": "src/NUnitFramework/tests/PlatformInconsistency.cs",
+    "sha256": "b597b9757a0238e1fe3c36357a6cc79101b12238d5ee26f966729d72317de29f"
+  },
+  {
+    "path": "TestUtilities/SchemaTestUtils.cs",
+    "upstreamPath": "src/NUnitFramework/SchemaTestUtils.cs",
+    "sha256": "fa8254da18d75f4a529e9df5295c1527b26a80d595c2a75b183d46471e5e2e3b"
+  },
+  {
+    "path": "TestUtilities/TestBuilder.cs",
+    "upstreamPath": "src/NUnitFramework/TestBuilder.cs",
+    "sha256": "a80dd07da24ad6332ce01ab85c0cbe5941bea4c3e8d00daf96555d05cd69e812"
+  },
+  {
+    "path": "TestUtilities/TestFile.cs",
+    "upstreamPath": "src/NUnitFramework/TestFile.cs",
+    "sha256": "fc78cbc780f56018fb175c64feda1aeb2fa6c6fa77a7f35b49e95f5e46a12765"
+  },
+  {
+    "path": "TestUtilities/TestSuiteExtensions.cs",
+    "upstreamPath": "src/NUnitFramework/TestSuiteExtensions.cs",
+    "sha256": "a77e553d8b40313b5aaf1ea36ab64e01f1458a1fa839048535a18615401c1f3f"
+  }
+]

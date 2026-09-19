@@ -1,0 +1,10 @@
+{
+  "Title": "NUnit 5 Snapshot Tests",
+  "Status": "Test Host",
+  "Suite": "NUnit 5 Framework Self-Tests",
+  "Compatibility": "C# Compatibility",
+  "Run": "Run Tests",
+  "Discovery": "Test Discovery",
+  "Discover": "Discover Tests",
+  "DesktopConnection": "Desktop Runner"
+}

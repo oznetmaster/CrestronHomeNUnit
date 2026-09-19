@@ -33,9 +33,18 @@ public static class EmbeddedTestHost
 				}
 
 			_stopRequested = true;
-			_activeRunner?.StopRun (false);
+			StopActiveRunner ();
 			return true;
 			}
+		}
+
+	private static void StopActiveRunner ()
+		{
+#if NUNIT5_SNAPSHOT
+		_activeRunner?.StopRun ();
+#else
+		_activeRunner?.StopRun (false);
+#endif
 		}
 
 	public static int Run (Assembly testAssembly, string workDirectory, TextWriter output, bool explore = false, string suite = "self-tests") => RunWithProgress (testAssembly, workDirectory, output, explore, suite, null, null, CancellationToken.None);
@@ -56,6 +65,11 @@ public static class EmbeddedTestHost
 			{
 			workDirectory = Path.GetFullPath (workDirectory);
 			Directory.CreateDirectory (workDirectory);
+#if NUNIT5_SNAPSHOT
+			Type? monoRuntime = Type.GetType ("Mono.Runtime");
+			object? monoVersion = monoRuntime?.GetMethod ("GetDisplayName", BindingFlags.NonPublic | BindingFlags.Static)?.Invoke (null, null);
+			output.WriteLine ($"Diagnostic runtime: CLR {Environment.Version}; Mono {monoVersion ?? (object)(monoRuntime != null)}; OS {Environment.OSVersion}");
+#endif
 			string filterXml = suiteFilterXml ?? suite switch
 				{
 					"self-tests" => "<filter><namespace re='1'>^NUnit[.]Framework[.]Tests[.](Assertions|Constraints|Syntax)($|[.])</namespace></filter>",
@@ -169,7 +183,7 @@ public static class EmbeddedTestHost
 				{
 				if (_stopRequested)
 					{
-					_activeRunner?.StopRun (false);
+					StopActiveRunner ();
 					}
 				}
 

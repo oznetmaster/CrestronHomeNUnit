@@ -1,5 +1,7 @@
 # Crestron Home NUnit
 
+For testing the pinned NUnit 5 development snapshot on Mono/net472, see the separate [NUnit 5 diagnostic package](NUnit5/README.md). Stable processor packages continue to use NUnit 4.6.1.
+
 For the complete local-to-processor development cycle, see the [continuous integration guide](docs/ContinuousIntegration.md), including private settings, gated actual-driver deployment, evidence and optional test-instance removal.
 
 These tools run desktop, processor, live-device and Android UI tests, and report their results through the Windows runner, CLI or Visual Studio Test Explorer. Driver submission is a separate, optional workflow documented in [CrestronHomeDevTools](https://github.com/oznetmaster/CrestronHomeDevTools/blob/main/docs/CrestronSubmission.md); it is not required for testing or GitHub/NuGet publication.

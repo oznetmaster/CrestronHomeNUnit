@@ -27,6 +27,10 @@ Post-merge modifications to the framework include compatibility namespace/type-r
 
 The separately copied `System.Threading.Lock` compatibility source retains its NUnit notice and the accompanying [NUnit shim license](licenses/NUnit-Shims-LICENSE.txt), whose attribution differs from the pinned v4.6.1 license. `OverloadResolutionPriorityAttribute.cs` retains the .NET Foundation's MIT notice; see [the .NET license](licenses/DotNet-LICENSE.txt).
 
+## Optional NUnit 5 diagnostic snapshot
+
+The projects under [NUnit5](NUnit5/README.md) independently pin NUnit **5.0.0-beta.1.52** from the official MyGet feed and unchanged selected self-test source at **a45c70a519784f73bba4a685cb30e28077273bbe**. They do not replace the stable dependency above. Original NUnit copyright, MIT license and upstream notices are retained in `NUnit5/vendor/nunit`; its provenance file records the source mapping and hashes. Roslyn **5.9.0**, System.Collections.Immutable **10.0.12**, System.Memory **4.6.3** and Microsoft.Bcl.AsyncInterfaces **10.0.12** support the diagnostic tests. Their .NET MIT license and Roslyn third-party notices are under `NUnit5/licenses` and included in the diagnostic processor package.
+
 ## Configuration workflow dependency
 
 The CLI workflow and Test Explorer adapter use [CrestronHomeDevTools 1.6.0](https://github.com/oznetmaster/CrestronHomeDevTools), copyright (c) 2026 Neil Colvin, under the MIT license. It uses the same SSH.NET version listed below and adds no Crestron SDK runtime dependency to the desktop tooling. The adapter's NuGet package includes project-owned Workflow, Android, Client and Transport assemblies under the root MIT license; third-party runtime dependencies are restored as separate NuGet packages with their own licenses. Microsoft.TestPlatform.ObjectModel 18.9.0 is a build dependency under Microsoft's MIT license, supplied at runtime by the VSTest host.

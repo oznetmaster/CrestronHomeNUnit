@@ -1,0 +1,3 @@
+# Keep the diagnostic upstream snapshot byte-for-byte identical to its hash inventory.
+NUnit5/vendor/nunit/** -text -whitespace
+NUnit5/licenses/** -text -whitespace

@@ -1,0 +1,37 @@
+<!--
+Copyright (c) 2026 Neil Colvin.
+Licensed under the MIT License. See LICENSE in the repository root.
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- Preserve the published friend identity for NUnit's internal API tests. -->
+    <TargetFramework>net472</TargetFramework>
+    <AssemblyName>nunit.framework.tests</AssemblyName>
+    <RootNamespace>NUnit.Framework.Tests</RootNamespace>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>..\vendor\nunit\nunit.snk</AssemblyOriginatorKeyFile>
+    <Nullable>enable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <Optimize>false</Optimize>
+    <!-- Imported helpers normally use upstream's annotated BCL references. -->
+    <NoWarn>$(NoWarn);CS8632;CS8602;CS8603;CS8604;CS8618</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\vendor\nunit\framework-tests\TestText1.txt" LogicalName="NUnit.Framework.Tests.TestText1.txt" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+    <Compile Include="..\..\CrestronHomeNUnit.SelfTests\Shims\*.cs" Link="Shims\%(Filename)%(Extension)" />
+    <PackageReference Include="NUnit" Version="$(NUnitVersion)" />
+    <PackageReference Include="System.Collections.Immutable" Version="10.0.12" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
+    <Compile Include="..\vendor\nunit\framework-tests\Properties\AssemblyInfo.cs" Link="Properties\UpstreamAssemblyInfo.cs" />
+    <PackageReference Include="System.Memory" Version="4.6.3" />
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.12" />
+    <Compile Include="..\vendor\nunit\framework-tests\Assertions\**\*.cs" Exclude="..\vendor\nunit\framework-tests\Assertions\LowTrustFixture.cs" Link="Assertions\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\vendor\nunit\framework-tests\Constraints\**\*.cs" Link="Constraints\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\vendor\nunit\framework-tests\Syntax\**\*.cs" Link="Syntax\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\vendor\nunit\framework-tests\TestUtilities\**\*.cs" Exclude="..\vendor\nunit\framework-tests\TestUtilities\CallbackEventHandler.cs" Link="TestUtilities\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\vendor\nunit\TestUtilities\*.cs" Link="TestUtilities\%(Filename)%(Extension)" />
+    <Compile Include="..\vendor\nunit\testdata\*.cs" Link="TestData\%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

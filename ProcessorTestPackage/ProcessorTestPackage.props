@@ -13,11 +13,12 @@ Licensed under the MIT License. See LICENSE in the repository root.
     <Deterministic>true</Deterministic>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <ProcessorExpectedTestCount Condition="'$(ProcessorExpectedTestCount)' == ''">0</ProcessorExpectedTestCount>
+    <ProcessorNUnitVersion Condition="'$(ProcessorNUnitVersion)' == ''">4.6.1</ProcessorNUnitVersion>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System.Runtime.Serialization" />
     <PackageReference Include="Makaretu.Dns.Multicast" Version="0.27.0" />
-    <PackageReference Include="NUnit" Version="4.6.1" />
+    <PackageReference Include="NUnit" Version="$(ProcessorNUnitVersion)" />
     <PackageReference Include="Crestron.DeviceDrivers.DevKit" Version="27.0.24" />
     <PackageReference Include="Hafner.Compatibility.MetaPackage" Version="1.9.0" />
   </ItemGroup>

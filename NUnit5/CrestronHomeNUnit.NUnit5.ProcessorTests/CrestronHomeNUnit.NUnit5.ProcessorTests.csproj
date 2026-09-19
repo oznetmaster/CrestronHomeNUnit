@@ -1,0 +1,42 @@
+<!-- Copyright (c) 2026 Neil Colvin. MIT License; see the CrestronHomeNUnit LICENSE. -->
+<Project>
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+  <Import Project="$(MSBuildProjectName).Local.targets" Condition="Exists('$(MSBuildProjectName).Local.targets')" />
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>false</IsTestProject>
+    <ProcessorTestSdkRoot Condition="'$(ProcessorTestSdkRoot)' == ''">$(MSBuildProjectDirectory)\..\..</ProcessorTestSdkRoot>
+    <BuildProcessorTestPackages Condition="'$(BuildProcessorTestPackages)' == '' And '$(BuildingInsideVisualStudio)' == 'true'">true</BuildProcessorTestPackages>
+    <BuildProcessorTestPackages Condition="'$(BuildProcessorTestPackages)' == ''">false</BuildProcessorTestPackages>
+    <AssemblyName>CrestronHomeNUnit.NUnit5.ProcessorTests</AssemblyName>
+    <RootNamespace>CrestronHomeNUnit.Driver</RootNamespace>
+    <Version>0.1.0</Version>
+    <Optimize>false</Optimize>
+    <!-- This snapshot intentionally retains upstream invalid fixtures for runtime comparison. -->
+    <ProcessorReportInvalidTests>true</ProcessorReportInvalidTests>
+  </PropertyGroup>
+  <Import Project="$(ProcessorTestSdkRoot)\ProcessorTestPackage\ProcessorTestPackage.props" Condition="'$(BuildProcessorTestPackages)' == 'true' And Exists('$(ProcessorTestSdkRoot)\ProcessorTestPackage\ProcessorTestPackage.props')" />
+  <ItemGroup Condition="'$(BuildProcessorTestPackages)' == 'true'">
+    <ProcessorTestData Include="..\vendor\nunit\LICENSE.txt;..\vendor\nunit\NOTICES.md;..\vendor\nunit\THIRD_PARTY_NOTICES.md;..\vendor\nunit\THIRD_PARTY_NOTICES_DEV.md">
+      <TargetPath>Licenses\NUnit5\%(Filename)%(Extension)</TargetPath>
+    </ProcessorTestData>
+    <ProcessorTestData Include="..\licenses\*">
+      <TargetPath>Licenses\NUnit5\%(Filename)%(Extension)</TargetPath>
+    </ProcessorTestData>
+    <ProjectReference Include="..\CrestronHomeNUnit.NUnit5.SelfTests\CrestronHomeNUnit.NUnit5.SelfTests.csproj" />
+    <ProjectReference Include="..\CrestronHomeNUnit.NUnit5.CompatibilityTests\CrestronHomeNUnit.NUnit5.CompatibilityTests.csproj" />
+  </ItemGroup>
+  <Import Project="$(ProcessorTestSdkRoot)\ProcessorTestPackage\ProcessorTestPackage.targets" Condition="'$(BuildProcessorTestPackages)' == 'true' And Exists('$(ProcessorTestSdkRoot)\ProcessorTestPackage\ProcessorTestPackage.targets')" />
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+  <PropertyGroup Condition="'$(BuildProcessorTestPackages)' != 'true'">
+    <BuildDependsOn>SkipProcessorPackage</BuildDependsOn>
+    <RebuildDependsOn>SkipProcessorPackage</RebuildDependsOn>
+  </PropertyGroup>
+  <Target Name="SkipProcessorPackage">
+    <Message Importance="high" Text="Processor packaging skipped. Build in Visual Studio or set BuildProcessorTestPackages=true on Windows." />
+  </Target>
+  <Target Name="CheckProcessorTestSdk" BeforeTargets="PrepareForBuild" Condition="'$(BuildProcessorTestPackages)' == 'true'">
+    <Error Condition="!Exists('$(ProcessorTestSdkRoot)\ProcessorTestPackage\ProcessorTestPackage.targets')" Text="Set ProcessorTestSdkRoot to the CrestronHomeNUnit checkout containing the processor package SDK." />
+  </Target>
+</Project>
