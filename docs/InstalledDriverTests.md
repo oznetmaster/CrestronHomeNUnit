@@ -1,6 +1,8 @@
 # Test an unchanged installed driver
 
-This command requires **Crestron Home NUnit 1.12.0** and **CrestronHomeDevTools 1.9.0** or later. The adapter declares the DevTools dependency; the Windows CLI download includes it. Isolated NuGet and CLI acceptance covers plan validation, selected-case execution rules, retained evidence and refusal of invalid inputs. A complete hardware run of this dedicated phase remains to be validated; earlier full-workflow hardware runs do not establish that result.
+Use **Crestron Home NUnit 1.12.1** and **CrestronHomeDevTools 1.13.1** or later. The adapter declares the DevTools dependency; the Windows CLI download includes it. The initial 1.12.0 implementation could reject a valid installed candidate because the payload checker treated its full configuration catalogue ID as a storage-folder name. The corrected checker resolves the unversioned driver key and separate version directory while retaining candidate-version and file-integrity checks.
+
+Isolated NuGet and CLI acceptance covers plan validation, selected-case execution rules, retained evidence and refusal of invalid inputs. A hardware run of the corrected workflow passed selected read-only Android fixtures, candidate verification before and after, declared temporary-child creation/removal, Home restoration and reservation release. This validates those exercised paths; it does not establish that every driver fixture, control operation or recovery scenario has been tested.
 
 The `installed-tests` phase runs Android NUnit fixtures against a deliberately selected, already-installed candidate. It does not build, install, update, reload, remove or renumber that parent driver. It complements the full deployment workflow: earlier local, processor and deployment results remain separate evidence. A later UI phase does not retroactively make an earlier gate pass.
 
