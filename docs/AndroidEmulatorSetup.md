@@ -7,9 +7,8 @@ This is useful for ordinary driver development. It does not require or initiate 
 ## Contents
 
 - [What runs where](#what-runs-where)
-- [Choose an emulator](#choose-an-emulator)
+- [Recommended emulator](#recommended-emulator)
 - [Install and start Google Android Emulator](#install-and-start-google-android-emulator)
-- [Install and start BlueStacks](#install-and-start-bluestacks)
 - [Install the Crestron Home app inside the emulator](#install-the-crestron-home-app-inside-the-emulator)
 - [Enable and check ADB](#enable-and-check-adb)
 - [Check and update the Crestron Home app](#check-and-update-the-crestron-home-app)
@@ -18,10 +17,11 @@ This is useful for ordinary driver development. It does not require or initiate 
 - [Run the first complete workflow](#run-the-first-complete-workflow)
 - [Daily use and CI](#daily-use-and-ci)
 - [Troubleshooting](#troubleshooting)
+- [Validation history](#validation-history)
 
 ## What runs where
 
-**Google Android Emulator** and **BlueStacks** both run Android apps on a Windows computer. Google's emulator is available through Visual Studio's Android tools or Android Studio; BlueStacks is a separate app player. Either supplies the Android device for these tests. **ADB**, Android Debug Bridge, is the connection our test code uses to inspect that device and send UI inputs.
+**Google Android Emulator** runs Android apps on a Windows computer. It is available through Visual Studio's Android tools or Android Studio. **ADB**, Android Debug Bridge, is the connection our test code uses to inspect the virtual device and send UI inputs.
 
 The NUnit tests run on Windows with .NET 10. The Crestron Home app runs inside Android and communicates with your processor. No NUnit assembly is installed in Android.
 
@@ -34,16 +34,13 @@ flowchart LR
 
 You need an existing working [processor development workflow](ContinuousIntegration.md), its private credentials and certificate fingerprints, and an actual driver target. The optional Android stage runs after the driver update and installed-driver checks. The generic starter checks Home navigation; each driver needs its own control assertions.
 
-## Choose an emulator
+## Recommended emulator
 
-| Choice | Current position in this project |
-| --- | --- |
-| **Google Android Emulator**, available through Visual Studio or Android Studio | A Debug workflow passed with an Android 16 virtual device minimized. Inspection fixtures also passed from the Windows GitHub runner service against that existing emulator. |
-| **BlueStacks 5, Pie 64-bit** | A complete development workflow passed with the app running minimized in a logged-in Windows session. |
+Use **Google Android Emulator**, installed through Visual Studio or Android Studio. This is the environment used for ongoing validation. A Debug workflow passed with an Android 16 virtual device minimized; inspection fixtures also passed from the Windows GitHub runner service against that existing emulator.
 
-Choose one emulator and follow its installation section below. BlueStacks is not required for Google's emulator. Both use the shared app-installation, processor-connection and NUnit instructions that follow.
+Those workflow results used Crestron Home 4.6.18. The subsequent update to 4.11.1 has passed installation and basic reconnection checks only; full UI acceptance on that app version remains pending. See [validation history](#validation-history) for the dated observations.
 
-Microsoft's [.NET Android emulator documentation](https://learn.microsoft.com/en-us/dotnet/maui/android/emulator/?view=net-maui-10.0) describes Google's emulator integrated with Visual Studio. Our test library uses ordinary ADB and an explicit device serial, so it is not tied to BlueStacks or to a MAUI application.
+Microsoft's [.NET Android emulator documentation](https://learn.microsoft.com/en-us/dotnet/maui/android/emulator/?view=net-maui-10.0) describes Google's emulator integrated with Visual Studio. Our test library uses ordinary ADB and an explicit device serial; the NUnit fixtures do not require a MAUI application.
 
 ## Install and start Google Android Emulator
 
@@ -72,18 +69,9 @@ If you want Play Store installation, choose a device/system image that includes 
 
 Wait for Android to finish booting, then continue with [installing Crestron Home](#install-the-crestron-home-app-inside-the-emulator). Creating a virtual device does not install the Crestron app or copy connections from another emulator.
 
-## Install and start BlueStacks
-
-1. Download **BlueStacks 5 App Player** from the [official installation page](https://support.bluestacks.com/hc/en-us/articles/360061525271-How-to-download-and-install-BlueStacks-5). Install it on the Windows computer that will execute the UI tests.
-2. Check the vendor's [Windows and Hyper-V requirements](https://support.bluestacks.com/hc/en-us/articles/4415238471053-System-requirements-for-BlueStacks-5-on-Hyper-V-enabled-Windows-10-and-11). Follow the installer path appropriate to your Windows configuration. This guide does not require disabling Windows security features.
-3. Open **Multi-instance Manager**, create a **Fresh instance**, and select **Pie 64-bit**. Download the image if requested, then start that instance. See the [vendor's illustrated Pie setup](https://support.bluestacks.com/hc/en-us/articles/4407503795341-How-to-play-games-using-a-Pie-64-bit-instance-on-BlueStacks-5).
-4. Give this instance a recognizable development name. Keep its language and display configuration consistent between test runs. The supplied Crestron navigation sample currently expects English app labels.
-
-An emulator instance has its own installed apps and saved settings. Creating another instance does not automatically configure it for Crestron Home testing.
-
 ## Install the Crestron Home app inside the emulator
 
-Installing either emulator is only the first part of setup. **You must also install the Crestron Home Android app inside the specific Google virtual device or BlueStacks instance that will run your tests.** Apps and saved connections are not shared between instances.
+Installing the emulator is only the first part of setup. **You must also install the Crestron Home Android app inside the specific Google virtual device that will run your tests.** Apps and saved connections are not shared between instances.
 
 Choose an installation route:
 
@@ -98,11 +86,11 @@ $serial = 'emulator-5554' # Replace with the exact serial from adb devices.
 & $adb -s $serial install 'C:/Private/Android/CrestronHome.apk'
 ```
 
-The same command works for BlueStacks after connecting to its ADB endpoint and substituting its serial. For a split installation, use `install-multiple` followed by the paths of the base APK and every required split. Do not run both installation commands for the same installer.
+For a split installation, use `install-multiple` followed by the paths of the base APK and every required split. Do not run both installation commands for the same installer.
 
 For transfer from another Android instance, `adb -s SOURCE_SERIAL shell pm path com.crestron.phoenix.app` lists the installed APK paths. Copy each listed file to a private Windows directory with `adb -s SOURCE_SERIAL pull REMOTE_PATH LOCAL_PATH`, then install those files on the target. This copies the app, not its saved Home connections or credentials. Verify Android version and CPU compatibility; an APK from one device may not run on another. Google sign-in can be skipped during emulator setup, although the app's own runtime dependencies still need validation.
 
-Copying an app also copies its **existing version**, which may be old. A recent installation date does not prove that the app is current. Check its version and follow the update instructions below before establishing a new test baseline. BlueStacks is not needed to obtain an APK when you already have another legitimate source.
+Copying an app also copies its **existing version**, which may be old. A recent installation date does not prove that the app is current. Check its version and follow the update instructions below before establishing a new test baseline.
 
 Use the end-user **Crestron Home** app, not Configure Pro or the Setup app. After either installation route:
 
@@ -121,7 +109,7 @@ Run these checks in PowerShell **before any workflow owns the Android session**.
 
 ### Google Android Emulator
 
-Start the virtual device from Device Manager. The local emulator registers with ADB automatically; it normally appears with a serial such as `emulator-5554`. There is no BlueStacks ADB setting to enable and no `adb connect` step for this route.
+Start the virtual device from Device Manager. The local emulator registers with ADB automatically; it normally appears with a serial such as `emulator-5554`. No `adb connect` step is needed.
 
 ```powershell
 $adb = 'C:/Android/Sdk/platform-tools/adb.exe'
@@ -131,22 +119,7 @@ $serial = 'emulator-5554' # Use the exact serial listed above.
 & $adb -s $serial shell pm path com.crestron.phoenix.app
 ```
 
-### BlueStacks
-
-Open **Settings > Advanced**, enable **Android Debug Bridge**, and save the change. Record the address shown for that instance; `127.0.0.1:5555` below is only an example. The vendor's [ADB setup instructions](https://support.bluestacks.com/hc/en-us/articles/23925869130381-How-to-enable-Android-Debug-Bridge-on-BlueStacks-5) include screenshots.
-
-```powershell
-$adb = 'C:/Android/Sdk/platform-tools/adb.exe'
-$serial = '127.0.0.1:5555' # Use this instance's observed endpoint.
-& $adb connect $serial
-& $adb devices
-& $adb -s $serial shell getprop sys.boot_completed
-& $adb -s $serial shell pm path com.crestron.phoenix.app
-```
-
-BlueStacks also supplies `HD-Adb.exe`, but using the same current SDK client for both emulators avoids conflicts with older bundled clients and the shared ADB server.
-
-### Check either emulator
+### Check the emulator
 
 Check the results:
 
@@ -156,7 +129,7 @@ Check the results:
 
 Always select the device explicitly. Do not let a test choose the first of several connected Android devices. These checks read readiness and app installation; they do not prove that Home is connected to the intended processor. See [Android's ADB documentation](https://developer.android.com/tools/adb) for device selection and connection behavior.
 
-When using BlueStacks alongside Google's emulator, use one current Android SDK `adb.exe` for both. An older BlueStacks ADB client can conflict with the SDK client's shared server. BlueStacks may also move its active ADB port when another emulator occupies the configured port: verify the currently observed endpoint before connecting and update the private profile accordingly. Never restart a shared ADB server while tests own either instance.
+Use one current Android SDK ADB client for the connected devices. Never restart a shared ADB server while tests own an Android session.
 
 ## Check and update the Crestron Home app
 
@@ -221,7 +194,7 @@ Create a private directory outside your repository, accessible to the Windows ac
 }
 ```
 
-**For BlueStacks**, use the same profile structure and SDK ADB path, but set `deviceSerial` to its connected endpoint, for example `127.0.0.1:5555`. For either emulator, copy the exact serial from `adb devices`; the friendly virtual-device name is not the ADB serial.
+Copy the exact serial from `adb devices`; the friendly virtual-device name is not the ADB serial.
 
 Replace every example value that differs on your computer. `expectedHomeText` must match the visible Home name exactly. `localPort` is the processor's saved UI connection port, **not the ADB port**. The Android lock's parent directory must exist; the workflow creates the lock file itself.
 
@@ -266,7 +239,7 @@ This is a connectivity/navigation starter. Extend it with driver-specific assert
 
 ## Daily use and CI
 
-Both Google Android Emulator and BlueStacks can remain **minimized** during the validated workflow; the test library does not need the Windows mouse or keyboard. Leave the emulator running and avoid manually using the same Android instance during a test. After tests confirm restoration and release their reservations, you can use or close it normally.
+Google Android Emulator remained **minimized** during the validated workflow; the test library does not need the Windows mouse or keyboard. Leave the emulator running and avoid manually using the same Android instance during a test. After tests confirm restoration and release their reservations, you can use or close it normally.
 
 The development workflow has been exercised with an emulator already running in a logged-in Windows session. Read-only fixture execution also passed as NETWORK SERVICE against the existing Google emulator, with capture evidence, restored temporary name and Home, preserved checked state and released reservations. That service run did not deploy a driver or send physical controls. Complete deployment under that account still requires separate validation.
 
@@ -283,9 +256,9 @@ No signature, Crestron submission profile or portal account is required for thes
 | Symptom | Check |
 | --- | --- |
 | ADB executable not found | Confirm the installation directory and the full `adbExecutable` path. |
-| No device, or `offline` | Start the selected virtual device and wait for Android startup. For BlueStacks, also confirm its ADB setting/address and connect to that endpoint. Do not reset a shared ADB server while another job owns it. |
+| No device, or `offline` | Start the selected virtual device and wait for Android startup. Do not reset a shared ADB server while another job owns it. |
 | More than one Android device | Use the exact `deviceSerial` for the intended instance. |
-| Crestron app missing | Install the app in that exact Google virtual device or BlueStacks instance using Play Store or the direct APK route above. Installing an emulator alone does not install Home. |
+| Crestron app missing | Install the app in that exact Google virtual device using Play Store or the direct APK route above. Installing an emulator alone does not install Home. |
 | APK architecture or Android-version error | Compare the APK's minimum API/native libraries with this virtual device. Use a compatible original APK and image; an x86 device does not necessarily support ARM translation. |
 | Update rejected because signatures differ | Preserve the installed app and data. Verify the publisher and any legitimate key rotation; do not uninstall or re-sign to bypass the check. |
 | Home cannot connect | Check the actual processor address, configured UI port and UI-device password. Establish a manual connection before testing. |
@@ -294,7 +267,11 @@ No signature, Crestron submission profile or portal account is required for thes
 | Works on desktop, fails in CI | Check the runner account, existing emulator session, ADB path/serial, shared reservation path and private-file permissions. Service fixture execution against an already-running Google emulator has passed; service startup of the emulator has not. |
 | Reservation remains after a failure | Inspect the retained workflow evidence and confirm its process and child commands have stopped. Reconcile UI/device state before following [interrupted-run recovery](ContinuousIntegration.md#cleanup-and-interrupted-runs). Do not simply delete the lock and retry. |
 
-The tested BlueStacks environment used Pie 64-bit and Crestron Home Android 4.6.18. This records the validation environment, not a promise that every app/emulator version behaves identically. A clean-machine installation has not yet been repeated end to end for either emulator.
+## Validation history
+
+**BlueStacks is historical validation only, not a currently validated alternative.** Earlier testing used BlueStacks 5 Pie 64-bit with Crestron Home 4.6.18, including a development workflow while minimized. It has not been revalidated with the current app and workflow, so this guide no longer provides BlueStacks setup instructions. This does not establish incompatibility; renewed validation would be required before recommending it again.
+
+A clean-machine installation has not yet been repeated end to end for the Google emulator.
 
 On 16 September 2026, Crestron Home 4.6.18 was also copied from that BlueStacks instance and installed on a Pixel 7 Android 16 (API 36.1) emulator without Google sign-in. Both read-only sample driver UI cases passed while the emulator was minimized, with return to Home and unchanged gateway state verified. Use the published 1.7.1 adapter, which handles the local-port field being below the portrait viewport. Version 1.7.0 can stop at that field. A prior app termination was observed; reopening restored connectivity, but its cause remains unconfirmed. The emulator's full unattended lifecycle is still separate validation work.
 

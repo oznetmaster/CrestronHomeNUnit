@@ -1,6 +1,6 @@
 # Crestron Home NUnit UI automation library
 
-New to Google Android Emulator, BlueStacks or Android test setup? Start with [setting up an Android emulator on Windows](AndroidEmulatorSetup.md), including the copyable NUnit sample and first-run checks.
+New to Google Android Emulator or Android test setup? Start with [setting up an Android emulator on Windows](AndroidEmulatorSetup.md), including the copyable NUnit sample and first-run checks.
 
 Version 1.12.0 provides an [installed-driver test phase](InstalledDriverTests.md) for selected fixtures against unchanged candidate bytes. It does not update the driver; the linked guide identifies its dependency and validation limits.
 
@@ -14,7 +14,7 @@ The **Crestron Home NUnit UI automation library** (`CrestronHomeNUnit.Android`) 
 
 Representative Debug workflows have exercised desktop and processor tests, an actual-driver update, installed health checks and Android inspection through the published packages. Retained discovery and TRX inventories matched, capture digests were checked, starting navigation and checked device settings were restored, temporary test storage was removed and reservations were released.
 
-Read-only inspection also passed with Google Android Emulator and BlueStacks minimized in a logged-in Windows session. A Windows runner service executed inspection fixtures against an already-running Google emulator as NETWORK SERVICE. That service test did not deploy a driver or operate physical controls. Full service-driven deployment, emulator startup after logout/reboot and interrupted-run recovery remain separate validation work.
+Read-only inspection also passed with Google Android Emulator minimized in a logged-in Windows session. See the [dated emulator and app validation history](AndroidEmulatorSetup.md#validation-history) for version limits and historical BlueStacks results. A Windows runner service executed inspection fixtures against an already-running Google emulator as NETWORK SERVICE. That service test did not deploy a driver or operate physical controls. Full service-driven deployment, emulator startup after logout/reboot and interrupted-run recovery remain separate validation work.
 
 These are bounded integration checks of the shared helpers. They do not establish every driver's behavior, exact Release-candidate acceptance, complete visual correctness or certification. Page names, control expectations, fixture settings and per-driver results belong in the consuming project's documentation.
 
