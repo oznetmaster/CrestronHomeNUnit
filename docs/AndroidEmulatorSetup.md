@@ -12,6 +12,7 @@ This is useful for ordinary driver development. It does not require or initiate 
 - [Install and start BlueStacks](#install-and-start-bluestacks)
 - [Install the Crestron Home app inside the emulator](#install-the-crestron-home-app-inside-the-emulator)
 - [Enable and check ADB](#enable-and-check-adb)
+- [Check and update the Crestron Home app](#check-and-update-the-crestron-home-app)
 - [Create your private Android profile](#create-your-private-android-profile)
 - [Add the sample NUnit project](#add-the-sample-nunit-project)
 - [Run the first complete workflow](#run-the-first-complete-workflow)
@@ -86,7 +87,7 @@ Installing either emulator is only the first part of setup. **You must also inst
 
 Choose an installation route:
 
-- **Google Play, if your emulator image includes it:** open Play Store inside the emulator, sign in with a Google account, search for **Crestron Home**, verify the Crestron publisher, and install it.
+- **Google Play, if your emulator image includes it:** open Play Store inside the emulator, sign in with a Google account, search for **Crestron Home**, verify the Crestron publisher against the [official listing](https://play.google.com/store/apps/details?id=com.crestron.phoenix.app), and install it.
 - **Direct APK installation, without a Google account:** use a legitimate Crestron-supplied installer or the original signed APK from your own existing installation. Enable ADB as described below, then run `adb -s TARGET_SERIAL install PATH_TO_APK`. If the existing app is split across several APKs, all required splits must be retained and installed together with `install-multiple`. Do not assume that one extracted base APK is sufficient. Android documents [APK installation through ADB](https://developer.android.com/tools/adb#move). Keep the installer private; this project does not redistribute the Crestron app.
 
 For example, after [checking ADB](#enable-and-check-adb), install a single APK on Google's emulator from PowerShell:
@@ -101,12 +102,14 @@ The same command works for BlueStacks after connecting to its ADB endpoint and s
 
 For transfer from another Android instance, `adb -s SOURCE_SERIAL shell pm path com.crestron.phoenix.app` lists the installed APK paths. Copy each listed file to a private Windows directory with `adb -s SOURCE_SERIAL pull REMOTE_PATH LOCAL_PATH`, then install those files on the target. This copies the app, not its saved Home connections or credentials. Verify Android version and CPU compatibility; an APK from one device may not run on another. Google sign-in can be skipped during emulator setup, although the app's own runtime dependencies still need validation.
 
+Copying an app also copies its **existing version**, which may be old. A recent installation date does not prove that the app is current. Check its version and follow the update instructions below before establishing a new test baseline. BlueStacks is not needed to obtain an APK when you already have another legitimate source.
+
 Use the end-user **Crestron Home** app, not Configure Pro or the Setup app. After either installation route:
 
 1. Open Crestron Home inside the emulator. Add your development Home using its actual processor address or hostname. If discovery does not find it, use the manual connection option. An emulator's network behavior can differ from a physical phone.
 2. Enter the **User Interface Device Password** configured for that Home when prompted. This is separate from the SSH/admin credentials used by the processor workflow; do not assume they are interchangeable. The [Crestron password documentation](https://docs.crestron.com/en-us/8525/Content/CP4R/Installer-Settings/Sys-Config/System-Info-and-Pass.htm) identifies the UI-device password used to join the system.
 3. Record the exact Home display name, saved local address and local UI port. Use your configured port; the example below uses 50001. See [Crestron's user-interface pairing instructions](https://docs.crestron.com/en-us/8525/Content/CP4R/Appendix/Pair-User-Interfaces.htm).
-4. Connect and confirm that you can see the correct Home and driver tiles. Close menus, settings screens and driver panels, leaving the unobstructed **Home** screen visible.
+4. Connect and confirm that you can see the correct Home and driver tiles. In **My Systems**, inspect that Home's saved local address and port as well as its name, then return to the same Home. A familiar name alone can conceal a connection to another development processor. Close menus, settings screens and driver panels, leaving the unobstructed **Home** screen visible.
 
 Complete account login, permissions and any first-run dialogs manually. The supplied fixture does not enter passwords or dismiss unknown dialogs. Keep emulator data and saved logins private.
 
@@ -154,6 +157,54 @@ Check the results:
 Always select the device explicitly. Do not let a test choose the first of several connected Android devices. These checks read readiness and app installation; they do not prove that Home is connected to the intended processor. See [Android's ADB documentation](https://developer.android.com/tools/adb) for device selection and connection behavior.
 
 When using BlueStacks alongside Google's emulator, use one current Android SDK `adb.exe` for both. An older BlueStacks ADB client can conflict with the SDK client's shared server. BlueStacks may also move its active ADB port when another emulator occupies the configured port: verify the currently observed endpoint before connecting and update the private profile accordingly. Never restart a shared ADB server while tests own either instance.
+
+## Check and update the Crestron Home app
+
+Stop UI tests before updating their emulator. Preserve any interrupted reservation for reconciliation; do not clear a lock to force an update. Use the same explicitly selected device for every command. These are copyable **PowerShell** commands, not Command Prompt commands.
+
+Read the installed version:
+
+```powershell
+$adb = 'C:/Android/Sdk/platform-tools/adb.exe' # Replace with your SDK location.
+$serial = 'emulator-5554' # Replace with the intended device from adb devices.
+& $adb -s $serial shell dumpsys package com.crestron.phoenix.app |
+    Select-String 'versionName=|versionCode='
+```
+
+Compare with the current [Crestron Home release on Google Play](https://play.google.com/store/apps/details?id=com.crestron.phoenix.app), rather than the processor's firmware version or an old APK filename. With a Play-enabled image and account, update through Play Store. Without an account, obtain a current original signed APK from Crestron or an independently trusted installation. For a split app, obtain the complete compatible split set.
+
+If you choose a third-party APK mirror, its claimed version, checksum or virus-scan badge is not proof of publisher identity. Independently verify the package as `com.crestron.phoenix.app`, its valid signature and its signer against your known authentic installed copy or a publisher-confirmed certificate. Do not install a mirror's downloader/helper app. For an initial installation without a trusted signing reference, obtain one from Crestron or an authentic installation first.
+
+Install **Android SDK Build-Tools** in SDK Manager to obtain `apksigner.bat` and `aapt.exe`. `apksigner` also needs a working Java installation; use the JDK configured by your Android tools. Replace the Build-Tools version and both private APK paths below with your actual values:
+
+```powershell
+$buildTools = 'C:/Android/Sdk/build-tools/36.0.0'
+& "$buildTools/apksigner.bat" verify --verbose --print-certs 'C:/Private/Android/KnownAuthentic.apk'
+if ($LASTEXITCODE -ne 0) { throw 'The reference APK did not verify.' }
+& "$buildTools/apksigner.bat" verify --verbose --print-certs 'C:/Private/Android/CrestronHome-update.apk'
+if ($LASTEXITCODE -ne 0) { throw 'The update APK did not verify.' }
+& "$buildTools/aapt.exe" dump badging 'C:/Private/Android/CrestronHome-update.apk' |
+    Select-String '^package:|^sdkVersion:|^native-code:'
+& $adb -s $serial shell getprop ro.build.version.sdk
+& $adb -s $serial shell getprop ro.product.cpu.abilist
+```
+
+Compare the **Signer certificate SHA-256 digest**, not its display name or the APK file hash. If certificates differ, stop and establish any publisher-authorized signing-key rotation; do not uninstall the trusted app or re-sign an APK to bypass the mismatch. Check that the package version is the intended update, its minimum Android API is supported, and the emulator can execute its native CPU architecture. Google's [apksigner reference](https://developer.android.com/tools/apksigner) explains verification and certificate output.
+
+After verification, update a single-APK installation in place:
+
+```powershell
+& $adb -s $serial install -r 'C:/Private/Android/CrestronHome-update.apk'
+if ($LASTEXITCODE -ne 0) { throw 'App update failed; inspect the error before retrying.' }
+& $adb -s $serial shell dumpsys package com.crestron.phoenix.app |
+    Select-String 'versionName=|versionCode='
+```
+
+The `-r` option keeps the existing app data. For a split installation, use `install-multiple -r` with the verified complete split set instead. Do not uninstall first or clear app storage: doing so loses saved connections. Retain a private copy of the previous installer and normal emulator backup; an older APK alone does not guarantee rollback of app data migrated by a newer version. See [Android's installation options](https://developer.android.com/tools/adb#move).
+
+Open the updated app, handle any expected first-run prompts, verify its saved processor address/port and connected Home, and run the read-only navigation starter before physical-control fixtures. Record the app version, Android version, emulator image and APK/signing digests with the private test environment. The generic workflow does not currently enforce a pinned app version or automatically update it. Avoid app updates during a UI test run; results and timing comparisons must identify the version actually tested.
+
+An Android app update does not update the processor driver. Whether an endurance run is affected depends on its observation policy: a processor-only probe does not use the Android app, whereas an app-based probe would have a changed test environment. Do not relabel earlier UI results as tests of the new app.
 
 ## Create your private Android profile
 
@@ -235,6 +286,8 @@ No signature, Crestron submission profile or portal account is required for thes
 | No device, or `offline` | Start the selected virtual device and wait for Android startup. For BlueStacks, also confirm its ADB setting/address and connect to that endpoint. Do not reset a shared ADB server while another job owns it. |
 | More than one Android device | Use the exact `deviceSerial` for the intended instance. |
 | Crestron app missing | Install the app in that exact Google virtual device or BlueStacks instance using Play Store or the direct APK route above. Installing an emulator alone does not install Home. |
+| APK architecture or Android-version error | Compare the APK's minimum API/native libraries with this virtual device. Use a compatible original APK and image; an x86 device does not necessarily support ARM translation. |
+| Update rejected because signatures differ | Preserve the installed app and data. Verify the publisher and any legitimate key rotation; do not uninstall or re-sign to bypass the check. |
 | Home cannot connect | Check the actual processor address, configured UI port and UI-device password. Establish a manual connection before testing. |
 | Wrong Home or unexpected panel | Select the correct Home manually and close dialogs before starting. The fixture intentionally rejects mismatches. |
 | Tests skipped | A direct UI-project run has no workflow context. Run the complete workflow to enable hardware execution. |
@@ -244,3 +297,5 @@ No signature, Crestron submission profile or portal account is required for thes
 The tested BlueStacks environment used Pie 64-bit and Crestron Home Android 4.6.18. This records the validation environment, not a promise that every app/emulator version behaves identically. A clean-machine installation has not yet been repeated end to end for either emulator.
 
 On 16 September 2026, Crestron Home 4.6.18 was also copied from that BlueStacks instance and installed on a Pixel 7 Android 16 (API 36.1) emulator without Google sign-in. Both read-only sample driver UI cases passed while the emulator was minimized, with return to Home and unchanged gateway state verified. Use the published 1.7.1 adapter, which handles the local-port field being below the portrait viewport. Version 1.7.0 can stop at that field. A prior app termination was observed; reopening restored connectivity, but its cause remains unconfirmed. The emulator's full unattended lifecycle is still separate validation work.
+
+On 19 September 2026, that Google emulator was updated in place to Crestron Home `4.11.1+pr` (version code 13683) without Google sign-in. APK signature verification passed and the signer matched the previously installed app; the saved Home connection opened after the update. This establishes installation and basic reconnection only. The earlier fixture results remain results for 4.6.18; full UI acceptance on 4.11.1 is separate work. These are dated observations, not a permanent assertion that either version is the latest.
