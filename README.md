@@ -6,6 +6,8 @@ For the complete local-to-processor development cycle, see the [continuous integ
 
 These tools run desktop, processor, live-device and Android UI tests, and report their results through the Windows runner, CLI or Visual Studio Test Explorer. Driver submission is a separate, optional workflow documented in [CrestronHomeDevTools](https://github.com/oznetmaster/CrestronHomeDevTools/blob/main/docs/CrestronSubmission.md); it is not required for testing or GitHub/NuGet publication.
 
+For VS Code on Windows, see [building net472 projects and running NUnit/processor workflows](docs/VisualStudioCode.md), including the tested C# Dev Kit settings and reusable build/test tasks. The same released adapters are used in both editors.
+
 The tools include a [Visual Studio Test Explorer workflow adapter](docs/VisualStudioTestExplorer.md), available as the stable [CrestronHomeNUnit.TestAdapter NuGet package](https://www.nuget.org/packages/CrestronHomeNUnit.TestAdapter). Add it to a separate .NET 10 workflow test project to run the same gated development cycle from Visual Studio.
 
 Version 1.2.1 also supports private initial-driver configuration and health checks using newly assigned instance IDs. The tooling coordinates desktop tests, updated Home test tiles and DevTools/build operations through a shared processor reservation. Upgrade the participating tools and test packages together, using DevTools 1.1.0 or later; see [hardware CI setup and coordination](docs/GitHubHardwareCI.md). [Build deployment settings and retained package inspection](https://github.com/oznetmaster/CrestronHomeDevTools/blob/HEAD/docs/ProcessorCoordination.md) are documented in DevTools.

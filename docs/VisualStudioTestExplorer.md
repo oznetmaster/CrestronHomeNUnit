@@ -4,9 +4,11 @@ The workflow adapter runs the same gated backend as the CLI. One Test Explorer e
 
 The adapter and its test container target .NET 10. Use a Visual Studio installation that supports .NET 10 and VSTest. The existing driver and processor test assemblies can continue to target net472. Remote execution does not attach a Visual Studio debugger to the processor.
 
+VS Code can use this same workflow container and adapter. See [the VS Code setup and validation guide](VisualStudioCode.md).
+
 ## Add a workflow container
 
-Use [the sample project](../samples/WorkflowTests/WorkflowTests.csproj) as the starting point. Add a separate .NET 10 workflow test project to your local solution, install `CrestronHomeNUnit.TestAdapter` version `1.2.1` and `Microsoft.NET.Test.Sdk`, and mark both references `PrivateAssets="all"`. No source checkout of the tooling is required. The sample uses the released package by default; contributors can set `UseSourceAdapter=true` to test source changes.
+Use [the sample project](../samples/WorkflowTests/WorkflowTests.csproj) as the starting point. Add a separate .NET 10 workflow test project to your local solution, install `CrestronHomeNUnit.TestAdapter` version `1.12.1` and `Microsoft.NET.Test.Sdk`, and mark both references `PrivateAssets="all"`. No source checkout of the tooling is required. The sample uses the released package by default; contributors can set `UseSourceAdapter=true` to test source changes.
 
 Add `Workflows.xml` to this project. The NuGet package copies it to the output automatically; set the `CrestronWorkflowManifest` project property to choose another filename.
 

@@ -1,0 +1,25 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build project without deployment",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["build", "${workspaceFolder}/${input:buildProject}", "-p:DeployAfterBuild=false"],
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "Run non-live net472 NUnit tests",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["test", "${workspaceFolder}/${input:testProject}", "-f", "net472", "--filter", "TestCategory!=Live"],
+      "group": "test",
+      "problemMatcher": "$msCompile"
+    }
+  ],
+  "inputs": [
+    { "id": "buildProject", "type": "promptString", "description": "Project or solution path, relative to this workspace" },
+    { "id": "testProject", "type": "promptString", "description": "Ordinary net472 NUnit test project path, relative to this workspace; not the workflow container" }
+  ]
+}

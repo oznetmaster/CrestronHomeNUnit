@@ -1,0 +1,4 @@
+{
+  "dotnet.testWindow.skipTargetFrameworkCompatibilityCheck": true,
+  "dotnet.testWindow.enableNextTest": true
+}
