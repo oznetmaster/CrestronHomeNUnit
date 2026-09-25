@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.12.2 - 2026-09-25
+
+Saved-endpoint inspection now selects the configured Home's menu in either the grid or list view of My Systems. Previously, list view had no matching menu selector, and multiple grid cards made the global selector ambiguous. The navigator continues to reject duplicate Home names, missing menus and disabled controls.
+
+Validation: 145 Android toolkit tests passed, including grid/list selection and rejection of another Home's menu. A focused hardware check with two saved Homes in list view verified the intended local endpoint and restored Home. This validates endpoint navigation, not physical device controls.
+
 ## 1.12.1 - 2026-09-19
 
 Fix installed-driver test phases that stopped at candidate verification despite a matching installed package. The workflow, CLI and Visual Studio adapter now consume CrestronHomeDevTools 1.13.1, which resolves full processor catalogue IDs to the correct extracted-payload directory and checks their version against the candidate.
