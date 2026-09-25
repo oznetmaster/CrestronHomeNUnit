@@ -141,8 +141,11 @@ public sealed class CrestronHomeNavigation
 			await WaitAsync (Menu, token).ConfigureAwait (false);
 			await TapAsync (MySystems, Menu, token).ConfigureAwait (false);
 			await WaitAsync (Systems, token).ConfigureAwait (false);
-			// A repeated visible menu button is ambiguous; RequireUnique rejects it.
-			await TapAsync (Id ("homeview_more"), Systems, token).ConfigureAwait (false);
+			await ConfirmDepartureAsync (token).ConfigureAwait (false);
+			_session.VerifyActive ();
+			HomeRestored = false;
+			await _session.Device.TapAsync (hierarchy => CrestronHomePages.HomeMenu (hierarchy, _session.Context.Profile.ExpectedHomeText),
+				Systems, () => _pendingInputPage = Systems, token).ConfigureAwait (false);
 			await WaitAsync (Options, token).ConfigureAwait (false);
 			await TapAsync (new (AndroidSelectorKind.Text, "Edit"), Options, token).ConfigureAwait (false);
 			await WaitAsync (Details, token).ConfigureAwait (false);

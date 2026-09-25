@@ -1,5 +1,7 @@
 # Crestron Home NUnit UI automation library
 
+From TestAdapter **1.12.2**, saved-endpoint inspection supports both grid and list views in My Systems with multiple saved Homes. It selects the menu within the uniquely named Home's own card. Missing or ambiguous cards and menus fail without choosing another Home.
+
 New to Google Android Emulator or Android test setup? Start with [setting up an Android emulator on Windows](AndroidEmulatorSetup.md), including the copyable NUnit sample and first-run checks.
 
 Version 1.12.0 provides an [installed-driver test phase](InstalledDriverTests.md) for selected fixtures against unchanged candidate bytes. It does not update the driver; the linked guide identifies its dependency and validation limits.

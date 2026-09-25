@@ -136,6 +136,33 @@ public static class CrestronHomePages
 		return rooms ? right : left;
 		}
 
+	// Resolve the menu inside the selected Home's card, in either list or grid view.
+	// A global resource-ID selector is ambiguous when more than one Home is saved.
+	internal static AndroidElement HomeMenu (AndroidHierarchy hierarchy, string expectedHome)
+		{
+		_ = hierarchy.RequireUnique (Resource ("homeswitcher_title"));
+		var document = XDocument.Parse (hierarchy.MaskedXml);
+		bool InApp (XElement node) => (string?)node.Attribute ("package") == "com.crestron.phoenix.app";
+		bool IsMenu (XElement node) => InApp (node) &&
+			(string?)node.Attribute ("resource-id") is ResourcePrefix + "homeview_more" or ResourcePrefix + "home_listview_more";
+		var labels = document.Descendants ("node").Where (node => InApp (node) &&
+			(string?)node.Attribute ("content-desc") == expectedHome).ToArray ();
+		if (labels.Length != 1)
+			throw new InvalidOperationException ("The selected Home card is missing or ambiguous.");
+		var container = labels[0].Ancestors ().FirstOrDefault (node => node.Descendants ("node").Any (IsMenu));
+		var menus = container?.Descendants ("node").Where (IsMenu).ToArray () ?? [];
+		bool containsOtherHome = container?.Descendants ("node").Any (node => InApp (node) &&
+			(string?)node.Attribute ("resource-id") == ResourcePrefix + "titleSubtitle_title" &&
+			!string.IsNullOrEmpty ((string?)node.Attribute ("content-desc")) &&
+			(string?)node.Attribute ("content-desc") != expectedHome) == true;
+		if (menus.Length != 1 || containsOtherHome)
+			throw new InvalidOperationException ("The selected Home card's menu is missing or ambiguous.");
+		var menu = AndroidHierarchy.ReadElement (menus[0]);
+		if (!menu.Enabled || menu.Right <= menu.Left || menu.Bottom <= menu.Top)
+			throw new InvalidOperationException ("The selected Home menu is disabled or has invalid bounds.");
+		return menu;
+		}
+
 	public static void RequireExtensionPage (AndroidHierarchy hierarchy, string title)
 		{
 		ArgumentException.ThrowIfNullOrWhiteSpace (title);
