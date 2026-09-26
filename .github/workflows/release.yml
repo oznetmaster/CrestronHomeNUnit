@@ -5,6 +5,11 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
+      documentation_patch:
+        description: Publish only the reviewed NuGet documentation patch; preserve existing runtime binaries and GitHub releases
+        required: false
+        type: boolean
+        default: false
       version:
         description: Release version (major.minor.patch, without v)
         required: true
@@ -20,6 +25,7 @@ concurrency:
 
 jobs:
   release:
+    if: inputs.documentation_patch != true
     runs-on: windows-latest
     environment: release
     timeout-minutes: 30
@@ -117,3 +123,35 @@ jobs:
           $assets = @(Get-ChildItem artifacts/release -File | Select-Object -ExpandProperty FullName)
           gh release create "v$env:RELEASE_VERSION" @assets --verify-tag --title "Crestron Home NUnit v$env:RELEASE_VERSION" --notes-file RELEASE-NOTES.md
           if ($LASTEXITCODE -ne 0) { throw 'GitHub release creation failed.' }
+
+  nuget-documentation:
+    if: github.event_name == 'workflow_dispatch' && inputs.documentation_patch == true
+    runs-on: windows-latest
+    timeout-minutes: 15
+    environment: release
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.401
+      - name: Build and verify documentation-only package
+        shell: pwsh
+        run: ./tools/New-NuGetDocumentationPatch.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nuget-documentation-patch
+          path: artifacts/nuget-documentation/*
+          if-no-files-found: error
+      - uses: NuGet/login@v1
+        id: documentation-login
+        with:
+          user: ${{ vars.NUGET_USER }}
+      - name: Publish verified NuGet documentation patch
+        shell: pwsh
+        env:
+          NUGET_API_KEY: ${{ steps.documentation-login.outputs.NUGET_API_KEY }}
+        run: |
+          $packages = @(Get-ChildItem artifacts/nuget-documentation -Filter *.nupkg -File)
+          if ($packages.Count -ne 1) { throw 'Expected exactly one verified package.' }
+          dotnet nuget push $packages[0].FullName --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json
+          if ($LASTEXITCODE -ne 0) { throw 'NuGet documentation patch publication failed.' }

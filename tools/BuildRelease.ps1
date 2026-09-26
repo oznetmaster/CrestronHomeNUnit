@@ -47,6 +47,7 @@ try {
     [IO.Directory]::CreateDirectory($release) | Out-Null
     dotnet pack CrestronHomeNUnit.TestAdapter/CrestronHomeNUnit.TestAdapter.csproj -c Release "-p:PackageVersion=$Version" -o $release
     if ($LASTEXITCODE -ne 0) { throw 'Test adapter package build failed.' }
+    ./tools/Test-NuGetDocumentation.ps1 -PackagePath (Join-Path $release "CrestronHomeNUnit.TestAdapter.$Version.nupkg")
     ./tools/Test-AdapterPackage.ps1 -PackageDirectory $release -Version $Version
     Copy-Item -LiteralPath $package -Destination $release
     Copy-Item -LiteralPath (Join-Path $root 'artifacts/runner/CrestronHomeNUnit.Runner-win-x64.zip') -Destination $release

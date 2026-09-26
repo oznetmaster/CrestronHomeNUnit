@@ -40,4 +40,15 @@
       <BuildOutputInPackage Include="$(OutputPath)CrestronHomeNUnit.Transport.dll" />
     </ItemGroup>
   </Target>
+  <Target Name="PopulateNuGetReleaseNotes" BeforeTargets="GenerateNuspec">
+    <PropertyGroup>
+      <PackageReleaseNotesFile Condition="'$(PackageReleaseNotesFile)' == ''">$(MSBuildProjectDirectory)/../RELEASE-NOTES.md</PackageReleaseNotesFile>
+    </PropertyGroup>
+    <Error Condition="!Exists('$(PackageReleaseNotesFile)')" Text="NuGet packaging requires the release notes file." />
+    <ReadLinesFromFile File="$(PackageReleaseNotesFile)">
+      <Output TaskParameter="Lines" ItemName="_NuGetReleaseNotesLines" />
+    </ReadLinesFromFile>
+    <PropertyGroup><PackageReleaseNotes>@(_NuGetReleaseNotesLines, '%0a')</PackageReleaseNotes></PropertyGroup>
+    <Error Condition="'$(PackageReleaseNotes)' == ''" Text="NuGet release notes must not be empty." />
+  </Target>
 </Project>

@@ -1,0 +1,8 @@
+{
+  "BaseSha256": "6BC82C0A2BAC7E4BA4604E2F18DB11BC2A31F40C62D69F02E653E4B72F5B6677",
+  "ReleaseNotesFile": "NUGET-PATCH-NOTES.md",
+  "ReadmeBaseUrl": "https://github.com/oznetmaster/CrestronHomeNUnit/blob/v1.12.2/",
+  "Version": "1.12.3",
+  "Id": "CrestronHomeNUnit.TestAdapter",
+  "BaseVersion": "1.12.2"
+}

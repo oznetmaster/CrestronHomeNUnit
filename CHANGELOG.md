@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Include the adapter release notes in NuGet package metadata.
+
 ## 1.12.2 - 2026-09-25
 
 Saved-endpoint inspection now selects the configured Home's menu in either the grid or list view of My Systems. Previously, list view had no matching menu selector, and multiple grid cards made the global selector ambiguous. The navigator continues to reject duplicate Home names, missing menus and disabled controls.
