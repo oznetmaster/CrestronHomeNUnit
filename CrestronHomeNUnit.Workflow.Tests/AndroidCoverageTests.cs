@@ -102,6 +102,22 @@ public sealed class AndroidCoverageTests
 		Assert.Throws<InvalidDataException> (() => AndroidTestCoverage.ReadDiscovery (path));
 		}
 
+	[TestCase ("Explicit", true)]
+	[TestCase ("Ignored", false)]
+	[TestCase ("NotRunnable", false)]
+	public void ExactSelectionAllowsExplicitButNeverIgnoredOrInvalidCases (string state, bool allowed)
+		{
+		var path = Discovery ("A", "B");
+		var document = XDocument.Load (path);
+		document.Descendants ("test-case").First ().SetAttributeValue ("runstate", state);
+		document.Save (path);
+		Assert.Throws<InvalidDataException> (() => AndroidTestCoverage.ReadDiscovery (path));
+		if (!allowed)
+			Assert.Throws<InvalidDataException> (() => AndroidTestCoverage.ReadDiscovery (path, ["Example.A"]));
+		else
+			Assert.That (AndroidTestSelection.Select (AndroidTestCoverage.ReadDiscovery (path, ["Example.A"]), ["Example.A"]), Is.EqualTo (new[] { "Example.A" }));
+		}
+
 	[TestCase ("duplicate-execution")]
 	[TestCase ("unknown-definition")]
 	[TestCase ("wrong-adapter")]

@@ -1,8 +1,8 @@
 # Changelog
 
-## Unreleased
+## 1.12.3 - 2026-09-25
 
-- Include the adapter release notes in NuGet package metadata.
+NuGet-only documentation patch: repair adapter README links and include release notes in package metadata. Runtime binaries are unchanged from 1.12.2; the existing GitHub release is unchanged.
 
 ## 1.12.2 - 2026-09-25
 

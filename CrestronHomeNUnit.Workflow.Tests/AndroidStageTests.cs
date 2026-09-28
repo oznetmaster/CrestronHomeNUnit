@@ -194,8 +194,9 @@ public sealed class AndroidStageTests
 		Assert.That (File.Exists (Path.Combine (output, "completion.json")), Is.False);
 		}
 
-	[Test]
-	public async Task ExactSelectionUsesRealAdapterAndCannotRunUnselectedFailure ()
+	[TestCase (false)]
+	[TestCase (true)]
+	public async Task ExactSelectionUsesRealAdapterAndCannotRunUnselectedFailure (bool explicitCases)
 		{
 		File.WriteAllText (_project, """
 			<Project Sdk="Microsoft.NET.Sdk">
@@ -218,6 +219,11 @@ public sealed class AndroidStageTests
 			    [Test] public void Other() { Assert.Fail("Unselected physical actions must not execute."); }
 			}
 			"""");
+		if (explicitCases)
+			{
+			var casesPath = Path.Combine (_root, "Cases.cs");
+			File.WriteAllText (casesPath, File.ReadAllText (casesPath).Replace ("public void", "[Explicit] public void"));
+			}
 		using var lease = AndroidSessionLease.Acquire (_profile.LockPath, _owner);
 		using var deadline = new CancellationTokenSource (TimeSpan.FromMinutes (3));
 		var output = Path.Combine (_root, "selected-results");

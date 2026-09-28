@@ -22,14 +22,16 @@ internal static class AndroidTestCoverage
 	private static string Required (XElement element, string name) =>
 		(string?)element.Attribute (name) is string value && !string.IsNullOrWhiteSpace (value) ? value : throw new InvalidDataException ("Test evidence is missing " + name + ".");
 
-	public static string[] ReadDiscovery (string path)
+	public static string[] ReadDiscovery (string path, IReadOnlyList<string>? requiredTests = null)
 		{
+		AndroidTestSelection.Validate (requiredTests);
+		bool Allowed (string? state) => state == "Runnable" || (requiredTests != null && state == "Explicit");
 		var document = Read (path);
 		var runs = document.Descendants ("test-run").ToArray ();
-		if (runs.Length != 1 || runs[0].DescendantsAndSelf ().Any (e => (string?)e.Attribute ("runstate") is string state && state != "Runnable"))
-			throw new InvalidDataException ("UI discovery must contain one runnable NUnit tree with no explicit, ignored or invalid tests.");
+		if (runs.Length != 1 || runs[0].DescendantsAndSelf ().Any (e => (string?)e.Attribute ("runstate") is string state && !Allowed (state)))
+			throw new InvalidDataException ("UI discovery requires runnable tests; Explicit tests require exact requiredTests selection. Ignored or invalid tests are not accepted.");
 		var cases = runs[0].Descendants ("test-case").ToArray ();
-		if (cases.Length == 0 || cases.Any (e => (string?)e.Attribute ("runstate") != "Runnable") || cases.Select (e => Required (e, "id")).Distinct (StringComparer.Ordinal).Count () != cases.Length ||
+		if (cases.Length == 0 || cases.Any (e => !Allowed ((string?)e.Attribute ("runstate"))) || cases.Select (e => Required (e, "id")).Distinct (StringComparer.Ordinal).Count () != cases.Length ||
 			!int.TryParse ((string?)runs[0].Attribute ("testcasecount"), out var count) || count != cases.Length)
 			throw new InvalidDataException ("UI discovery contains empty, duplicate or incomplete case records.");
 		return cases.Select (e => Required (e, "fullname")).Order (StringComparer.Ordinal).ToArray ();

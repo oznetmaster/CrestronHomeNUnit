@@ -56,7 +56,7 @@ internal static class WorkflowAndroid
 			throw new InvalidDataException ("Android tests require exactly one NUnit discovery assembly.");
 		var discoveryPath = Path.Combine (directory, "discovery.dump");
 		File.Copy (dumps[0], discoveryPath, overwrite: false);
-		var discovered = AndroidTestCoverage.ReadDiscovery (discoveryPath);
+		var discovered = AndroidTestCoverage.ReadDiscovery (discoveryPath, requiredTests);
 		var inventory = AndroidTestSelection.Select (discovered, requiredTests);
 		var selection = requiredTests == null ? null : AndroidTestSelection.Save (directory, context, discovered, inventory);
 		var discoverySha256 = Convert.ToHexString (SHA256.HashData (await File.ReadAllBytesAsync (discoveryPath, token).ConfigureAwait (false)));
