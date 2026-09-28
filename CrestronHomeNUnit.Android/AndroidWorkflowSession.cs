@@ -11,9 +11,15 @@ namespace CrestronHomeNUnit.Android;
 public sealed record AndroidSessionProfile (string AdbExecutable, string DeviceSerial, string Application, string ExpectedHomeText, string LockPath)
 	{
 	public int LocalPort { get; init; } = 50001;
+	/// <summary>Explicit opt-in to navigation from these saved Homes. Empty preserves read-only session opening.</summary>
+	public IReadOnlyList<string> AllowedStartingHomes { get; init; } = [];
 
 	public void Validate ()
 		{
+		if (AllowedStartingHomes == null || AllowedStartingHomes.Any (string.IsNullOrWhiteSpace) ||
+			AllowedStartingHomes.Distinct (StringComparer.Ordinal).Count () != AllowedStartingHomes.Count ||
+			AllowedStartingHomes.Count > 0 && Application != "com.crestron.phoenix.app")
+			throw new ArgumentException ("Saved-Home selection requires explicit unique Home names and the Crestron Home application.");
 		if (!Path.IsPathFullyQualified (AdbExecutable) || !File.Exists (AdbExecutable) ||
 			string.IsNullOrWhiteSpace (DeviceSerial) || string.IsNullOrWhiteSpace (Application) || string.IsNullOrWhiteSpace (ExpectedHomeText) ||
 			!Path.IsPathFullyQualified (LockPath) || !Directory.Exists (Path.GetDirectoryName (LockPath)) || LocalPort is < 1 or > 65535)
@@ -91,8 +97,14 @@ public sealed class AndroidWorkflowSession
 		using (var started = new FileStream (Path.Combine (context.EvidenceDirectory, "session-started"), FileMode.CreateNew, FileAccess.Write, FileShare.Read))
 			started.Flush (flushToDisk: true);
 		var session = new AndroidWorkflowSession (context, device);
+		bool navigationAttempted = false;
 		try
 			{
+			if (context.Profile.AllowedStartingHomes.Count > 0)
+				{
+				await new CrestronHomeNavigation (session).SelectExpectedHomeAsync (() => navigationAttempted = true, token).ConfigureAwait (false);
+				return session;
+				}
 			var hierarchy = await session.Device.CaptureAsync (token).ConfigureAwait (false);
 			if (context.Profile.Application == "com.crestron.phoenix.app")
 				CrestronHomePages.RequireHome (hierarchy, context.Profile.ExpectedHomeText);
@@ -102,8 +114,8 @@ public sealed class AndroidWorkflowSession
 			}
 		catch
 			{
-			// Opening only reads the UI. No input or physical control has been sent.
-			session.Complete (restorationConfirmed: true);
+			// Opted-in Home navigation may have failed after input; do not claim restoration then.
+			session.Complete (restorationConfirmed: !navigationAttempted);
 			throw;
 			}
 		}

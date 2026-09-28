@@ -127,6 +127,41 @@ public sealed class CrestronHomeNavigation
 		_pendingInputPage = null;
 		}
 
+	// Called only by opted-in session opening, while the workflow owns the emulator lease.
+	internal async Task SelectExpectedHomeAsync (Action beforeNavigation, CancellationToken token)
+		{
+		_session.VerifyActive ();
+		var initial = await _session.Device.CaptureAsync (token).ConfigureAwait (false);
+		string startingHome = initial.RequireUnique (Id ("home_wholeHouse_name")).Text;
+		CrestronHomePages.RequireHome (initial, startingHome);
+		if (startingHome != _session.Context.Profile.ExpectedHomeText &&
+			!_session.Context.Profile.AllowedStartingHomes.Contains (startingHome, StringComparer.Ordinal))
+			throw new InvalidOperationException ("The active Home is not an approved starting Home; no input was sent.");
+		void StartingHome (AndroidHierarchy hierarchy) => CrestronHomePages.RequireHome (hierarchy, startingHome);
+		void StartingMenu (AndroidHierarchy hierarchy)
+			{
+			if (hierarchy.RequireUnique (Id ("home_wholeHouse_name")).Text != startingHome)
+				throw new InvalidOperationException ("The Home changed before opening My Systems.");
+			_ = hierarchy.RequireUnique (MySystems);
+			}
+		await _session.CaptureAsync ("session-selection.before", StartingHome, token).ConfigureAwait (false);
+		if (startingHome != _session.Context.Profile.ExpectedHomeText)
+			{
+			beforeNavigation ();
+			await TapAsync (Id ("home_wholeHouse_topbarMenuButton"), StartingHome, token).ConfigureAwait (false);
+			await WaitAsync (StartingMenu, token).ConfigureAwait (false);
+			await TapAsync (MySystems, StartingMenu, token).ConfigureAwait (false);
+			await WaitAsync (Systems, token).ConfigureAwait (false);
+			await _session.CaptureAsync ("session-selection.systems", Systems, token).ConfigureAwait (false);
+			await TapAsync (HomeCard, Systems, token).ConfigureAwait (false);
+			await WaitAsync (Home, token).ConfigureAwait (false);
+			await ConfirmDepartureAsync (token).ConfigureAwait (false);
+			}
+		// A matching label is insufficient: inspect the selected saved endpoint before exposing the session.
+		beforeNavigation ();
+		await VerifySavedEndpointAsync ("session-selection.endpoint", _session.Context.Profile.LocalPort, token).ConfigureAwait (false);
+		}
+
 	/// <summary>Inspect saved local settings without editing them. This is not active-route or installed-instance proof.</summary>
 	public async Task VerifySavedEndpointAsync (string checkId, int localPort, CancellationToken token = default)
 		{

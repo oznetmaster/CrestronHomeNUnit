@@ -239,9 +239,91 @@ public sealed class CrestronHomeNavigationTests
 	public void ProfileRejectsInvalidLocalPortBeforeConnecting (int port) =>
 		Assert.Throws<ArgumentException> (() => (_context.Profile with { LocalPort = port }).Validate ());
 
+	[Test]
+	public async Task OptedInSessionSelectsApprovedHomeAndVerifiesEndpointBeforeReturning ()
+		{
+		_transport.CurrentHome = "Other Home";
+		var context = _context with { Profile = _context.Profile with { AllowedStartingHomes = ["Other Home"] } };
+		var session = await AndroidWorkflowSession.OpenAsync (context, new (_transport, context.Profile.Application), CancellationToken.None);
+		Assert.That (_transport.CurrentHome, Is.EqualTo ("Example Home"));
+		Assert.That (_transport.Page, Is.EqualTo ("home"));
+		Assert.That (_transport.Inputs, Has.Count.EqualTo (9));
+		Assert.That (File.Exists (Path.Combine (_directory, "session-selection.endpoint.local-endpoint", "observation.json")), Is.True);
+		session.Complete (true);
+		}
+
+	[Test]
+	public async Task SelectionIsNotImplicitInAnOrdinaryProfile ()
+		{
+		_transport.CurrentHome = "Other Home";
+		await Assert.ThrowsAsync<InvalidOperationException> (() => AndroidWorkflowSession.OpenAsync (_context, new (_transport, _context.Profile.Application), CancellationToken.None));
+		Assert.That (_transport.Inputs, Is.Empty);
+		Assert.That (AndroidWorkflowSession.Read<AndroidRunCompletion> (Path.Combine (_directory, "completion.json")).RestorationConfirmed, Is.True);
+		}
+
+	[TestCase ("Unapproved Home", "home")]
+	[TestCase ("Other Home", "extension")]
+	public async Task UnapprovedOrObscuredStartingHomeGetsNoInput (string home, string page)
+		{
+		_transport.CurrentHome = home;
+		_transport.Page = page;
+		var context = _context with { Profile = _context.Profile with { AllowedStartingHomes = ["Other Home"] } };
+		await Assert.ThrowsAsync<InvalidOperationException> (() => AndroidWorkflowSession.OpenAsync (context, new (_transport, context.Profile.Application), CancellationToken.None));
+		Assert.That (_transport.Inputs, Is.Empty);
+		}
+
+	[Test]
+	public async Task SelectedHomeWithWrongEndpointDoesNotExposeSession ()
+		{
+		_transport.CurrentHome = "Other Home";
+		_transport.LocalAddress = "192.0.2.99";
+		var context = _context with { Profile = _context.Profile with { AllowedStartingHomes = ["Other Home"] } };
+		await Assert.ThrowsAsync<InvalidOperationException> (() => AndroidWorkflowSession.OpenAsync (context, new (_transport, context.Profile.Application), CancellationToken.None));
+		Assert.That (_transport.Page, Is.EqualTo ("home"));
+		Assert.That (File.Exists (Path.Combine (_directory, "session-selection.endpoint.local-endpoint", "observation.json")), Is.False);
+		Assert.That (AndroidWorkflowSession.Read<AndroidRunCompletion> (Path.Combine (_directory, "completion.json")).RestorationConfirmed, Is.False);
+		}
+
+	[TestCase (1)]
+	[TestCase (2)]
+	[TestCase (3)]
+	public async Task UncertainHomeSwitchIsNeverReplayedOrReportedRestored (int input)
+		{
+		_transport.CurrentHome = "Other Home";
+		_transport.ThrowAfterInput = input;
+		var context = _context with { Profile = _context.Profile with { AllowedStartingHomes = ["Other Home"] } };
+		await Assert.ThrowsAsync<IOException> (() => AndroidWorkflowSession.OpenAsync (context, new (_transport, context.Profile.Application), CancellationToken.None));
+		Assert.That (_transport.Inputs, Has.Count.EqualTo (input));
+		Assert.That (AndroidWorkflowSession.Read<AndroidRunCompletion> (Path.Combine (_directory, "completion.json")).RestorationConfirmed, Is.False);
+		}
+
+	[Test]
+	public async Task AlreadySelectedHomeStillRequiresEndpointVerificationWhenOptedIn ()
+		{
+		var context = _context with { Profile = _context.Profile with { AllowedStartingHomes = ["Other Home"] } };
+		var session = await AndroidWorkflowSession.OpenAsync (context, new (_transport, context.Profile.Application), CancellationToken.None);
+		Assert.That (_transport.Inputs, Has.Count.EqualTo (6));
+		session.Complete (true);
+		}
+
+	[TestCase (false)]
+	[TestCase (true)]
+	public async Task MissingOrAmbiguousDestinationStopsAtSystemsWithoutSelectingAnotherHome (bool duplicate)
+		{
+		_transport.CurrentHome = "Other Home";
+		_transport.MissingHomeCard = !duplicate;
+		_transport.DuplicateHomeCard = duplicate;
+		var context = _context with { Profile = _context.Profile with { AllowedStartingHomes = ["Other Home"] } };
+		var navigation = new CrestronHomeNavigation (new (context, new (_transport, context.Profile.Application)), TimeSpan.FromMilliseconds (60));
+		await Assert.ThrowsAsync<TimeoutException> (() => navigation.SelectExpectedHomeAsync (() => { }, CancellationToken.None));
+		Assert.That (_transport.Page, Is.EqualTo ("systems"));
+		Assert.That (_transport.Inputs, Is.EqualTo (new[] { "home", "menu" }));
+		}
+
 	private sealed class NavigationTransport : IAndroidCommandTransport
 		{
 		public string Page = "home";
+		public string CurrentHome = "Example Home";
 		public string LocalAddress = "192.0.2.1";
 		public int ThrowAfterInput;
 		public int ThrowBeforeInput;
@@ -249,6 +331,8 @@ public sealed class CrestronHomeNavigationTests
 		public bool IgnoreBack;
 		public int BackInputs;
 		public bool DuplicateMenu;
+		public bool MissingHomeCard;
+		public bool DuplicateHomeCard;
 		public bool NonTileText;
 		public bool PortBelowFold;
 		public int PortAppearsAfter = 1;
@@ -267,7 +351,7 @@ public sealed class CrestronHomeNavigationTests
 		private XElement HomeTree ()
 			{
 			var parent = Node ("fragmentHomeContainer");
-			parent.Add (Node ("home_wholeHouse_name", "Example Home"), Node ("home_wholeHouse_topbarMenuButton"), Node (NonTileText ? "otherText" : "titleSubtitle_title", "Example Driver", left: 400));
+			parent.Add (Node ("home_wholeHouse_name", CurrentHome), Node ("home_wholeHouse_topbarMenuButton"), Node (NonTileText ? "otherText" : "titleSubtitle_title", "Example Driver", left: 400));
 			return parent;
 			}
 		public Task<byte[]> ExecuteAsync (IReadOnlyList<string> arguments, CancellationToken cancellationToken)
@@ -282,13 +366,15 @@ public sealed class CrestronHomeNavigationTests
 					{
 					"home" => [HomeTree ()],
 					"extension" => [Node ("customdevices_toolbarTitle", "Example Options"), Node ("customdevices_toolbarClose")],
-					"menu" => [Node ("home_wholeHouse_name", "Example Home"), Node ("fragmentPulleyContainer"), Node ("menu", description: "home_wholeHouse_popoverButtonMySystemsLabel")],
+					"menu" => [Node ("home_wholeHouse_name", CurrentHome), Node ("fragmentPulleyContainer"), Node ("menu", description: "home_wholeHouse_popoverButtonMySystemsLabel")],
 					"systems" => [Node ("homeswitcher_title"), Node ("card", description: "Example Home", left: 200), Node ("homeview_more")],
 					"options" => [Node ("bottomSheet_infoBar", "Example Home"), Node ("action", "Edit")],
 					"details" => [Node ("mobileclaimhome_title"), Field ("mobileclaimhome_friendlyNameOrLocation", "Example Home"), Field ("mobileclaimhome_localIpAddressOrHostName", LocalAddress), Field ("mobileclaimhome_localPort", "50001"), Field ("mobileclaimhome_remoteIpAddressOrHostName", "192.0.2.1"), Node ("mobileclaimhome_back")],
 					_ => [Node ("unknown")]
 					};
 				if (Page == "systems" && DuplicateMenu) nodes = nodes.Append (Node ("homeview_more"));
+				if (Page == "systems" && MissingHomeCard) nodes = nodes.Where (node => (string?)node.Attribute ("content-desc") != "Example Home");
+				if (Page == "systems" && DuplicateHomeCard) nodes = nodes.Append (Node ("card", description: "Example Home", left: 350));
 				if (Page == "details" && PortBelowFold)
 					{
 					int position = NoScrollProgress ? 0 : Swipes;
@@ -318,6 +404,7 @@ public sealed class CrestronHomeNavigationTests
 				}
 			else
 				{
+				if (Page == "systems" && arguments[3] == "250") CurrentHome = "Example Home";
 				Page = Page switch { "home" => arguments[3] == "450" ? "extension" : "menu", "extension" => "home", "menu" => "systems", "systems" => arguments[3] == "250" ? "home" : "options", "options" => "details", "details" => "systems", _ => throw new InvalidOperationException ("Unexpected tap") };
 				}
 			if (UnknownAfterInput == Inputs.Count) Page = "unknown";

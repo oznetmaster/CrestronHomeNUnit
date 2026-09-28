@@ -1,5 +1,20 @@
 # Crestron Home NUnit UI automation library
 
+## Saved-Home selection (unreleased)
+
+By default session opening only reads the current screen and requires the expected Home. A workflow that deliberately shares one emulator between processors can opt in with `AllowedStartingHomes` in each private Android profile:
+
+```json
+"ExpectedHomeText": "Test Home B",
+"AllowedStartingHomes": ["Test Home A"]
+```
+
+The session accepts only the expected Home or an unobstructed Home explicitly named in this list. From an approved different Home it opens My Systems and selects the unique expected card. Before exposing the session to a fixture, it verifies the selected Home's saved local address against the workflow processor address and verifies `LocalPort`, then returns to the expected Home. It does not edit connection settings, dismiss unknown screens, operate devices or retry uncertain inputs. The expected Home must already be saved and authenticated; this does not provision a connection. A missing or ambiguous card stops the phase.
+
+Selection and endpoint captures are retained under `session-selection.*`. The phase intentionally finishes on its expected Home; give the subsequent phase an explicit reverse starting-Home allowance if it must switch back. A failure after navigation begins leaves restoration unconfirmed, requiring inspection rather than silently continuing. Saved endpoint inspection does not prove the app's active network route or installed driver identity; the existing processor/candidate checks and live fixture observations remain necessary.
+
+This addition has offline test coverage; live multi-processor switching has not yet been validated.
+
 From TestAdapter **1.12.2**, saved-endpoint inspection supports both grid and list views in My Systems with multiple saved Homes. It selects the menu within the uniquely named Home's own card. Missing or ambiguous cards and menus fail without choosing another Home.
 
 New to Google Android Emulator or Android test setup? Start with [setting up an Android emulator on Windows](AndroidEmulatorSetup.md), including the copyable NUnit sample and first-run checks.
@@ -32,7 +47,7 @@ Selectors use resource ID, exact text or accessibility description within the co
 
 Set `AndroidSelector.AncestorResourceId` to scope a repeated control ID to its containing field. The app uses the same edit-control ID for the friendly name, local address, remote address and ports; a global text match can read the wrong field. `CrestronHomePages.RequireSavedLocalEndpoint` checks the friendly name and scoped local host/port without editing them. It compares literal IP addresses canonically and hostnames case-insensitively; it does not invent a DNS mapping between a hostname and an IP address. `RequireHome` rejects an otherwise matching Home name behind an open driver panel, menu or settings dialog. Crestron Home workflow session opening and the read-only sample use this unobstructed-page check.
 
-`CrestronHomeNavigation.VerifySavedEndpointAsync` follows the verified address-inspection route: Home menu, My Systems, the selected card's menu, Edit, inspect local fields, Back, then reconnect to that same named card. The sample NUnit fixture executes this route twice after opening its session; it is not an implicit operation of `OpenFromEnvironmentAsync`. Card/control selection must be unique. No input is sent to connection fields and Connect on the editor is never pressed. Device Health requires the separate administration password and is not needed for this check.
+`CrestronHomeNavigation.VerifySavedEndpointAsync` follows the verified address-inspection route: Home menu, My Systems, the selected card's menu, Edit, inspect local fields, Back, then reconnect to that same named card. The sample NUnit fixture executes this route twice after opening its session. Opening remains read-only unless the profile opts into saved-Home selection as described above. Card/control selection must be unique. No input is sent to connection fields and Connect on the editor is never pressed. Device Health requires the separate administration password and is not needed for this check.
 
 The navigator retries only page reads within a bounded readiness interval. It tracks a pending input until departure from its previous page is observed; a timeout or another cleanup attempt cannot silently replay that input or declare the old Home restored. A rejected selector is distinguished from an input that might have been sent. Cleanup navigates only recognized pages belonging to the expected Home, uses a separate bounded cancellation window, and refuses to dismiss an unknown dialog. The fixture verifies Home again before writing its restoration completion record. This restores navigation state only; future physical control fixtures must also restore their device state.
 
