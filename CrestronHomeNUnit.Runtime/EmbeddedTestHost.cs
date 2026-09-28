@@ -40,7 +40,7 @@ public static class EmbeddedTestHost
 
 	private static void StopActiveRunner ()
 		{
-#if NUNIT5_SNAPSHOT
+#if NUNIT5 || NUNIT5_SNAPSHOT
 		_activeRunner?.StopRun ();
 #else
 		_activeRunner?.StopRun (false);
@@ -120,6 +120,12 @@ public static class EmbeddedTestHost
 				return 0;
 				}
 
+#if NUNIT5 || NUNIT5_SNAPSHOT
+			// NUnit 5 adds dependencies even when they do not match the caller's filter.
+			// Reject that expansion before any setup/test runs: a dependency must never
+			// silently opt in to another device, a Live category or an unselected fixture.
+			ValidateExecutionSelection (NUnit.Framework.Internal.Execution.WorkItemBuilder.CreateWorkItem (loaded, filter, true), filter);
+#endif
 			lock (_gate)
 				{
 				if (_stopRequested)
@@ -163,6 +169,21 @@ public static class EmbeddedTestHost
 				}
 			}
 		}
+
+#if NUNIT5 || NUNIT5_SNAPSHOT
+	private static void ValidateExecutionSelection (NUnit.Framework.Internal.Execution.WorkItem? work, TestFilter filter)
+		{
+		if (work is null)
+			return;
+		if (work is NUnit.Framework.Internal.Execution.CompositeWorkItem suite)
+			{
+			foreach (var child in suite.Children)
+				ValidateExecutionSelection (child, filter);
+			}
+		else if (!filter.Pass (work.Test))
+			throw new InvalidOperationException ("NUnit dependency is outside the requested suite or selected tests: " + work.Test.FullName + ". Select the prerequisite explicitly within an authorized suite.");
+		}
+#endif
 
 	// Selecting a whole suite must not opt in to NUnit's explicitly marked demonstration tests.
 	private sealed class SuiteFilter (TestFilter inner) : TestFilter

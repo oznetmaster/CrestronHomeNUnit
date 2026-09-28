@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
-    <NUnitVersion Condition="'$(NUnitVersion)' == ''">4.6.1</NUnitVersion>
+    <NUnitVersion Condition="'$(NUnitVersion)' == ''">5.0.0</NUnitVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="NUnit" Version="$(NUnitVersion)" PrivateAssets="all" />

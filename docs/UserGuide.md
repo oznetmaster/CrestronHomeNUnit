@@ -207,15 +207,15 @@ All tests execute in the test host's process. Separate driver packages do not es
 
 ## Included NUnit and compatibility suites
 
-The host uses the official **NUnit 4.6.1 NuGet package**, consuming its .NET Framework asset from the `net472` projects. It embeds NUnit through `NUnitTestAssemblyRunner`; **NUnitLite is not a runtime dependency**, and the framework is not built from a private fork.
+The host uses the official **NUnit 5.0.0 NuGet package**, consuming its .NET Framework asset from the `net472` projects. It embeds NUnit through `NUnitTestAssemblyRunner`; **NUnitLite is not a runtime dependency**, and the framework is not built from a private fork.
 
 ### NUnit framework self-tests
 
-The imported source is pinned to NUnit tag **v4.6.1**, commit `b9197a6f17635580a3a397f3eb0f28bddba2e0c7`. The selected top-level tests come from the upstream **Assertions**, **Constraints** and **Syntax** areas, with their supporting utilities and test-data fixtures.
+The imported source is pinned to NUnit 5.0.0 commit `110e911227972b606241cd5782a7c8a51d2c8f9d`. The selected top-level tests come from the upstream **Assertions**, **Constraints** and **Syntax** areas, with their supporting utilities and test-data fixtures.
 
-This is a selected compatibility baseline, not the complete NUnit repository. Desktop partial-trust and Roslyn compiler-negative fixtures are excluded from compilation. Upstream ignores, platform skips and explicit demonstration fixtures remain identifiable; ordinary suite runs do not opt into explicit tests. Platform-dependent counts and timing warnings can differ between Windows and the processor.
+This is a selected compatibility baseline, not the complete NUnit repository. Desktop partial-trust and the InvalidCodeTests fixture are excluded from compilation. The two compiler checks within other fixtures retain their original assertions and use embedded public NUnit metadata in a merged host. Upstream ignores, platform skips and explicit demonstration fixtures remain identifiable; ordinary suite runs do not opt into explicit tests. Platform-dependent counts and timing warnings can differ between Windows and the processor.
 
-The source retains NUnit's copyright and MIT license. Local changes recreate certain mutable/disposable test state between runs and use the driver's work directory for temporary test files. Exact source scope, exclusions and adaptations are documented in [NUnit provenance](../vendor/nunit/PROVENANCE.md).
+The source retains NUnit's copyright and MIT license. Local changes recreate mutable constraint data between runs, use the driver's work directory for temporary test files and provide public metadata for compiler checks. The disposed-event fix is now included upstream. Exact source scope, exclusions and adaptations are documented in [NUnit provenance](../vendor/nunit/PROVENANCE.md).
 
 ### Language compatibility
 
@@ -233,7 +233,7 @@ Processor projects target **.NET Framework 4.7.2** with **`LangVersion=latest`**
 | .NET SDK | `global.json` starts at 10.0.401 and allows later feature bands |
 | PowerShell | PowerShell 7 (`pwsh`) |
 | Crestron Driver SDK | ManifestUtil and the SDK libraries installed locally |
-| NUnit | 4.6.1, restored from NuGet |
+| NUnit | 5.0.0, restored from NuGet |
 | Crestron DeviceDrivers DevKit | 27.0.24, restored from NuGet |
 | ILRepack | `dotnet-ilrepack` 2.0.45 |
 | Posh-SSH | Required only for the supplied automatic SFTP deployment script |
@@ -391,7 +391,7 @@ Verified development results include:
 
 These are recorded development results, not a claim that every later build, processor model or firmware release has been validated. See [Validation history](../Validation.md) for the observed versions and limitations.
 
-**Known repeated-run limitation:** the pinned NUnit 4.6.1 framework has a reproduced stream-comparison problem that can make some framework self-tests fail on repeated execution in the same process. The imported test sources also required documented repeated-run lifecycle adaptations. The project currently uses official NUnit and does not claim that the complete repeated self-test validation is green. Review the reproduction notes under `tools/NUnitRepeatRunReports` before interpreting such failures as failures in your application.
+**Repeated-run validation:** NUnit 5 includes the earlier stream-comparison and disposed-event fixes. The adapted framework suite passed both Windows rounds; both processor rounds completed without failures, with timing warnings and platform skips reported separately. The unmodified diagnostic suite retains upstream and packaging failures. See [NUnit 5 migration](NUnit5Migration.md) and [diagnostic results](../NUnit5/reports/2026-09-28-5.0.0.md).
 
 To build and validate the self-test assembly extracted from the actual package on Windows:
 
@@ -399,7 +399,7 @@ To build and validate the self-test assembly extracted from the actual package o
 pwsh -NoProfile -File .\Verify.ps1
 ```
 
-This check records evidence under `artifacts/validation` and can expose the known repeated-run limitation. It does not deploy or execute on a processor. Run the transport validation executable after building its project for local runner/protocol checks. Its synthetic failing fixtures are intentional checks of failure reporting, not part of the processor package.
+This check records evidence under `artifacts/validation` and checks repeated execution. It does not deploy or execute on a processor. Run the transport validation executable after building its project for local runner/protocol checks. Its synthetic failing fixtures are intentional checks of failure reporting, not part of the processor package.
 
 The package validator's optional `--run-twice` mode executes non-manual suites in the same loaded assembly. Use it only for suites that can run on Windows; a suite requiring the processor SDK runtime still needs validation on the processor. No test framework can guarantee cleanup after a fatal process failure, force a hung device call to return, or make arbitrary test code safe to execute on an occupied system.
 
@@ -469,7 +469,7 @@ When upgrading, close the Windows runner before replacing its files. Import the 
 
 Project-owned source, scripts and documentation: **Copyright (c) 2026 Neil Colvin**, under the [MIT License](../LICENSE).
 
-**NUnit framework and self-tests:** Copyright (c) Charlie Poole, Rob Prouse and Contributors, under NUnit's MIT license. The pinned v4.6.1 license specifically records Copyright (c) 2024 Charlie Poole, Rob Prouse. The complete unmodified text is included in [vendor/nunit/LICENSE.txt](../vendor/nunit/LICENSE.txt). NUnit is used both as the executing framework and as the source of the included framework self-test suite. See [NUnit's repository](https://github.com/nunit/nunit), the [v4.6.1 source](https://github.com/nunit/nunit/tree/v4.6.1), and [local provenance](../vendor/nunit/PROVENANCE.md).
+**NUnit framework and self-tests:** Copyright (c) Charlie Poole, Rob Prouse and Contributors, under NUnit's MIT license. The pinned NUnit 5.0.0 license records Charlie Poole, Rob Prouse, Terje Sandstrom and Contributors. The complete unmodified text is included in [vendor/nunit/LICENSE.txt](../vendor/nunit/LICENSE.txt). NUnit is used both as the executing framework and as the source of the included framework self-test suite. See [NUnit's repository](https://github.com/nunit/nunit), the [5.0.0 source](https://github.com/nunit/nunit/tree/110e911227972b606241cd5782a7c8a51d2c8f9d), and [local provenance](../vendor/nunit/PROVENANCE.md).
 
 Imported source retains its original notices. Local modifications are identified separately; the root license does not replace upstream licenses. Additional copied compatibility sources and restored dependencies are attributed in [THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md), with license texts under `licenses`.
 

@@ -41,7 +41,7 @@ public sealed class LanguageTests
 	[Test] public async ValueTask ValueTaskTest () => Assert.That (await Features.RefAndSpanInAsync (), Is.EqualTo (42));
 	[TestCase (ExpectedResult = 42)] public async ValueTask<int> GenericValueTaskTest () => await Features.RefAndSpanInAsync ();
 	[Test] public CustomAwaitable CustomAwaitableTest () => new CustomAwaitable (Task.Delay (5));
-	[Test] public void AsyncExceptionAssertion () => Assert.ThrowsAsync<InvalidOperationException> (async () => { await Task.Yield (); throw new InvalidOperationException ("expected"); });
+	[Test] public async Task AsyncExceptionAssertion () => await Assert.ThatAsync (async () => { await Task.Yield (); throw new InvalidOperationException ("expected"); }, Throws.TypeOf<InvalidOperationException> ());
 
 	public static IEnumerable<object[]> SyncCases ()
 		{

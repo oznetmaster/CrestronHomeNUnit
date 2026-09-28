@@ -6,6 +6,8 @@ Use a **separate .NET 10 test project** with `Microsoft.NET.Test.Sdk` and this p
 
 The package also includes `CrestronHomeNUnit.Android` for a separate .NET 10 NUnit UI-test project. Reference this package, `NUnit`, `NUnit3TestAdapter` and `Microsoft.NET.Test.Sdk` there. No `Workflows.xml` is needed in the UI project: the Crestron adapter discovers no workflows in that assembly, while the NUnit adapter runs its fixtures. Select the UI project through the private plan's `androidTests` stage, not its `localTests`. See [Android setup](https://github.com/oznetmaster/CrestronHomeNUnit/blob/main/docs/AndroidUiTesting.md). This is desktop test tooling; do not reference it from a net472 processor package.
 
+Version 2.0.0 aligns the processor package tooling and supplied test fixtures with NUnit 5.0.0. Existing fixtures must await `Assert.ThrowsAsync`, `Assert.CatchAsync` and `Assert.DoesNotThrowAsync`. Explicit NUnit 4 processor packages remain supported when the test project and host versions match. Read the [NUnit 5 migration guide](https://github.com/oznetmaster/CrestronHomeNUnit/blob/main/docs/NUnit5Migration.md) before upgrading.
+
 Add a `Workflows.xml` file to the workflow project:
 
 ```xml

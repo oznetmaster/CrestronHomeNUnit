@@ -34,7 +34,7 @@ $privateFiles = @(Get-ChildItem -LiteralPath $publishDirectory -Recurse -File | 
     $_.Name -match '(?i)(\.local\.json$|\.csproj\.user$|\.Local\.targets$|^LiveTestSettings\.json$|^ProcessorKeys\.dat$|\.pfx$|\.pdb$)'
 })
 if ($privateFiles.Count) { throw 'The publish directory contains private settings or development-only files.' }
-foreach ($required in @('CrestronHomeNUnit.Runner.exe','LICENSE','THIRD-PARTY-NOTICES.md','licenses\NUnit-4.6.1-LICENSE.txt','licenses\DotNet-LICENSE.txt')) {
+foreach ($required in @('CrestronHomeNUnit.Runner.exe','LICENSE','THIRD-PARTY-NOTICES.md','licenses\NUnit-5.0.0-LICENSE.txt','licenses\DotNet-LICENSE.txt')) {
     if (-not (Test-Path -LiteralPath (Join-Path $publishDirectory $required))) { throw "Missing release file: $required" }
 }
 Add-Type -AssemblyName System.IO.Compression.FileSystem

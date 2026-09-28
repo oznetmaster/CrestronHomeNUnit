@@ -25,19 +25,10 @@ try {
     dotnet test CrestronHomeNUnit.Android.Tests/CrestronHomeNUnit.Android.Tests.csproj -c Release --no-build
     if ($LASTEXITCODE -ne 0) { throw 'Android toolkit regression tests failed.' }
     $package = Join-Path $root 'CrestronHomeNUnit.Driver/bin/Release/net472/CrestronHomeNUnit.Driver.pkg'
-    $validation = Join-Path $root 'artifacts/release-validation'
-    $extracted = Join-Path $validation ([Guid]::NewGuid().ToString('N'))
-    [IO.Compression.ZipFile]::ExtractToDirectory($package, $extracted)
-    $assembly = Join-Path $extracted 'CrestronHomeNUnit.Driver.dll'
-    foreach ($suite in @('self-tests','compatibility')) {
-        $results = Join-Path $validation $suite
-        & ./CrestronHomeNUnit.DesktopValidation/bin/Release/net472/CrestronHomeNUnit.DesktopValidation.exe $results $suite $assembly
-        if ($LASTEXITCODE -ne 0) { throw "Packaged $suite failed." }
-        [xml] $xml = Get-Content (Join-Path $results 'TestResult.xml') -Raw
-        if ([int]$xml.'test-run'.passed -le 0 -or [int]$xml.'test-run'.failed -ne 0) { throw "Invalid $suite results." }
-    }
-    # Repeated self-test execution has a documented upstream NUnit 4.6.1 defect.
-    # Release validation executes each included suite once; Verify.ps1 retains the repeated-run check.
+    # The NUnit 5 candidate has passed repeated execution; keep that regression gate
+    # in the release workflow rather than relying only on a first-run result.
+    ./Verify.ps1 -Configuration Release -SkipBuild
+    if ($LASTEXITCODE -ne 0) { throw 'Repeated packaged validation failed.' }
     ./PublishRunner.ps1 -OutputDirectory (Join-Path $root 'artifacts/runner')
     if ($LASTEXITCODE -ne 0) { throw 'Runner publish failed.' }
     ./PublishCli.ps1 -OutputDirectory (Join-Path $root 'artifacts/cli')

@@ -24,7 +24,7 @@ public sealed class ManagedAndroidTests
 	[TestCase ("room")]
 	[TestCase ("name")]
 	[TestCase ("model")]
-	public void InvalidTargetsFailBeforeAnyLifecycleOrTest (string fault)
+	public async Task InvalidTargetsFailBeforeAnyLifecycleOrTest (string fault)
 		{
 		var children = fault switch
 			{
@@ -36,7 +36,7 @@ public sealed class ManagedAndroidTests
 			"name" => [CHILD with { Name = new ('x', 33) }],
 			_ => [CHILD with { Model = "" }]
 			};
-		Assert.ThrowsAsync<ArgumentException> (() => WorkflowManagedAndroid.RunCoreAsync (Plan (children), ACTUAL, Verify,
+		await Assert.ThrowsAsync<ArgumentException> (() => WorkflowManagedAndroid.RunCoreAsync (Plan (children), ACTUAL, Verify,
 			(_, _) => throw new AssertionException ("Tests must not start."), (_, _, _) => throw new AssertionException ("Lifecycle must not start.")));
 		}
 
@@ -89,7 +89,7 @@ public sealed class ManagedAndroidTests
 		}
 
 	[Test]
-	public void MismatchedCreatedIdentityIsNotGivenToTests () => Assert.ThrowsAsync<InvalidDataException> (() =>
+	public async Task MismatchedCreatedIdentityIsNotGivenToTests () => await Assert.ThrowsAsync<InvalidDataException> (() =>
 		WorkflowManagedAndroid.RunCoreAsync (Plan (CHILD), ACTUAL, Verify,
 			(_, _) => throw new AssertionException ("Changed child must not reach fixtures."),
 			async (targets, tests, token) =>
@@ -116,7 +116,7 @@ public sealed class ManagedAndroidTests
 		}
 
 	[Test]
-	public void LostReservationStopsBeforeCommissioning () => Assert.ThrowsAsync<IOException> (() =>
+	public async Task LostReservationStopsBeforeCommissioning () => await Assert.ThrowsAsync<IOException> (() =>
 		WorkflowManagedAndroid.RunCoreAsync (Plan (CHILD), ACTUAL,
 			_ => throw new IOException ("Reservation lost."),
 			(_, _) => throw new AssertionException ("No tests allowed."),

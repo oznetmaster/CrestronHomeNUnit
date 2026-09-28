@@ -32,29 +32,29 @@ public sealed class WorkflowRestartTests
 		}
 
 	[Test]
-	public void EvidenceFailurePreventsRebootSubmission ()
+	public async Task EvidenceFailurePreventsRebootSubmission ()
 		{
-		Assert.ThrowsAsync<IOException> (async () => await WorkflowRestart.CompleteAsync (Request (DriverRebootMode.ExplicitAfterOperation), new (new Fake ()),
+		await Assert.ThrowsAsync<IOException> (async () => await WorkflowRestart.CompleteAsync (Request (DriverRebootMode.ExplicitAfterOperation), new (new Fake ()),
 			 (_, _) => throw new IOException (), _ => throw new AssertionException ("Must not reboot"),
 			 _ => throw new AssertionException ("Must not reconnect"), _ => throw new AssertionException ("Must not continue"), default));
 		}
 
 	[Test]
-	public void UnconfirmedRebootDoesNotRetryOrProceed ()
+	public async Task UnconfirmedRebootDoesNotRetryOrProceed ()
 		{
 		var writes = 0;
-		Assert.ThrowsAsync<IOException> (async () => await WorkflowRestart.CompleteAsync (Request (DriverRebootMode.ExplicitAfterOperation), new (new Fake ()),
+		await Assert.ThrowsAsync<IOException> (async () => await WorkflowRestart.CompleteAsync (Request (DriverRebootMode.ExplicitAfterOperation), new (new Fake ()),
 			 (_, _) => Task.CompletedTask, _ => { writes++; return Task.FromResult (new ProcessorRebootResult (ProcessorRebootStatus.Unconfirmed)); },
 			 _ => throw new AssertionException ("Must not continue"), _ => throw new AssertionException ("Must not continue"), default));
 		Assert.That (writes, Is.EqualTo (1));
 		}
 
 	[Test]
-	public void MissingLeaseBlocksContinuationAndDisposesFreshConnection ()
+	public async Task MissingLeaseBlocksContinuationAndDisposesFreshConnection ()
 		{
 		var fresh = new Fake ();
 		var states = new List<string> ();
-		Assert.ThrowsAsync<IOException> (async () => await WorkflowRestart.CompleteAsync (Request (DriverRebootMode.ProcessorManaged), new (new Fake ()),
+		await Assert.ThrowsAsync<IOException> (async () => await WorkflowRestart.CompleteAsync (Request (DriverRebootMode.ProcessorManaged), new (new Fake ()),
 			 (state, _) => { states.Add (state); return Task.CompletedTask; }, _ => throw new AssertionException ("No SSH reboot"),
 			 _ => Task.FromResult (new ConfigurationClient (fresh, ownsConnection: true)), _ => throw new IOException (), default));
 		Assert.That (fresh.Disposed, Is.True);

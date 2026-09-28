@@ -1,5 +1,17 @@
 # Desktop validation
 
+## NUnit 5 release evaluation - 28 September 2026
+
+- All 523 owned tooling tests passed: Android 145, client 39, workflow 328, adapter 11.
+- Windows packaged framework tests: 2,480 passed, 58 skipped, zero failures in each of two same-process runs; compatibility 34/34.
+- Processor adapted framework tests: first round 2,477 passed, 8 timing warnings, 53 skipped; second round 2,482 passed, 3 timing warnings, 53 skipped. Zero failed tests. Compatibility 34/34 twice.
+- Processor cancellation acknowledged and completed with exit 3; the following two compatibility runs passed 34/34 without restarting the host.
+- A newly generated consumer package discovered exactly five tests, and all five passed twice on the processor, including awaited ThrowsAsync, CatchAsync and DoesNotThrowAsync.
+- Local transport checks passed for selected tests, category/dependency boundaries, cancellation, rerun, disconnection and retained incomplete results.
+
+These are retained migration-validation results for the tested builds and runtime, not an all-platform guarantee. The complete local 2.0.0 release build, repeated packaged Windows verification and isolated NuGet consumer acceptance also passed. Unchanged upstream diagnostic failures remain recorded separately in the [NUnit 5 comparison](NUnit5/reports/2026-09-28-5.0.0.md). Historical results below retain their original versions and limitations.
+
+
 Validated 10 September 2026 on Windows .NET Framework and on the Crestron Home processor. Processor run 0.1.000.0017 completed the selected framework self-test batch with 2,407 passed, zero failed, 55 skipped, and four timing warnings in 45.57 seconds. All 34 compatibility tests passed on processor run 0.1.000.0013.
 
 - Processor projects use `net472` with `LangVersion=latest` and .NET SDK 10.0.401. The Windows runner moved to .NET 10 in the validation recorded below.

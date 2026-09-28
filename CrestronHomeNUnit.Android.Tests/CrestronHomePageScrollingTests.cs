@@ -36,7 +36,7 @@ public sealed partial class CrestronHomeExtensionNavigationTests
 		{
 		await _navigation.OpenPageAsync (Text ("Open"), "Schedule", Close);
 		_transport.Error = error;
-		Assert.ThrowsAsync<InvalidOperationException> (() => _navigation.ScrollDownAsync (_ => { }));
+		await Assert.ThrowsAsync<InvalidOperationException> (() => _navigation.ScrollDownAsync (_ => { }));
 		Assert.That (_transport.PageScrollArguments, Is.Empty);
 		await _navigation.RestoreRootAsync (CancellationToken.None);
 		}
@@ -45,7 +45,7 @@ public sealed partial class CrestronHomeExtensionNavigationTests
 	public async Task PageAssertionFailurePreventsScrollingAndNavigationCanStillRestore ()
 		{
 		await _navigation.OpenPageAsync (Text ("Open"), "Schedule", Close);
-		Assert.ThrowsAsync<InvalidDataException> (() => _navigation.ScrollDownAsync (_ => throw new InvalidDataException ("State changed.")));
+		await Assert.ThrowsAsync<InvalidDataException> (() => _navigation.ScrollDownAsync (_ => throw new InvalidDataException ("State changed.")));
 		Assert.That (_transport.PageScrollArguments, Is.Empty);
 		await _navigation.RestoreRootAsync (CancellationToken.None);
 		Assert.That (_transport.Depth, Is.EqualTo (1));
@@ -56,7 +56,7 @@ public sealed partial class CrestronHomeExtensionNavigationTests
 		{
 		await _navigation.OpenPageAsync (Text ("Open"), "Schedule", Close);
 		using var cancellation = new CancellationTokenSource ();
-		Assert.ThrowsAsync<OperationCanceledException> (() => _navigation.ScrollDownAsync (_ => cancellation.Cancel (), cancellation.Token));
+		await Assert.ThrowsAsync<OperationCanceledException> (() => _navigation.ScrollDownAsync (_ => cancellation.Cancel (), cancellation.Token));
 		Assert.That (_transport.PageScrollArguments, Is.Empty);
 		await _navigation.RestoreRootAsync (CancellationToken.None);
 		}
@@ -66,7 +66,7 @@ public sealed partial class CrestronHomeExtensionNavigationTests
 		{
 		await _navigation.OpenPageAsync (Text ("Open"), "Schedule", Close);
 		_transport.Selection = true;
-		Assert.ThrowsAsync<InvalidOperationException> (() => _navigation.ScrollDownAsync (_ => { }));
+		await Assert.ThrowsAsync<InvalidOperationException> (() => _navigation.ScrollDownAsync (_ => { }));
 		Assert.That (_transport.PageScrollArguments, Is.Empty);
 		_transport.Selection = false;
 		await _navigation.RestoreRootAsync (CancellationToken.None);
@@ -77,7 +77,7 @@ public sealed partial class CrestronHomeExtensionNavigationTests
 		{
 		await _navigation.OpenPageAsync (Text ("Open"), "Schedule", Close);
 		_transport.Error = "page-scroll";
-		Assert.ThrowsAsync<IOException> (() => _navigation.ScrollDownAsync (_ => { }));
+		await Assert.ThrowsAsync<IOException> (() => _navigation.ScrollDownAsync (_ => { }));
 		await _navigation.RestoreRootAsync (CancellationToken.None);
 		Assert.That (_transport.PageScrollArguments, Has.Count.EqualTo (1));
 		Assert.That (_transport.Depth, Is.EqualTo (1));

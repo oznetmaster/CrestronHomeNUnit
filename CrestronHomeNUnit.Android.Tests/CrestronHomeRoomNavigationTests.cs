@@ -36,7 +36,8 @@ public sealed class CrestronHomeRoomNavigationTests
 	[TearDown]
 	public void TearDown ()
 		{
-		_lease.Release ();
+		try { _lease.Release (); }
+		finally { _lease.Dispose (); }
 		Directory.Delete (_directory, true);
 		}
 
@@ -55,9 +56,9 @@ public sealed class CrestronHomeRoomNavigationTests
 		}
 
 	[Test]
-	public void AssertionFailureStillRestoresHome ()
+	public async Task AssertionFailureStillRestoresHome ()
 		{
-		Assert.ThrowsAsync<InvalidDataException> (() => Inspect (_ => throw new InvalidDataException ("Unexpected temperature")));
+		await Assert.ThrowsAsync<InvalidDataException> (() => Inspect (_ => throw new InvalidDataException ("Unexpected temperature")));
 		Assert.That (_navigation.HomeRestored, Is.True);
 		Assert.That (_transport.Page, Is.EqualTo ("home"));
 		Assert.That (File.Exists (Path.Combine (_directory, "room.controls", "observation.json")), Is.False);
@@ -67,29 +68,29 @@ public sealed class CrestronHomeRoomNavigationTests
 	[TestCase (1)]
 	[TestCase (2)]
 	[TestCase (3)]
-	public void UncertainCompletedNavigationIsNeverReplayed (int input)
+	public async Task UncertainCompletedNavigationIsNeverReplayed (int input)
 		{
 		_transport.ThrowAfterInput = input;
-		Assert.ThrowsAsync<IOException> (() => Inspect ());
+		await Assert.ThrowsAsync<IOException> (() => Inspect ());
 		Assert.That (_navigation.HomeRestored, Is.True);
 		Assert.That (_transport.Inputs, Has.Count.EqualTo (input * 2));
 		}
 
 	[Test]
-	public void DuplicateRoomNamePreventsRoomSelection ()
+	public async Task DuplicateRoomNamePreventsRoomSelection ()
 		{
 		_transport.DuplicateRoom = true;
-		Assert.ThrowsAsync<InvalidOperationException> (() => Inspect ());
+		await Assert.ThrowsAsync<InvalidOperationException> (() => Inspect ());
 		Assert.That (_transport.Inputs, Is.EqualTo (new[] { "home", "rooms" }));
 		Assert.That (_navigation.HomeRestored, Is.True);
 		}
 
 	[TestCase (false)]
 	[TestCase (true)]
-	public void MissingOrDuplicateTilePreventsOpeningAnUnidentifiedDevice (bool duplicate)
+	public async Task MissingOrDuplicateTilePreventsOpeningAnUnidentifiedDevice (bool duplicate)
 		{
 		_transport.TileCount = duplicate ? 2 : 0;
-		Assert.ThrowsAsync<InvalidOperationException> (() => Inspect ());
+		await Assert.ThrowsAsync<InvalidOperationException> (() => Inspect ());
 		Assert.That (_transport.Inputs, Is.EqualTo (new[] { "home", "rooms", "room", "rooms" }));
 		Assert.That (_navigation.HomeRestored, Is.True);
 		}
@@ -97,11 +98,11 @@ public sealed class CrestronHomeRoomNavigationTests
 	[TestCase ("extra")]
 	[TestCase ("disabled")]
 	[TestCase ("overlap")]
-	public void ChangedBottomTabLayoutSendsNoInput (string change)
+	public async Task ChangedBottomTabLayoutSendsNoInput (string change)
 		{
 		_transport.ExtraTab = change == "extra";
 		_transport.InvalidTab = change;
-		Assert.ThrowsAsync<InvalidOperationException> (() => Inspect ());
+		await Assert.ThrowsAsync<InvalidOperationException> (() => Inspect ());
 		Assert.That (_transport.Inputs, Is.Empty);
 		Assert.That (_navigation.HomeRestored, Is.True);
 		}
@@ -145,32 +146,32 @@ public sealed class CrestronHomeRoomNavigationTests
 		}
 
 	[Test]
-	public void LostRoomScrollResponseIsNeverReplayed ()
+	public async Task LostRoomScrollResponseIsNeverReplayed ()
 		{
 		_transport.DesiredRoomViewport = 1;
 		_transport.ThrowAfterRoomSwipe = true;
-		Assert.ThrowsAsync<IOException> (() => Inspect ());
+		await Assert.ThrowsAsync<IOException> (() => Inspect ());
 		Assert.That (_transport.RoomSwipes, Is.EqualTo (1));
 		Assert.That (_transport.ExtensionOpens, Is.Zero);
 		Assert.That (_navigation.HomeRestored, Is.True);
 		}
 
 	[Test]
-	public void UnreachableRoomStopsAndRestoresHome ()
+	public async Task UnreachableRoomStopsAndRestoresHome ()
 		{
 		_transport.DesiredRoomViewport = 5;
-		Assert.ThrowsAsync<InvalidOperationException> (() => Inspect ());
+		await Assert.ThrowsAsync<InvalidOperationException> (() => Inspect ());
 		Assert.That (_transport.RoomSwipes, Is.LessThanOrEqualTo (24));
 		Assert.That (_transport.ExtensionOpens, Is.Zero);
 		Assert.That (_navigation.HomeRestored, Is.True);
 		}
 
 	[Test]
-	public void DuplicateRoomAfterScrollingIsNeverTapped ()
+	public async Task DuplicateRoomAfterScrollingIsNeverTapped ()
 		{
 		_transport.DesiredRoomViewport = 1;
 		_transport.DuplicateRoom = true;
-		Assert.ThrowsAsync<InvalidOperationException> (() => Inspect ());
+		await Assert.ThrowsAsync<InvalidOperationException> (() => Inspect ());
 		Assert.That (_transport.RoomSwipes, Is.EqualTo (1));
 		Assert.That (_transport.ExtensionOpens, Is.Zero);
 		Assert.That (_navigation.HomeRestored, Is.True);
@@ -199,22 +200,22 @@ public sealed class CrestronHomeRoomNavigationTests
 		}
 
 	[Test]
-	public void StationaryViewportStopsAfterOneGestureAndRestoresHome ()
+	public async Task StationaryViewportStopsAfterOneGestureAndRestoresHome ()
 		{
 		_transport.TileViewport = 2;
 		_transport.StationaryScroll = true;
-		Assert.ThrowsAsync<InvalidOperationException> (() => Inspect ());
+		await Assert.ThrowsAsync<InvalidOperationException> (() => Inspect ());
 		Assert.That (_transport.Swipes, Is.EqualTo (1));
 		Assert.That (_transport.ExtensionOpens, Is.Zero);
 		Assert.That (_navigation.HomeRestored, Is.True);
 		}
 
 	[Test]
-	public void LostScrollResponseIsNotReplayed ()
+	public async Task LostScrollResponseIsNotReplayed ()
 		{
 		_transport.TileViewport = 1;
 		_transport.ThrowAfterSwipe = true;
-		Assert.ThrowsAsync<IOException> (() => Inspect ());
+		await Assert.ThrowsAsync<IOException> (() => Inspect ());
 		Assert.That (_transport.Swipes, Is.EqualTo (1));
 		Assert.That (_transport.ExtensionOpens, Is.Zero);
 		Assert.That (_navigation.HomeRestored, Is.True);
@@ -222,22 +223,22 @@ public sealed class CrestronHomeRoomNavigationTests
 
 	[TestCase (true)]
 	[TestCase (false)]
-	public void AmbiguousOrDisabledTileAfterScrollIsNeverTapped (bool duplicate)
+	public async Task AmbiguousOrDisabledTileAfterScrollIsNeverTapped (bool duplicate)
 		{
 		_transport.TileViewport = 1;
 		_transport.TileCount = duplicate ? 2 : 1;
 		_transport.DisabledTile = !duplicate;
-		Assert.ThrowsAsync<InvalidOperationException> (() => Inspect ());
+		await Assert.ThrowsAsync<InvalidOperationException> (() => Inspect ());
 		Assert.That (_transport.Swipes, Is.EqualTo (1));
 		Assert.That (_transport.ExtensionOpens, Is.Zero);
 		Assert.That (_navigation.HomeRestored, Is.True);
 		}
 
 	[Test]
-	public void AbsentTileSearchHasFiniteGestureBudget ()
+	public async Task AbsentTileSearchHasFiniteGestureBudget ()
 		{
 		_transport.TileViewport = 100;
-		Assert.ThrowsAsync<InvalidOperationException> (() => Inspect ());
+		await Assert.ThrowsAsync<InvalidOperationException> (() => Inspect ());
 		Assert.That (_transport.Swipes, Is.EqualTo (12));
 		Assert.That (_transport.ExtensionOpens, Is.Zero);
 		Assert.That (_navigation.HomeRestored, Is.True);

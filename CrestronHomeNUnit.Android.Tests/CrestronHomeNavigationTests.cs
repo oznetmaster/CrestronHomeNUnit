@@ -37,15 +37,16 @@ public sealed class CrestronHomeNavigationTests
 	[TearDown]
 	public void TearDown ()
 		{
-		_lease.Release ();
+		try { _lease.Release (); }
+		finally { _lease.Dispose (); }
 		Directory.Delete (_directory, recursive: true);
 		}
 
 	[Test]
-	public void MatchingTextOutsideATileCannotBeTapped ()
+	public async Task MatchingTextOutsideATileCannotBeTapped ()
 		{
 		_transport.NonTileText = true;
-		Assert.ThrowsAsync<InvalidOperationException> (() => _navigation.InspectHomeExtensionAsync ("not-a-tile", "Example Driver", "Example Options", _ => { }));
+		await Assert.ThrowsAsync<InvalidOperationException> (() => _navigation.InspectHomeExtensionAsync ("not-a-tile", "Example Driver", "Example Options", _ => { }));
 		Assert.That (_transport.Inputs, Is.Empty);
 		Assert.That (_navigation.HomeRestored, Is.True);
 		}
@@ -60,19 +61,19 @@ public sealed class CrestronHomeNavigationTests
 		}
 
 	[Test]
-	public void FailedControlAssertionStillClosesTheSelectedExtension ()
+	public async Task FailedControlAssertionStillClosesTheSelectedExtension ()
 		{
-		Assert.ThrowsAsync<InvalidDataException> (() => _navigation.InspectHomeExtensionAsync ("extension-failure", "Example Driver", "Example Options", _ => throw new InvalidDataException ("Unexpected status")));
+		await Assert.ThrowsAsync<InvalidDataException> (() => _navigation.InspectHomeExtensionAsync ("extension-failure", "Example Driver", "Example Options", _ => throw new InvalidDataException ("Unexpected status")));
 		Assert.That (_navigation.HomeRestored, Is.True);
 		Assert.That (_transport.Inputs, Is.EqualTo (new[] { "home", "extension" }));
 		Assert.That (File.Exists (Path.Combine (_directory, "extension-failure.controls", "observation.json")), Is.False);
 		}
 
 	[Test]
-	public void UncertainExtensionOpenIsNotReplayed ()
+	public async Task UncertainExtensionOpenIsNotReplayed ()
 		{
 		_transport.ThrowAfterInput = 1;
-		Assert.ThrowsAsync<IOException> (() => _navigation.InspectHomeExtensionAsync ("extension-uncertain", "Example Driver", "Example Options", _ => { }));
+		await Assert.ThrowsAsync<IOException> (() => _navigation.InspectHomeExtensionAsync ("extension-uncertain", "Example Driver", "Example Options", _ => { }));
 		Assert.That (_navigation.HomeRestored, Is.True);
 		Assert.That (_transport.Inputs, Is.EqualTo (new[] { "home", "extension" }));
 		}
@@ -89,10 +90,10 @@ public sealed class CrestronHomeNavigationTests
 		}
 
 	[Test]
-	public void WrongLocalAddressFailsButStillRestoresHome ()
+	public async Task WrongLocalAddressFailsButStillRestoresHome ()
 		{
 		_transport.LocalAddress = "192.0.2.99";
-		Assert.ThrowsAsync<InvalidOperationException> (() => _navigation.VerifySavedEndpointAsync ("wrong-address", 50001));
+		await Assert.ThrowsAsync<InvalidOperationException> (() => _navigation.VerifySavedEndpointAsync ("wrong-address", 50001));
 		Assert.That (_transport.Page, Is.EqualTo ("home"));
 		Assert.That (_navigation.HomeRestored, Is.True);
 		Assert.That (File.Exists (Path.Combine (_directory, "wrong-address.local-endpoint", "observation.json")), Is.False);
@@ -123,50 +124,50 @@ public sealed class CrestronHomeNavigationTests
 		}
 
 	[Test]
-	public void ConnectionEditorThatDoesNotMoveIsNotScrolledAgain ()
+	public async Task ConnectionEditorThatDoesNotMoveIsNotScrolledAgain ()
 		{
 		_transport.PortBelowFold = true;
 		_transport.NoScrollProgress = true;
-		Assert.ThrowsAsync<InvalidOperationException> (() => _navigation.VerifySavedEndpointAsync ("stationary", 50001));
+		await Assert.ThrowsAsync<InvalidOperationException> (() => _navigation.VerifySavedEndpointAsync ("stationary", 50001));
 		Assert.That (_transport.Swipes, Is.EqualTo (1));
 		Assert.That (_navigation.HomeRestored, Is.True);
 		}
 
 	[Test]
-	public void UnreachableSavedPortHasABoundedGestureCountAndRestoresHome ()
+	public async Task UnreachableSavedPortHasABoundedGestureCountAndRestoresHome ()
 		{
 		_transport.PortBelowFold = true;
 		_transport.PortAppearsAfter = 20;
-		Assert.ThrowsAsync<InvalidOperationException> (() => _navigation.VerifySavedEndpointAsync ("bounded", 50001));
+		await Assert.ThrowsAsync<InvalidOperationException> (() => _navigation.VerifySavedEndpointAsync ("bounded", 50001));
 		Assert.That (_transport.Swipes, Is.EqualTo (8));
 		Assert.That (_navigation.HomeRestored, Is.True);
 		}
 
 	[Test]
-	public void UncertainScrollIsNotRepeatedAndEditorIsCancelled ()
+	public async Task UncertainScrollIsNotRepeatedAndEditorIsCancelled ()
 		{
 		_transport.PortBelowFold = true;
 		_transport.ThrowAfterInput = 5;
-		Assert.ThrowsAsync<IOException> (() => _navigation.VerifySavedEndpointAsync ("uncertain-scroll", 50001));
+		await Assert.ThrowsAsync<IOException> (() => _navigation.VerifySavedEndpointAsync ("uncertain-scroll", 50001));
 		Assert.That (_transport.Swipes, Is.EqualTo (1));
 		Assert.That (_navigation.HomeRestored, Is.True);
 		}
 
 	[Test]
-	public void UncertainTapIsNotReplayedAndObservedPageIsRestored ()
+	public async Task UncertainTapIsNotReplayedAndObservedPageIsRestored ()
 		{
 		_transport.ThrowAfterInput = 4;
-		Assert.ThrowsAsync<IOException> (() => _navigation.VerifySavedEndpointAsync ("uncertain", 50001));
+		await Assert.ThrowsAsync<IOException> (() => _navigation.VerifySavedEndpointAsync ("uncertain", 50001));
 		Assert.That (_transport.Inputs.Count (page => page == "options"), Is.EqualTo (1));
 		Assert.That (_transport.Page, Is.EqualTo ("home"));
 		Assert.That (_navigation.HomeRestored, Is.True);
 		}
 
 	[Test]
-	public void UnknownDialogIsNotDismissedAndRestorationRemainsUnconfirmed ()
+	public async Task UnknownDialogIsNotDismissedAndRestorationRemainsUnconfirmed ()
 		{
 		_transport.UnknownAfterInput = 4;
-		Assert.ThrowsAsync<TimeoutException> (() => _navigation.VerifySavedEndpointAsync ("unknown", 50001));
+		await Assert.ThrowsAsync<TimeoutException> (() => _navigation.VerifySavedEndpointAsync ("unknown", 50001));
 		Assert.That (_transport.Inputs, Has.Count.EqualTo (4));
 		Assert.That (_navigation.HomeRestored, Is.False);
 		}
@@ -182,54 +183,54 @@ public sealed class CrestronHomeNavigationTests
 		}
 
 	[Test]
-	public void FailedBackIsNotRepeatedDuringRestoration ()
+	public async Task FailedBackIsNotRepeatedDuringRestoration ()
 		{
 		_transport.Page = "menu";
 		_transport.IgnoreBack = true;
-		Assert.ThrowsAsync<TimeoutException> (() => _navigation.RestoreHomeAsync ());
+		await Assert.ThrowsAsync<TimeoutException> (() => _navigation.RestoreHomeAsync ());
 		Assert.That (_transport.BackInputs, Is.EqualTo (1));
 		Assert.That (_navigation.HomeRestored, Is.False);
-		Assert.ThrowsAsync<TimeoutException> (() => _navigation.RestoreHomeAsync ());
+		await Assert.ThrowsAsync<TimeoutException> (() => _navigation.RestoreHomeAsync ());
 		Assert.That (_transport.BackInputs, Is.EqualTo (1), "A subsequent cleanup attempt must not replay the pending Back command.");
 		}
 
 	[Test]
-	public void UncertainInputThatHasNotChangedPageCannotClaimRestoration ()
+	public async Task UncertainInputThatHasNotChangedPageCannotClaimRestoration ()
 		{
 		_transport.ThrowBeforeInput = 1;
-		Assert.ThrowsAsync<TimeoutException> (() => _navigation.VerifySavedEndpointAsync ("still-pending", 50001));
+		await Assert.ThrowsAsync<TimeoutException> (() => _navigation.VerifySavedEndpointAsync ("still-pending", 50001));
 		Assert.That (_transport.Inputs, Has.Count.EqualTo (1));
 		Assert.That (_transport.Page, Is.EqualTo ("home"));
 		Assert.That (_navigation.HomeRestored, Is.False, "The old Home can still be visible while an input is pending.");
-		Assert.ThrowsAsync<TimeoutException> (() => _navigation.RestoreHomeAsync ());
+		await Assert.ThrowsAsync<TimeoutException> (() => _navigation.RestoreHomeAsync ());
 		Assert.That (_transport.Inputs, Has.Count.EqualTo (1));
 		}
 
 	[Test]
-	public void AmbiguousMenuIsRejectedBeforeInputAndHomeCanStillBeRestored ()
+	public async Task AmbiguousMenuIsRejectedBeforeInputAndHomeCanStillBeRestored ()
 		{
 		_transport.DuplicateMenu = true;
-		Assert.ThrowsAsync<InvalidOperationException> (() => _navigation.VerifySavedEndpointAsync ("ambiguous", 50001));
+		await Assert.ThrowsAsync<InvalidOperationException> (() => _navigation.VerifySavedEndpointAsync ("ambiguous", 50001));
 		Assert.That (_transport.Inputs, Has.Count.EqualTo (3), "Only Home menu, My Systems and the restoration Home card may be tapped.");
 		Assert.That (_transport.Page, Is.EqualTo ("home"));
 		Assert.That (_navigation.HomeRestored, Is.True);
 		}
 
 	[Test]
-	public void DeadCoordinatorPreventsAnyNavigation ()
+	public async Task DeadCoordinatorPreventsAnyNavigation ()
 		{
 		_navigation = new (new (_context with { CoordinatorStartUtcTicks = 1 }, new (_transport, _context.Profile.Application)));
-		Assert.ThrowsAsync<IOException> (() => _navigation.VerifySavedEndpointAsync ("lost-owner", 50001));
+		await Assert.ThrowsAsync<IOException> (() => _navigation.VerifySavedEndpointAsync ("lost-owner", 50001));
 		Assert.That (_transport.Inputs, Is.Empty);
 		}
 
 	[Test]
-	public void CompletedSessionCannotNavigateEvenWhileReservationStillExists ()
+	public async Task CompletedSessionCannotNavigateEvenWhileReservationStillExists ()
 		{
 		var session = new AndroidWorkflowSession (_context, new (_transport, _context.Profile.Application));
 		session.Complete (true);
 		_navigation = new (session);
-		Assert.ThrowsAsync<InvalidOperationException> (() => _navigation.VerifySavedEndpointAsync ("completed", 50001));
+		await Assert.ThrowsAsync<InvalidOperationException> (() => _navigation.VerifySavedEndpointAsync ("completed", 50001));
 		Assert.That (_transport.Inputs, Is.Empty);
 		}
 

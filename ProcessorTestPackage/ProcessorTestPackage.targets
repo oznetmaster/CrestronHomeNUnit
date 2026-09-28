@@ -6,6 +6,7 @@ Licensed under the MIT License. See LICENSE in the repository root.
   <PropertyGroup>
     <DriverBuildToolsDirectory>$(ProcessorTestSdkRoot)\CrestronHomeNUnit.Driver</DriverBuildToolsDirectory>
     <ProcessorPackageValidator>$(ProcessorTestSdkRoot)\ProcessorTestPackage.Validation\bin\$(Configuration)\net472\ProcessorTestPackage.Validation.exe</ProcessorPackageValidator>
+    <DefineConstants Condition="$([MSBuild]::VersionGreaterThanOrEquals('$(ProcessorNUnitVersion)', '5.0.0'))">$(DefineConstants);NUNIT5</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(ProcessorTestSdkRoot)\CrestronHomeNUnit.Runtime\*.cs" Link="Host\Runtime\%(Filename)%(Extension)" />

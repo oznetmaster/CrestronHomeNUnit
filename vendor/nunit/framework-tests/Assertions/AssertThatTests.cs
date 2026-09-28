@@ -1128,7 +1128,7 @@ namespace NUnit.Framework.Tests.Assertions
             var objectB = new InfinitelyRecursiveTestStructure() { Value1 = 2 };
             Assert.Throws<InconclusiveException>(() =>
             {
-                Assert.That(objectA, Is.EqualTo(objectB).UsingPropertiesComparer());
+                 Assert.That(objectA, Is.EqualTo(objectB).UsingPropertiesComparer());
             });
         }
 

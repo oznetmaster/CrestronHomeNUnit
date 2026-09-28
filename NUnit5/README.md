@@ -1,19 +1,21 @@
-# NUnit 5 snapshot testing on Crestron Home
+# NUnit 5 release diagnostics on Crestron Home
 
-This optional diagnostic package tests a **fixed development snapshot**, independently of the stable NUnit 4.6.1 packages. It exists to report results to NUnit, not to maintain a fork or repair upstream failures. It uses the normal Windows runner or CLI and has its own standalone Home tile in the **Utility** category.
+This optional diagnostic package tests a **fixed NUnit 5.0.0 release**, independently of the adapted production self-test suite. It exists to report results to NUnit, not to maintain a fork or repair upstream failures. It uses the normal Windows runner or CLI and has its own standalone Home tile in the **Utility** category.
 
 The first retained [Windows/Mono comparison report](reports/2026-09-19-beta.1.52.md) includes repeated execution, language compatibility and known packaging limitations.
 
-## Snapshot and scope
+## Version and scope
 
-- Official MyGet package: **NUnit 5.0.0-beta.1.52**, using its `net462` assembly from `net472` projects.
-- Upstream source: [`a45c70a519784f73bba4a685cb30e28077273bbe`](https://github.com/nunit/nunit/tree/a45c70a519784f73bba4a685cb30e28077273bbe).
-- NUnit package SHA-256: `ddc4e65d667bdae8c6f9d853995704a82b30b2383d9f9a46ec48372beb824bb8`.
+- Official NuGet package: **NUnit 5.0.0**, using its `net462` assembly from `net472` projects.
+- Upstream source: [`110e911227972b606241cd5782a7c8a51d2c8f9d`](https://github.com/nunit/nunit/tree/110e911227972b606241cd5782a7c8a51d2c8f9d).
+- NUnit package SHA-256: `3ce258aa450162d55559f60335525238f03ae40b6775f605c285ba834fc28ec3`.
 - Compiler setting: `LangVersion=latest`, including the existing C# 13 compatibility fixtures and required net472 shims. This does not imply that every language/runtime combination is supported by Mono.
 - Selected upstream **Assertions, Constraints and Syntax** fixtures, their helpers and test data. This is not the whole upstream NUnit test suite. The partial-trust `LowTrustFixture` and unused `CallbackEventHandler` helper are excluded from compilation. Other upstream test projects are outside this package's scope.
 - A separate **C# Compatibility** suite links this repository's existing language and async-lifecycle tests.
 
-The scoped `NuGet.Config` obtains NUnit from the [official development feed](https://docs.nunit.org/articles/nunit/getting-started/downloading.html). Other dependencies come from nuget.org. Restoring does not select a newer snapshot. Copied upstream files are unchanged and enumerated in [the provenance record](vendor/nunit/PROVENANCE.md).
+The scoped `NuGet.Config` restores pinned NUnit and dependencies from nuget.org. Copied upstream files are unchanged and enumerated in [the provenance record](vendor/nunit/PROVENANCE.md).
+
+The [final-release comparison](reports/2026-09-28-5.0.0.md) records the 28 September evaluation. Earlier beta results remain historical evidence.
 
 ## Build and run
 
@@ -27,7 +29,7 @@ dotnet build NUnit5/CrestronHomeNUnit.NUnit5.ProcessorTests -c Debug -p:BuildPro
 
 Supply a working ManifestUtil installation through the existing `ManifestUtilExe` property when necessary. Credentials, workstation paths and `.Local.targets`/`.csproj.user` files belong in private local configuration and must not be committed. See [processor build instructions](../docs/ProcessorTestPackages.md) for prerequisites and deployment.
 
-After deploying and installing the package, select **NUnit 5 Snapshot Tests (beta.1.52)** in the Windows runner. Run **C# Compatibility** first, then **Framework Self-Tests**. Run each twice without updating/reloading the package to test repeated execution in the same process. Both suites are also available from the standalone Home tile. No household device inputs are required.
+After deploying and installing the package, select **NUnit 5.0.0 Evaluation Tests** in the Windows runner. Run **C# Compatibility** first, then **Framework Self-Tests**. Run each twice without updating/reloading the package to test repeated execution in the same process. Both suites are also available from the standalone Home tile. No household device inputs are required.
 
 The package deliberately preserves upstream discovery errors. `ProcessorReportInvalidTests=true` retains invalid nodes in discovery XML and `InvalidTests.txt` instead of rejecting this diagnostic build. This is **not a passing test result**. Normal processor packages retain the strict default. Zero discovered tests, loader errors and incorrect expected counts still fail validation.
 

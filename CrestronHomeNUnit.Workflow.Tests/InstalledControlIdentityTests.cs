@@ -56,7 +56,7 @@ public sealed class InstalledControlIdentityTests
 		if (allowed)
 			await session.SubmitAsync (JsonSerializer.SerializeToElement (requested), default);
 		else
-			Assert.CatchAsync<InvalidOperationException> (() => session.SubmitAsync (JsonSerializer.SerializeToElement (requested), default));
+			await Assert.CatchAsync<InvalidOperationException> (() => session.SubmitAsync (JsonSerializer.SerializeToElement (requested), default));
 		Assert.That (connection.Writes, Is.EqualTo (allowed ? 1 : 0));
 		if (allowed)
 			{

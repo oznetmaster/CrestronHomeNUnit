@@ -91,6 +91,7 @@ internal static class Program
 			CheckFraming ();
 			Task.Run (TestInputsValidation.RunAsync).GetAwaiter ().GetResult ();
 			Task.Run (LiveOptInValidation.RunAsync).GetAwaiter ().GetResult ();
+			Task.Run (DependencySelectionValidation.RunAsync).GetAwaiter ().GetResult ();
 			Task.Run (CheckTransportAsync).GetAwaiter ().GetResult ();
 			Console.WriteLine ("Transport validation passed.");
 			return 0;

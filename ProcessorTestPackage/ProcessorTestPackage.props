@@ -13,7 +13,7 @@ Licensed under the MIT License. See LICENSE in the repository root.
     <Deterministic>true</Deterministic>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <ProcessorExpectedTestCount Condition="'$(ProcessorExpectedTestCount)' == ''">0</ProcessorExpectedTestCount>
-    <ProcessorNUnitVersion Condition="'$(ProcessorNUnitVersion)' == ''">4.6.1</ProcessorNUnitVersion>
+    <ProcessorNUnitVersion Condition="'$(ProcessorNUnitVersion)' == ''">5.0.0</ProcessorNUnitVersion>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System.Runtime.Serialization" />

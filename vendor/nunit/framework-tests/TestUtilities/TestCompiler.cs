@@ -1,3 +1,4 @@
+// Local modifications copyright (c) 2026 Neil Colvin. MIT License; see PROVENANCE.md.
 // Copyright (c) Charlie Poole, Rob Prouse and Contributors. MIT License - see LICENSE.txt
 
 using System;
@@ -27,6 +28,25 @@ namespace NUnit.Framework.Tests.TestUtilities
 
         public TestCompiler(params IEnumerable<Assembly> assemblies)
         {
+            if (typeof(Assert).Assembly.GetName().Name != "nunit.framework")
+            {
+                // A merged driver internalizes NUnit. Compile against the exact original
+                // NuGet metadata, without loading or executing a second framework.
+                using var reference = typeof(TestCompiler).Assembly.GetManifestResourceStream("NUnit.CompilerReference.dll")
+                    ?? throw new InvalidOperationException("The original NUnit compiler reference is missing.");
+                _references = new List<MetadataReference>
+                {
+                    MetadataReference.CreateFromStream(reference),
+                    MetadataReference.CreateFromFile(typeof(object).Assembly.Location)
+                };
+                foreach (var assembly in assemblies.Distinct())
+                {
+                    if (assembly != typeof(Assert).Assembly && assembly != typeof(object).Assembly)
+                        _references.Add(MetadataReference.CreateFromFile(assembly.Location));
+                }
+                return;
+            }
+
             Dictionary<string, Assembly> alreadyReferencedAssemblies = [];
 
             // Always reference the NUnit framework assembly
@@ -78,12 +98,10 @@ namespace NUnit.Framework.Tests.TestUtilities
                 }
             }
         }
-        private EmitResult CompileCode(string code, Stream stream)
+
+        private EmitResult CompileCode(string code, Stream stream, string assemblyName)
         {
             var syntaxTree = CSharpSyntaxTree.ParseText(code);
-
-            var assemblyName = $"InMemoryAssembly_{Guid.NewGuid():N}";
-
             var compilation = CSharpCompilation.Create(
                 assemblyName,
                 syntaxTrees: [syntaxTree],
@@ -93,16 +111,21 @@ namespace NUnit.Framework.Tests.TestUtilities
             return compilation.Emit(stream);
         }
 
+        private string DefaultAssemblyName => $"InMemoryAssembly_{Guid.NewGuid():N}";
+
         public EmitResult CompileCode(string code)
         {
             using var ms = new MemoryStream();
-            return CompileCode(code, ms);
+            return CompileCode(code, ms, DefaultAssemblyName);
         }
 
         public Assembly GenerateInMemoryAssembly(string code)
+            => GenerateInMemoryAssembly(code, DefaultAssemblyName);
+
+        public Assembly GenerateInMemoryAssembly(string code, string assemblyName)
         {
             using var ms = new MemoryStream();
-            var result = CompileCode(code, ms);
+            var result = CompileCode(code, ms, assemblyName);
 
             if (result.Success)
             {

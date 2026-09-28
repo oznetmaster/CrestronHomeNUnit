@@ -39,7 +39,7 @@ public sealed class AndroidNavigationTests
 	[TestCase ("password-label")]
 	[TestCase ("wrong-ancestor")]
 	[TestCase ("blank-label")]
-	public void UnsafeSiblingLabel_SendsNoInput (string defect)
+	public async Task UnsafeSiblingLabel_SendsNoInput (string defect)
 		{
 		string row = LabelRow ("First");
 		string label = "<node package='example.app' text='First' password='false' />";
@@ -56,15 +56,15 @@ public sealed class AndroidNavigationTests
 			};
 		var selector = Selector with { SiblingText = defect == "blank-label" ? " " : "First", AncestorResourceId = defect == "wrong-ancestor" ? "missing" : null };
 		var transport = new FakeTransport (Document (row));
-		Assert.CatchAsync<Exception> (() => new AndroidDevice (transport, Application).TapAsync (selector, _ => { }));
+		await Assert.CatchAsync<Exception> (() => new AndroidDevice (transport, Application).TapAsync (selector, _ => { }));
 		Assert.That (transport.Commands.Any (c => c.Contains ("input")), Is.False);
 		}
 
 	[Test]
-	public void SiblingScopedInputFailure_IsNotReplayed ()
+	public async Task SiblingScopedInputFailure_IsNotReplayed ()
 		{
 		var transport = new FakeTransport (Document (LabelRow ("First") + LabelRow ("Second"))) { FailInput = true };
-		Assert.ThrowsAsync<TimeoutException> (() => new AndroidDevice (transport, Application).TapAsync (Selector with { SiblingText = "First" }, _ => { }));
+		await Assert.ThrowsAsync<TimeoutException> (() => new AndroidDevice (transport, Application).TapAsync (Selector with { SiblingText = "First" }, _ => { }));
 		Assert.That (transport.Commands.Count (c => c.Contains ("input")), Is.EqualTo (1));
 		}
 
@@ -79,10 +79,10 @@ public sealed class AndroidNavigationTests
 		}
 
 	[Test]
-	public void CaptureFailureSurvivesSecondaryCleanupFailure ()
+	public async Task CaptureFailureSurvivesSecondaryCleanupFailure ()
 		{
 		var transport = new FakeTransport (Document (Node)) { FailDump = true, FailCleanup = true };
-		var error = Assert.ThrowsAsync<IOException> (() => new AndroidDevice (transport, Application).CaptureAsync ());
+		var error = await Assert.ThrowsAsync<IOException> (() => new AndroidDevice (transport, Application).CaptureAsync ());
 		Assert.That (error!.Message, Does.Contain ("could not capture"));
 		Assert.That (transport.Commands.Count (c => c.Contains ("uiautomator")), Is.EqualTo (3));
 		Assert.That (transport.Commands.Any (c => c.Contains ("input")), Is.False);
@@ -111,7 +111,7 @@ public sealed class AndroidNavigationTests
 	[TestCase ("otherApp")]
 	[TestCase ("password")]
 	[TestCase ("invalidBounds")]
-	public void UnsafeTargetDoesNotSendInput (string defect)
+	public async Task UnsafeTargetDoesNotSendInput (string defect)
 		{
 		var xml = defect switch
 			{
@@ -124,34 +124,34 @@ public sealed class AndroidNavigationTests
 				};
 		var transport = new FakeTransport (xml);
 		var device = new AndroidDevice (transport, Application);
-		Assert.CatchAsync<Exception> (() => device.TapAsync (Selector, _ => { }));
+		await Assert.CatchAsync<Exception> (() => device.TapAsync (Selector, _ => { }));
 		Assert.That (transport.Commands.Any (args => args.Contains ("input")), Is.False);
 		}
 
 	[Test]
-	public void FailedPageGuardPreventsInput ()
+	public async Task FailedPageGuardPreventsInput ()
 		{
 		var transport = new FakeTransport (Document (Node));
 		var device = new AndroidDevice (transport, Application);
-		Assert.ThrowsAsync<InvalidOperationException> (() => device.TapAsync (Selector, _ => throw new InvalidOperationException ("Wrong processor home")));
+		await Assert.ThrowsAsync<InvalidOperationException> (() => device.TapAsync (Selector, _ => throw new InvalidOperationException ("Wrong processor home")));
 		Assert.That (transport.Commands.Any (args => args.Contains ("input")), Is.False);
 		}
 
 	[Test]
-	public void TimedOutInputIsNeverReplayed ()
+	public async Task TimedOutInputIsNeverReplayed ()
 		{
 		var transport = new FakeTransport (Document (Node)) { FailInput = true };
 		var device = new AndroidDevice (transport, Application);
-		Assert.ThrowsAsync<TimeoutException> (() => device.TapAsync (Selector, _ => { }));
+		await Assert.ThrowsAsync<TimeoutException> (() => device.TapAsync (Selector, _ => { }));
 		Assert.That (transport.Commands.Count (args => args.Contains ("input")), Is.EqualTo (1));
 		}
 
 	[Test]
-	public void FailedCaptureDoesNotSendInput ()
+	public async Task FailedCaptureDoesNotSendInput ()
 		{
 		var transport = new FakeTransport (Document (Node)) { FailDump = true };
 		var device = new AndroidDevice (transport, Application);
-		Assert.ThrowsAsync<IOException> (() => device.TapAsync (Selector, _ => { }));
+		await Assert.ThrowsAsync<IOException> (() => device.TapAsync (Selector, _ => { }));
 		Assert.That (transport.Commands.Any (args => args.Contains ("input")), Is.False);
 		var dumps = transport.Commands.Where (args => args.Contains ("uiautomator")).Select (args => args[^1]).ToArray ();
 		Assert.That (dumps, Has.Length.EqualTo (3).And.Unique);
@@ -188,8 +188,7 @@ public sealed class AndroidNavigationTests
 		Assert.That (new AndroidHierarchy (Document (Node), Application).RequireUnique (new (kind, value)).Text, Is.EqualTo ("Open"));
 
 	[Test]
-	public void InvalidScreenshotCannotBeRetainedAsPng () =>
-		Assert.ThrowsAsync<InvalidDataException> (() => new AndroidDevice (new FakeTransport (Document (Node)), Application).CaptureScreenshotAsync ());
+	public async Task InvalidScreenshotCannotBeRetainedAsPng () => await Assert.ThrowsAsync<InvalidDataException> (() => new AndroidDevice (new FakeTransport (Document (Node)), Application).CaptureScreenshotAsync ());
 
 	private sealed class FakeTransport (string hierarchy) : IAndroidCommandTransport
 		{

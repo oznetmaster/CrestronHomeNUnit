@@ -47,7 +47,7 @@ namespace NUnit.Framework.Tests.Constraints
         [Test]
         public void CanMatchArrayWithMultiDimensionsEquality()
         {
-            var tester = new[, , ,]
+            var tester = new[,,,]
             {
                 {
                     {

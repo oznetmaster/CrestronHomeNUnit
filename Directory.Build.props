@@ -12,7 +12,7 @@ Licensed under the MIT License. See LICENSE in the repository root.
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
     <IsPackable>false</IsPackable>
-    <NUnitVersion>4.6.1</NUnitVersion>
+    <NUnitVersion Condition="'$(NUnitVersion)' == ''">5.0.0</NUnitVersion>
   </PropertyGroup>
   <Import Project="Version.props" />
 </Project>

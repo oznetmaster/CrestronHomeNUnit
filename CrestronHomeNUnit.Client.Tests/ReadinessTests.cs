@@ -43,11 +43,11 @@ public sealed class ReadinessTests
 		}
 
 	[Test]
-	public void AmbiguousPackagesDoNotConnect ()
+	public async Task AmbiguousPackagesDoNotConnect ()
 		{
 		var calls = 0;
 		var readiness = new PackageReadiness (_ => Task.FromResult<IReadOnlyList<DiscoveredPackage>> ([Package (1), Package (2)]));
-		Assert.ThrowsAsync<ArgumentException> (async () => await readiness.WaitAsync ("192.0.2.1", "Example Tests", (_, _) =>
+		await Assert.ThrowsAsync<ArgumentException> (async () => await readiness.WaitAsync ("192.0.2.1", "Example Tests", (_, _) =>
 		{
 			calls++;
 			return Task.FromResult (new Connection ());
@@ -56,13 +56,13 @@ public sealed class ReadinessTests
 		}
 
 	[Test]
-	public void ChangedProcessorIdentityStopsRetry ()
+	public async Task ChangedProcessorIdentityStopsRetry ()
 		{
 		var queries = 0;
 		var connections = 0;
 		var readiness = new PackageReadiness (_ => Task.FromResult<IReadOnlyList<DiscoveredPackage>> (
 			 [Package (123, ++queries == 1 ? "processor-one" : "processor-two")]), TimeSpan.Zero);
-		Assert.ThrowsAsync<InvalidOperationException> (async () => await readiness.WaitAsync ("Development", "Example Tests", (_, _) =>
+		await Assert.ThrowsAsync<InvalidOperationException> (async () => await readiness.WaitAsync ("Development", "Example Tests", (_, _) =>
 		{
 			connections++;
 			return Task.FromException<Connection> (new IOException ("Closed"));
@@ -72,12 +72,12 @@ public sealed class ReadinessTests
 
 	[TestCase (true)]
 	[TestCase (false)]
-	public void AuthenticationOrMalformedIdentityIsNotRetried (bool authentication)
+	public async Task AuthenticationOrMalformedIdentityIsNotRetried (bool authentication)
 		{
 		var calls = 0;
 		var readiness = new PackageReadiness (_ => Task.FromResult<IReadOnlyList<DiscoveredPackage>> ([Package (123)]), TimeSpan.Zero);
 		Exception failure = authentication ? new AuthenticationException ("Rejected") : new InvalidDataException ("Invalid identity");
-		var actual = Assert.CatchAsync (async () => await readiness.WaitAsync ("Development", "Example Tests", (_, _) =>
+		var actual = await Assert.CatchAsync (async () => await readiness.WaitAsync ("Development", "Example Tests", (_, _) =>
 		{
 			calls++;
 			return Task.FromException<Connection> (failure);
@@ -96,14 +96,14 @@ public sealed class ReadinessTests
 		var run = readiness.WaitAsync ("Development", "Example Tests", (_, _) => { entered.SetResult (); return pending.Task; }, cancellation.Token);
 		await entered.Task;
 		cancellation.Cancel ();
-		Assert.CatchAsync<OperationCanceledException> (async () => await run);
+		await Assert.CatchAsync<OperationCanceledException> (async () => await run);
 		var connection = new Connection ();
 		pending.SetResult (connection);
 		await connection.Disposed.Task.WaitAsync (TimeSpan.FromSeconds (3));
 		}
 
 	[Test]
-	public void MissingPackageStopsAtCancellation ()
+	public async Task MissingPackageStopsAtCancellation ()
 		{
 		using var cancellation = new CancellationTokenSource ();
 		var readiness = new PackageReadiness (_ =>
@@ -111,7 +111,7 @@ public sealed class ReadinessTests
 			cancellation.Cancel ();
 			return Task.FromResult<IReadOnlyList<DiscoveredPackage>> ([]);
 		});
-		Assert.CatchAsync<OperationCanceledException> (async () => await readiness.WaitAsync<Connection> ("Development", "Example Tests",
+		await Assert.CatchAsync<OperationCanceledException> (async () => await readiness.WaitAsync<Connection> ("Development", "Example Tests",
 			 (_, _) => throw new AssertionException ("Unexpected connection"), cancellation.Token));
 		}
 

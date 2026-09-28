@@ -5,36 +5,6 @@
     "sha256": "45bc89cb727134b44156c4db29d83319e0598267c410493a9c1eac242d48efd2"
   },
   {
-    "path": "LICENSE.txt",
-    "upstreamPath": "LICENSE.txt",
-    "sha256": "921d503dbf57e3f92331858fb610a99880dc69bde51cd842e9752606589f216a"
-  },
-  {
-    "path": "NOTICES.md",
-    "upstreamPath": "NOTICES.md",
-    "sha256": "6297c81b09c1d819b18a29b13674f7f5fe1dabcf98f3eb30c2347c1d301915b1"
-  },
-  {
-    "path": "nunit.snk",
-    "upstreamPath": "src/nunit.snk",
-    "sha256": "10aca7ef89199cd1d09c5f76fad270268584751c26d807247d9956e176fdea8d"
-  },
-  {
-    "path": "THIRD_PARTY_NOTICES_DEV.md",
-    "upstreamPath": "THIRD_PARTY_NOTICES_DEV.md",
-    "sha256": "00a7da653ad12c6af14b838c3755e2d1f315ac42a04348b12e88d8b3cc9f214e"
-  },
-  {
-    "path": "THIRD_PARTY_NOTICES.md",
-    "upstreamPath": "THIRD_PARTY_NOTICES.md",
-    "sha256": "94f1f35320f4e433bd12b223f6e97a680f15e462f5040f66b2e53a57048f1028"
-  },
-  {
-    "path": "framework-tests/TestText1.txt",
-    "upstreamPath": "src/NUnitFramework/tests/TestText1.txt",
-    "sha256": "9467df1c0d5004c965dd9adf9da7387f6906085be6ef519b63bf90c6a2ac3857"
-  },
-  {
     "path": "framework-tests/Assertions/AdhocTestExecutionTests.cs",
     "upstreamPath": "src/NUnitFramework/tests/Assertions/AdhocTestExecutionTests.cs",
     "sha256": "8bc448317d198a4816d2bb99d95fca7ec7b6139e171d20a05da3c2d2bfb3dfc9"
@@ -645,6 +615,11 @@
     "sha256": "2d5eeee96226def34c25fec325bad92b69dada4e5e8e8b9138fd217eadec8629"
   },
   {
+    "path": "framework-tests/TestText1.txt",
+    "upstreamPath": "src/NUnitFramework/tests/TestText1.txt",
+    "sha256": "9467df1c0d5004c965dd9adf9da7387f6906085be6ef519b63bf90c6a2ac3857"
+  },
+  {
     "path": "framework-tests/TestUtilities/AsyncTestDelegates.cs",
     "upstreamPath": "src/NUnitFramework/tests/TestUtilities/AsyncTestDelegates.cs",
     "sha256": "61df9e9ebb66b8f7375624bbdda0184aa79e75452b204e22faf3ffde15c9ce77"
@@ -658,61 +633,6 @@
     "path": "framework-tests/TestUtilities/CallbackWatcher.cs",
     "upstreamPath": "src/NUnitFramework/tests/TestUtilities/CallbackWatcher.cs",
     "sha256": "5293890711b0ff0b28fb23d4a4de7d3c6d291b9f8172307a7bef295635478c8f"
-  },
-  {
-    "path": "framework-tests/TestUtilities/DummyConstraint.cs",
-    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/DummyConstraint.cs",
-    "sha256": "e454f8746b7f755e1f532786b66eca0308e827379e12129f18ffff07e590067f"
-  },
-  {
-    "path": "framework-tests/TestUtilities/IEnumerableExtensions.cs",
-    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/IEnumerableExtensions.cs",
-    "sha256": "b386f01edc9de35793dd8bb92681d998a03328091ab9b008ddb39d72037698b4"
-  },
-  {
-    "path": "framework-tests/TestUtilities/ResultSummary.cs",
-    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/ResultSummary.cs",
-    "sha256": "97ecebd806caffef0c7ad3770314194d80db3a8e1231e88e85cb6915d8479830"
-  },
-  {
-    "path": "framework-tests/TestUtilities/StressUtility.cs",
-    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/StressUtility.cs",
-    "sha256": "fbc186d24d9486a7cb0bdf6bfb08a055f54042fecda25e6ccac118ce3398103b"
-  },
-  {
-    "path": "framework-tests/TestUtilities/TestAssert.cs",
-    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/TestAssert.cs",
-    "sha256": "83ea404d29a5f8dd200cf683096cf280696c5dc97d85a475dac1f8027ae6555c"
-  },
-  {
-    "path": "framework-tests/TestUtilities/TestCompiler.cs",
-    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/TestCompiler.cs",
-    "sha256": "4970ff5bdb23bf628c52ecb1342c3138868e09d5e21c3972e64321ab7f2bc31d"
-  },
-  {
-    "path": "framework-tests/TestUtilities/TestDelegates.cs",
-    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/TestDelegates.cs",
-    "sha256": "c81f0e340ff348390c0a5a74fb7da0658af2ab67453366a0bc298fc32f0eb813"
-  },
-  {
-    "path": "framework-tests/TestUtilities/TestDirectory.cs",
-    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/TestDirectory.cs",
-    "sha256": "71c8c2e083e4763c363cd0c3711f861796c92afb7262dd599d2dcc9072d12211"
-  },
-  {
-    "path": "framework-tests/TestUtilities/TestFinder.cs",
-    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/TestFinder.cs",
-    "sha256": "13c0c7d4fae2da9a3bdce0870c6812bf511f33a0a895702087e2dc1f5dc1178e"
-  },
-  {
-    "path": "framework-tests/TestUtilities/TestUtils.cs",
-    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/TestUtils.cs",
-    "sha256": "bcc5ba658ad9dd7c2cd5ea1d95183a24635af65b1c4337a6bedb28bba0f6db01"
-  },
-  {
-    "path": "framework-tests/TestUtilities/UniqueValues.cs",
-    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/UniqueValues.cs",
-    "sha256": "5c5b3de3f0da1826e6a7731b5f2a8ee9885827fce0d923b28e1b151ad858090a"
   },
   {
     "path": "framework-tests/TestUtilities/Collections/SimpleEnumerable.cs",
@@ -780,6 +700,76 @@
     "sha256": "c8eae359ff9b7d45309c435407b05bf3a28662a67cbe4bf37b8ffcbb70781dac"
   },
   {
+    "path": "framework-tests/TestUtilities/DummyConstraint.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/DummyConstraint.cs",
+    "sha256": "e454f8746b7f755e1f532786b66eca0308e827379e12129f18ffff07e590067f"
+  },
+  {
+    "path": "framework-tests/TestUtilities/IEnumerableExtensions.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/IEnumerableExtensions.cs",
+    "sha256": "b386f01edc9de35793dd8bb92681d998a03328091ab9b008ddb39d72037698b4"
+  },
+  {
+    "path": "framework-tests/TestUtilities/ResultSummary.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/ResultSummary.cs",
+    "sha256": "97ecebd806caffef0c7ad3770314194d80db3a8e1231e88e85cb6915d8479830"
+  },
+  {
+    "path": "framework-tests/TestUtilities/StressUtility.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/StressUtility.cs",
+    "sha256": "fbc186d24d9486a7cb0bdf6bfb08a055f54042fecda25e6ccac118ce3398103b"
+  },
+  {
+    "path": "framework-tests/TestUtilities/TestAssert.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/TestAssert.cs",
+    "sha256": "83ea404d29a5f8dd200cf683096cf280696c5dc97d85a475dac1f8027ae6555c"
+  },
+  {
+    "path": "framework-tests/TestUtilities/TestCompiler.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/TestCompiler.cs",
+    "sha256": "4970ff5bdb23bf628c52ecb1342c3138868e09d5e21c3972e64321ab7f2bc31d"
+  },
+  {
+    "path": "framework-tests/TestUtilities/TestDelegates.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/TestDelegates.cs",
+    "sha256": "c81f0e340ff348390c0a5a74fb7da0658af2ab67453366a0bc298fc32f0eb813"
+  },
+  {
+    "path": "framework-tests/TestUtilities/TestDirectory.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/TestDirectory.cs",
+    "sha256": "71c8c2e083e4763c363cd0c3711f861796c92afb7262dd599d2dcc9072d12211"
+  },
+  {
+    "path": "framework-tests/TestUtilities/TestFinder.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/TestFinder.cs",
+    "sha256": "13c0c7d4fae2da9a3bdce0870c6812bf511f33a0a895702087e2dc1f5dc1178e"
+  },
+  {
+    "path": "framework-tests/TestUtilities/TestUtils.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/TestUtils.cs",
+    "sha256": "bcc5ba658ad9dd7c2cd5ea1d95183a24635af65b1c4337a6bedb28bba0f6db01"
+  },
+  {
+    "path": "framework-tests/TestUtilities/UniqueValues.cs",
+    "upstreamPath": "src/NUnitFramework/tests/TestUtilities/UniqueValues.cs",
+    "sha256": "5c5b3de3f0da1826e6a7731b5f2a8ee9885827fce0d923b28e1b151ad858090a"
+  },
+  {
+    "path": "LICENSE.txt",
+    "upstreamPath": "LICENSE.txt",
+    "sha256": "921d503dbf57e3f92331858fb610a99880dc69bde51cd842e9752606589f216a"
+  },
+  {
+    "path": "NOTICES.md",
+    "upstreamPath": "NOTICES.md",
+    "sha256": "9517ca3f55934efb9694ec40711cedf4863b9b8f5bc3ddd6fe346aa8f96860e8"
+  },
+  {
+    "path": "nunit.snk",
+    "upstreamPath": "src/nunit.snk",
+    "sha256": "10aca7ef89199cd1d09c5f76fad270268584751c26d807247d9956e176fdea8d"
+  },
+  {
     "path": "testdata/AssertCountFixture.cs",
     "upstreamPath": "src/NUnitFramework/testdata/AssertCountFixture.cs",
     "sha256": "e0904bb0e31d275c4efb2d3eda4b2eea334ccc48f95529785bfbbf01da48f279"
@@ -838,5 +828,15 @@
     "path": "TestUtilities/TestSuiteExtensions.cs",
     "upstreamPath": "src/NUnitFramework/TestSuiteExtensions.cs",
     "sha256": "a77e553d8b40313b5aaf1ea36ab64e01f1458a1fa839048535a18615401c1f3f"
+  },
+  {
+    "path": "THIRD_PARTY_NOTICES_DEV.md",
+    "upstreamPath": "THIRD_PARTY_NOTICES_DEV.md",
+    "sha256": "1f9a60c4dbe55b469ccea8b61ca0830460b4cf353e559d2946150b5e6fc67572"
+  },
+  {
+    "path": "THIRD_PARTY_NOTICES.md",
+    "upstreamPath": "THIRD_PARTY_NOTICES.md",
+    "sha256": "e862b5f9f47b6e3967c93825522411608105e783e448937c8d348c284d137ad9"
   }
 ]

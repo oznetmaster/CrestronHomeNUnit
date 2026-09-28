@@ -1,6 +1,6 @@
 # Crestron Home NUnit
 
-For testing the pinned NUnit 5 development snapshot on Mono/net472, see the separate [NUnit 5 diagnostic package](NUnit5/README.md). Stable processor packages continue to use NUnit 4.6.1.
+Version 2.0.0 upgrades test tooling to released NUnit 5.0.0. See the [migration guide](docs/NUnit5Migration.md) and the separate [unchanged upstream diagnostic suite](NUnit5/README.md).
 
 For the complete local-to-processor development cycle, see the [continuous integration guide](docs/ContinuousIntegration.md), including private settings, gated actual-driver deployment, evidence and optional test-instance removal.
 
@@ -134,9 +134,9 @@ For a GitHub release, prepare `RELEASE-NOTES.md` for the new version, then run t
 - [Processor package guide](docs/ProcessorTestPackages.md) and [TCP protocol](docs/TcpProtocol.md).
 - [Validation history](Validation.md), [changelog](CHANGELOG.md) and [release notes](RELEASE-NOTES.md).
 
-The host uses official **NUnit 4.6.1 NuGet binaries**, with documented packaging adaptations. It uses the NUnit framework API; **NUnitLite and a maintained framework fork are not dependencies**.
+The host uses official **NUnit 5.0.0 NuGet binaries**, with documented packaging adaptations. It uses the NUnit framework API; **NUnitLite and a maintained framework fork are not dependencies**.
 
-The included NUnit tests are a selected subset. NUnit 4.6.1 has a known stream-comparison defect that can produce failures on repeated framework self-test runs; [the upstream fix is tracked here](https://github.com/nunit/nunit/pull/5416). Platform-specific skips and timing warnings can occur. Fatal host-process failures cannot preserve a TCP connection. See the full guide's [validation and limitations](docs/UserGuide.md#validation-and-known-limitations).
+The included NUnit tests are a selected subset. The adapted NUnit 5 framework suite has passed repeated Windows runs and completed repeated processor runs without failures. The earlier stream-comparison and disposed-handle fixes now come from upstream NUnit. Platform-specific skips and timing warnings can occur. Fatal host-process failures cannot preserve a TCP connection. See the full guide's [validation and limitations](docs/UserGuide.md#validation-and-known-limitations).
 
 ## Licenses and acknowledgments
 

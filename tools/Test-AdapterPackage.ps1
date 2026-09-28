@@ -34,7 +34,7 @@ $project = @"
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.9.0" PrivateAssets="all" />
     <PackageReference Include="CrestronHomeNUnit.TestAdapter" Version="$Version" PrivateAssets="all" />
-    <PackageReference Include="NUnit" Version="4.6.1" PrivateAssets="all" />
+    <PackageReference Include="NUnit" Version="5.0.0" PrivateAssets="all" />
     <PackageReference Include="NUnit3TestAdapter" Version="6.3.0" PrivateAssets="all" />
   </ItemGroup>
 </Project>
@@ -146,7 +146,7 @@ try {
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
     <PackageReference Include="CrestronHomeNUnit.TestAdapter" Version="$Version" PrivateAssets="all" />
-    <PackageReference Include="NUnit" Version="4.6.1" />
+    <PackageReference Include="NUnit" Version="5.0.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="6.3.0" />
   </ItemGroup>
 </Project>
