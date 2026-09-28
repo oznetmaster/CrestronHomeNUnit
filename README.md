@@ -4,7 +4,7 @@ Version 2.0.0 upgrades test tooling to released NUnit 5.0.0. See the [migration 
 
 For the complete local-to-processor development cycle, see the [continuous integration guide](docs/ContinuousIntegration.md), including private settings, gated actual-driver deployment, evidence and optional test-instance removal.
 
-These tools run desktop, processor, live-device and Android UI tests, and report their results through the Windows runner, CLI or Visual Studio Test Explorer. Driver submission is a separate, optional workflow documented in [CrestronHomeDevTools](https://github.com/oznetmaster/CrestronHomeDevTools/blob/main/docs/CrestronSubmission.md); it is not required for testing or GitHub/NuGet publication.
+These tools run desktop, processor, live-device and Android UI tests, and report their results through the Windows runner, CLI, Visual Studio Test Explorer or [VS Code's Testing view on Windows](docs/VisualStudioCode.md). Both editors use the same released test adapters. Driver submission is a separate, optional workflow documented in [CrestronHomeDevTools](https://github.com/oznetmaster/CrestronHomeDevTools/blob/main/docs/CrestronSubmission.md); it is not required for testing or GitHub/NuGet publication.
 
 For VS Code on Windows, see [building net472 projects and running NUnit/processor workflows](docs/VisualStudioCode.md), including the tested C# Dev Kit settings and reusable build/test tasks. The same released adapters are used in both editors.
 
