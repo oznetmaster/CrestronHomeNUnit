@@ -3,14 +3,14 @@
   "Suites": [
     {
       "Id": "self-tests",
-      "Name": "NUnit 5 Snapshot - Framework Self-Tests",
+      "Name": "NUnit 5.0.0 - Framework Self-Tests",
       "FilterXml": "<filter><namespace re='1'>^NUnit[.]Framework[.]Tests[.](Assertions|Constraints|Syntax)($|[.])</namespace></filter>"
     },
     {
       "Id": "compatibility",
-      "Name": "NUnit 5 Snapshot - C# Compatibility",
+      "Name": "NUnit 5.0.0 - C# Compatibility",
       "FilterXml": "<filter><or><class>LanguageTests</class><class>AsyncLifecycleTests</class></or></filter>"
     }
   ],
-  "Name": "NUnit 5 Snapshot Tests (beta.1.52)"
+  "Name": "NUnit 5.0.0 Evaluation Tests"
 }

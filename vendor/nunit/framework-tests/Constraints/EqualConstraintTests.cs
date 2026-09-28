@@ -10,7 +10,6 @@ using System.Linq;
 using System.Text;
 
 using NUnit.Framework.Constraints;
-using NUnit.Framework.Internal;
 using NUnit.Framework.Tests.TestUtilities.Comparers;
 using NUnit.Framework.Constraints.Comparers;
 using System.Threading.Tasks;
@@ -474,45 +473,45 @@ namespace NUnit.Framework.Tests.Constraints
                 Assert.That(actual, Is.EqualTo(expected).Within(TimeSpan.TicksPerMinute * 5).Ticks);
             }
 
-            /*
-             * This no longer compiles! Preventing illegal code and runtime exceptions.
-             *
-                        [Test]
-                        public void ErrorIfDaysPrecedesWithin()
-                        {
-                            Assert.Throws<InvalidOperationException>(() => Assert.That(DateTime.Now, Is.EqualTo(DateTime.Now).Days.Within(5)));
-                        }
+/*
+ * This no longer compiles! Preventing illegal code and runtime exceptions.
+ *
+            [Test]
+            public void ErrorIfDaysPrecedesWithin()
+            {
+                Assert.Throws<InvalidOperationException>(() => Assert.That(DateTime.Now, Is.EqualTo(DateTime.Now).Days.Within(5)));
+            }
 
-                        [Test]
-                        public void ErrorIfHoursPrecedesWithin()
-                        {
-                            Assert.Throws<InvalidOperationException>(() => Assert.That(DateTime.Now, Is.EqualTo(DateTime.Now).Hours.Within(5)));
-                        }
+            [Test]
+            public void ErrorIfHoursPrecedesWithin()
+            {
+                Assert.Throws<InvalidOperationException>(() => Assert.That(DateTime.Now, Is.EqualTo(DateTime.Now).Hours.Within(5)));
+            }
 
-                        [Test]
-                        public void ErrorIfMinutesPrecedesWithin()
-                        {
-                            Assert.Throws<InvalidOperationException>(() => Assert.That(DateTime.Now, Is.EqualTo(DateTime.Now).Minutes.Within(5)));
-                        }
+            [Test]
+            public void ErrorIfMinutesPrecedesWithin()
+            {
+                Assert.Throws<InvalidOperationException>(() => Assert.That(DateTime.Now, Is.EqualTo(DateTime.Now).Minutes.Within(5)));
+            }
 
-                        [Test]
-                        public void ErrorIfSecondsPrecedesWithin()
-                        {
-                            Assert.Throws<InvalidOperationException>(() => Assert.That(DateTime.Now, Is.EqualTo(DateTime.Now).Seconds.Within(5)));
-                        }
+            [Test]
+            public void ErrorIfSecondsPrecedesWithin()
+            {
+                Assert.Throws<InvalidOperationException>(() => Assert.That(DateTime.Now, Is.EqualTo(DateTime.Now).Seconds.Within(5)));
+            }
 
-                        [Test]
-                        public void ErrorIfMillisecondsPrecedesWithin()
-                        {
-                            Assert.Throws<InvalidOperationException>(() => Assert.That(DateTime.Now, Is.EqualTo(DateTime.Now).Milliseconds.Within(5)));
-                        }
+            [Test]
+            public void ErrorIfMillisecondsPrecedesWithin()
+            {
+                Assert.Throws<InvalidOperationException>(() => Assert.That(DateTime.Now, Is.EqualTo(DateTime.Now).Milliseconds.Within(5)));
+            }
 
-                        [Test]
-                        public void ErrorIfTicksPrecedesWithin()
-                        {
-                            Assert.Throws<InvalidOperationException>(() => Assert.That(DateTime.Now, Is.EqualTo(DateTime.Now).Ticks.Within(5)));
-                        }
-            */
+            [Test]
+            public void ErrorIfTicksPrecedesWithin()
+            {
+                Assert.Throws<InvalidOperationException>(() => Assert.That(DateTime.Now, Is.EqualTo(DateTime.Now).Ticks.Within(5)));
+            }
+*/
 
             [Test]
             public void CanCompareTypesImplementingIEquatableDateTime()
@@ -658,35 +657,35 @@ namespace NUnit.Framework.Tests.Constraints
                 Assert.That(value1, Is.Not.EqualTo(value2).Within(1).Minutes);
             }
 
-            /*
-             * The XML documentation says that WithSameOffset doesn't work together with Within, but the code below would says it is.
-             *
-                        [Theory]
-                        public void NegativeEqualityTestWithToleranceAndWithSameOffset(DateTimeOffset value1, DateTimeOffset value2)
-                        {
-                            Assume.That((value1 - value2).Duration() > new TimeSpan(0, 1, 0));
+/*
+ * The XML documentation says that WithSameOffset doesn't work together with Within, but the code below would says it is.
+ *
+            [Theory]
+            public void NegativeEqualityTestWithToleranceAndWithSameOffset(DateTimeOffset value1, DateTimeOffset value2)
+            {
+                Assume.That((value1 - value2).Duration() > new TimeSpan(0, 1, 0));
 
-                            Assert.That(value1, Is.Not.EqualTo(value2).Within(1).Minutes.WithSameOffset);
-                        }
+                Assert.That(value1, Is.Not.EqualTo(value2).Within(1).Minutes.WithSameOffset);
+            }
 
-                        [Theory]
-                        public void PositiveEqualityTestWithToleranceAndWithSameOffset(DateTimeOffset value1, DateTimeOffset value2)
-                        {
-                            Assume.That((value1 - value2).Duration() <= new TimeSpan(0, 1, 0));
-                            Assume.That(value1.Offset == value2.Offset);
+            [Theory]
+            public void PositiveEqualityTestWithToleranceAndWithSameOffset(DateTimeOffset value1, DateTimeOffset value2)
+            {
+                Assume.That((value1 - value2).Duration() <= new TimeSpan(0, 1, 0));
+                Assume.That(value1.Offset == value2.Offset);
 
-                            Assert.That(value1, Is.EqualTo(value2).Within(1).Minutes.WithSameOffset);
-                        }
+                Assert.That(value1, Is.EqualTo(value2).Within(1).Minutes.WithSameOffset);
+            }
 
-                        [Theory]
-                        public void NegativeEqualityTestWithinToleranceAndWithSameOffset(DateTimeOffset value1, DateTimeOffset value2)
-                        {
-                            Assume.That((value1 - value2).Duration() <= new TimeSpan(0, 1, 0));
-                            Assume.That(value1.Offset != value2.Offset);
+            [Theory]
+            public void NegativeEqualityTestWithinToleranceAndWithSameOffset(DateTimeOffset value1, DateTimeOffset value2)
+            {
+                Assume.That((value1 - value2).Duration() <= new TimeSpan(0, 1, 0));
+                Assume.That(value1.Offset != value2.Offset);
 
-                            Assert.That(value1, Is.Not.EqualTo(value2).Within(1).Minutes.WithSameOffset);
-                        }
-            */
+                Assert.That(value1, Is.Not.EqualTo(value2).Within(1).Minutes.WithSameOffset);
+            }
+*/
         }
 
         public class DateTimeOffSetEquality
@@ -1514,6 +1513,183 @@ namespace NUnit.Framework.Tests.Constraints
             public void UsesProvidedPredicateForDirectComparisonDifferentTypes()
             {
                 Assert.That("1", Is.EqualTo(1).Using<string, int>((s, i) => i.ToString() == s));
+            }
+
+            [Test]
+            public void UsesProvidedComparersForComparisonWithSelf()
+            {
+                var a = new object();
+                var userComparer = new NeverEqual<object>();
+
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(a, Is.Not.EqualTo(a).Using<object, object>(userComparer.Equals));
+                    Assert.That(a, Is.Not.EqualTo(a).Using<object>(userComparer.Equals));
+                    Assert.That(a, Is.Not.EqualTo(a).Using(userComparer as IComparer));
+                    Assert.That(a, Is.Not.EqualTo(a).Using(userComparer as IComparer<object>));
+                    Assert.That(a, Is.Not.EqualTo(a).Using((Comparison<object>)userComparer.Compare));
+                    Assert.That(a, Is.Not.EqualTo(a).Using(userComparer as IEqualityComparer));
+                    Assert.That(a, Is.Not.EqualTo(a).Using(userComparer as IEqualityComparer<object>));
+                }
+            }
+
+            [Test]
+            public void UsesProvidedComparisonsForComparisonWithNull()
+            {
+                var a = new object();
+                var userComparer = new EverythingIsNull<object>();
+
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(a, Is.EqualTo(default(object)).Using<object>(userComparer.Equals));
+                    Assert.That(a, Is.EqualTo(default(object)).Using(userComparer as IComparer));
+                    Assert.That(a, Is.EqualTo(default(object)).Using(userComparer as IComparer<object>));
+                    Assert.That(a, Is.EqualTo(default(object)).Using((Comparison<object>)userComparer.Compare));
+                    Assert.That(a, Is.EqualTo(default(object)).Using(userComparer as IEqualityComparer));
+                    Assert.That(a, Is.EqualTo(default(object)).Using(userComparer as IEqualityComparer<object>));
+                }
+            }
+
+            [Test]
+            public void UsesProvidedComparersForComparisonWithSelfGeneric()
+            {
+                var a = "a";
+                var userComparer = new NeverEqual<string?>();
+
+                using (Assert.EnterMultipleScope())
+                {
+                    // Note that the EqualStringConstraint implies string?
+                    Assert.That(a, Is.Not.EqualTo(a).Using<string, string?>(userComparer.Equals));
+                    Assert.That(a, Is.Not.EqualTo(a).Using(userComparer.Equals));
+                    Assert.That(a, Is.Not.EqualTo(a).Using(userComparer as IComparer));
+                    Assert.That(a, Is.Not.EqualTo(a).Using<string?>(userComparer as IComparer<string?>));
+                    Assert.That(a, Is.Not.EqualTo(a).Using<string?>((Comparison<string?>)userComparer.Compare));
+                    Assert.That(a, Is.Not.EqualTo(a).Using(userComparer as IEqualityComparer));
+                    Assert.That(a, Is.Not.EqualTo(a).Using(userComparer as IEqualityComparer<string?>));
+                }
+            }
+
+            [Test]
+            public void UsesProvidedComparisonsForComparisonWithNullGeneric()
+            {
+                var a = "a";
+                var userComparer = new EverythingIsNull<string?>();
+
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(a, Is.EqualTo(default(string)).Using<string, string?>(userComparer.Equals));
+                    Assert.That(a, Is.EqualTo(default(string)).Using(userComparer.Equals));
+                    Assert.That(a, Is.EqualTo(default(string)).Using(userComparer as IComparer));
+                    Assert.That(a, Is.EqualTo(default(string)).Using<string?>(userComparer as IComparer<string?>));
+                    Assert.That(a, Is.EqualTo(default(string)).Using<string?>((Comparison<string?>)userComparer.Compare));
+                    Assert.That(a, Is.EqualTo(default(string)).Using(userComparer as IEqualityComparer));
+                    Assert.That(a, Is.EqualTo(default(string)).Using(userComparer as IEqualityComparer<string?>));
+                }
+            }
+
+            [Test]
+            public void UsesProvidedComparersForComparisonWithSelfValueType()
+            {
+                var a = 1;
+                var userComparer = new NeverEqual<int>();
+
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(a, Is.Not.EqualTo(a).Using(userComparer.Equals));
+                    Assert.That(a, Is.Not.EqualTo(a).Using(userComparer as IComparer));
+                    Assert.That(a, Is.Not.EqualTo(a).Using<int>(userComparer as IComparer<int>));
+                    Assert.That(a, Is.Not.EqualTo(a).Using((Comparison<int>)userComparer.Compare));
+                    Assert.That(a, Is.Not.EqualTo(a).Using(userComparer as IEqualityComparer));
+                    Assert.That(a, Is.Not.EqualTo(a).Using(userComparer as IEqualityComparer<int>));
+                }
+            }
+
+            [Test]
+            public void UsesProvidedComparisonsForComparisonWithNullValueType()
+            {
+                var a = 1;
+                var userComparer = new EverythingIsNull<int>();
+
+                using (Assert.EnterMultipleScope())
+                {
+                    // Here the comparers support object so the comparers will be used.
+                    Assert.That(a, Is.EqualTo(default(object)).Using<int, object?>((x, y) => y is null));
+                    Assert.That(a, Is.EqualTo(default(object)).Using(userComparer as IComparer));
+                    Assert.That(a, Is.EqualTo(default(object)).Using(userComparer as IEqualityComparer));
+                }
+
+                using (Assert.EnterMultipleScope())
+                {
+                    // The framework will NOT use the provided comparer for this case as
+                    // the expected value (default(object) is not of the supported type (int)
+                    // so the comparison will fall back to the default Equals which will return false.
+                    // Note that the user is not informed about this fallback.
+                    // NUnit allows specifying multiple comparers and will use the first one that supports the types
+                    Assert.That(a, Is.Not.EqualTo(default(object)).Using<int>(userComparer.Equals));
+                    Assert.That(a, Is.Not.EqualTo(default(object)).Using(userComparer as IComparer<int>));
+                    Assert.That(a, Is.Not.EqualTo(default(object)).Using((Comparison<int>)userComparer.Compare));
+                    Assert.That(a, Is.Not.EqualTo(default(object)).Using(userComparer as IEqualityComparer<int>));
+                }
+            }
+
+            [Test]
+            public void UsesProvidedComparersForComparisonWithSelfNullableValueType()
+            {
+                int? a = 1;
+                var userComparer = new NeverEqual<int?>();
+
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(a, Is.Not.EqualTo(a).Using<int?>(userComparer.Equals));
+                    Assert.That(a, Is.Not.EqualTo(a).Using(userComparer as IComparer));
+                    Assert.That(a, Is.Not.EqualTo(a).Using(userComparer as IComparer<int?>));
+                    Assert.That(a, Is.Not.EqualTo(a).Using((Comparison<int?>)userComparer.Compare));
+                    Assert.That(a, Is.Not.EqualTo(a).Using(userComparer as IEqualityComparer));
+                    Assert.That(a, Is.Not.EqualTo(a).Using(userComparer as IEqualityComparer<int?>));
+                }
+            }
+
+            [Test]
+            public void UsesProvidedComparisonsForComparisonWithNullNullableValueType()
+            {
+                int? a = 1;
+                var userComparer = new EverythingIsNull<int?>();
+
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(a, Is.EqualTo(default(int?)).Using<int?>(userComparer.Equals));
+                    Assert.That(a, Is.EqualTo(default(int?)).Using(userComparer as IComparer));
+                    Assert.That(a, Is.EqualTo(default(int?)).Using(userComparer as IComparer<int?>));
+                    Assert.That(a, Is.EqualTo(default(int?)).Using((Comparison<int?>)userComparer.Compare));
+                    Assert.That(a, Is.EqualTo(default(int?)).Using(userComparer as IEqualityComparer));
+                    Assert.That(a, Is.EqualTo(default(int?)).Using(userComparer as IEqualityComparer<int?>));
+                }
+            }
+
+            private sealed class NeverEqual<T> : IComparer, IComparer<T>, IEqualityComparer, IEqualityComparer<T>
+            {
+                int IComparer.Compare(object? x, object? y) => -1;
+
+                public int Compare(T? x, T? y) => -1;
+
+                bool IEqualityComparer.Equals(object? x, object? y) => false;
+                int IEqualityComparer.GetHashCode(object obj) => obj.GetHashCode();
+
+                public bool Equals(T? x, T? y) => false;
+                public int GetHashCode(T obj) => obj!.GetHashCode();
+            }
+
+            private sealed class EverythingIsNull<T> : IComparer, IComparer<T>, IEqualityComparer, IEqualityComparer<T>
+            {
+                int IComparer.Compare(object? x, object? y) => x is null || y is null ? 0 : -1;
+
+                public int Compare(T? x, T? y) => x is null || y is null ? 0 : -1;
+
+                bool IEqualityComparer.Equals(object? x, object? y) => x is null || y is null;
+                int IEqualityComparer.GetHashCode(object obj) => obj.GetHashCode();
+
+                public bool Equals(T? x, T? y) => x is null || y is null;
+                public int GetHashCode(T obj) => obj!.GetHashCode();
             }
         }
 

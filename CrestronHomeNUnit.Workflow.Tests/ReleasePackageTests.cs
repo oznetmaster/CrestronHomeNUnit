@@ -87,31 +87,27 @@ public sealed class ReleasePackageTests
 		}
 
 	[Test]
-	public void ChangedPackageBytesCannotPassTheTrustedHash () =>
-		Assert.ThrowsAsync<InvalidDataException> (async () => { using var retained = await Retain (_plan with { Sha256 = new ('0', 64) }); });
+	public async Task ChangedPackageBytesCannotPassTheTrustedHash () => await Assert.ThrowsAsync<InvalidDataException> (async () => { using var retained = await Retain (_plan with { Sha256 = new ('0', 64) }); });
 
 	[Test]
-	public void WrongReleaseGuidIsRejected () =>
-		Assert.ThrowsAsync<InvalidDataException> (async () => { using var retained = await Retain (_plan with { DriverGuid = Guid.NewGuid ().ToString () }); });
+	public async Task WrongReleaseGuidIsRejected () => await Assert.ThrowsAsync<InvalidDataException> (async () => { using var retained = await Retain (_plan with { DriverGuid = Guid.NewGuid ().ToString () }); });
 
 	[Test]
-	public void WrongReleaseVersionIsRejected () =>
-		Assert.ThrowsAsync<InvalidDataException> (async () => { using var retained = await Retain (_plan with { DriverVersion = "1.2.4.0" }); });
+	public async Task WrongReleaseVersionIsRejected () => await Assert.ThrowsAsync<InvalidDataException> (async () => { using var retained = await Retain (_plan with { DriverVersion = "1.2.4.0" }); });
 
 	[Test]
 	public void DebugRevisionCannotBeDeclaredAsRelease () =>
 		Assert.Throws<ArgumentException> (() => (_plan with { DriverVersion = "1.2.3.7" }).Validate (_actual));
 
 	[Test]
-	public void DifferentSourceCommitIsRejected () =>
-		Assert.ThrowsAsync<InvalidDataException> (async () => { using var retained = await Retain (_plan with { SourceCommit = new ('a', 40) }); });
+	public async Task DifferentSourceCommitIsRejected () => await Assert.ThrowsAsync<InvalidDataException> (async () => { using var retained = await Retain (_plan with { SourceCommit = new ('a', 40) }); });
 
 	[TestCase (true)]
 	[TestCase (false)]
-	public void DirtyOrUntrackedSourceCannotClaimTheReleaseCommit (bool tracked)
+	public async Task DirtyOrUntrackedSourceCannotClaimTheReleaseCommit (bool tracked)
 		{
 		File.WriteAllText (tracked ? _project : Path.Combine (_repo, "Additional.cs"), "Changed source");
-		Assert.ThrowsAsync<InvalidDataException> (async () => { using var retained = await Retain (); });
+		await Assert.ThrowsAsync<InvalidDataException> (async () => { using var retained = await Retain (); });
 		}
 
 	[Test]
@@ -119,7 +115,7 @@ public sealed class ReleasePackageTests
 		{
 		using var retained = await Retain ();
 		await Git ("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "-c", "commit.gpgsign=false", "commit", "--quiet", "--allow-empty", "-m", "Changed commit");
-		Assert.ThrowsAsync<InvalidDataException> (() => retained.VerifySourceCommitAsync (CancellationToken.None));
+		await Assert.ThrowsAsync<InvalidDataException> (() => retained.VerifySourceCommitAsync (CancellationToken.None));
 		}
 
 	[Test]
@@ -127,14 +123,14 @@ public sealed class ReleasePackageTests
 		{
 		using var retained = await Retain ();
 		File.AppendAllText (_project, "Changed between stages");
-		Assert.ThrowsAsync<InvalidDataException> (() => retained.VerifyPristineSourceAsync (CancellationToken.None));
+		await Assert.ThrowsAsync<InvalidDataException> (() => retained.VerifyPristineSourceAsync (CancellationToken.None));
 		}
 
 	[Test]
 	public async Task RepeatingPreparationCannotOverwriteEvidence ()
 		{
 		using var retained = await Retain ();
-		Assert.ThrowsAsync<IOException> (async () => { using var second = await Retain (); });
+		await Assert.ThrowsAsync<IOException> (async () => { using var second = await Retain (); });
 		using var anotherRun = await Retain (name: "another-run");
 		Assert.That (File.ReadAllBytes (anotherRun.Path), Is.EqualTo (File.ReadAllBytes (retained.Path)));
 		}

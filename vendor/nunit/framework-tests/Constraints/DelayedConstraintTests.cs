@@ -1,5 +1,3 @@
-// Local modifications copyright (c) 2026 Neil Colvin.
-// Modifications licensed under the MIT License; see vendor/nunit/LICENSE.txt and PROVENANCE.md.
 // Copyright (c) Charlie Poole, Rob Prouse and Contributors. MIT License - see LICENSE.txt
 
 using System;
@@ -493,24 +491,23 @@ namespace NUnit.Framework.Tests.Constraints
             return 0;
         }
 
-        private static AutoResetEvent WaitEvent = null!;
+        private static AutoResetEvent _waitEvent;
 
-        // The embedded host runs this assembly repeatedly without unloading it.
         [OneTimeSetUp]
-        public void InitializeWaitEvent()
+        public void OneTimeSetUp()
         {
-            WaitEvent = new AutoResetEvent(false);
+            _waitEvent = new AutoResetEvent(false);
         }
 
         [OneTimeTearDown]
         public void OneTimeTearDown()
         {
-            WaitEvent.Dispose();
+            _waitEvent.Dispose();
         }
 
         private static void Delay(int delay)
         {
-            WaitEvent.WaitOne(delay);
+            _waitEvent.WaitOne(delay);
         }
 
         private static void MethodSetsValues()

@@ -64,21 +64,21 @@ public sealed class RollbackTests
 	[TestCase ("Swap", 1, 1)]
 	[TestCase ("VerifyRestored", 1, 1)]
 	[TestCase ("Restored", 1, 1)]
-	public void FailureStopsWithoutRepeatingAnyMutation (string failure, int imports, int swaps)
+	public async Task FailureStopsWithoutRepeatingAnyMutation (string failure, int imports, int swaps)
 		{
 		var session = new Session (failure);
-		Assert.ThrowsAsync<IOException> (() => WorkflowRollback.ExecuteAsync (session, CancellationToken.None));
+		await Assert.ThrowsAsync<IOException> (() => WorkflowRollback.ExecuteAsync (session, CancellationToken.None));
 		Assert.That (session.Events.Count (e => e == "Import"), Is.EqualTo (imports));
 		Assert.That (session.Events.Count (e => e == "Swap"), Is.EqualTo (swaps));
 		if (failure != "Restored")
 			Assert.That (session.Events, Does.Not.Contain ("Restored"));
 		}
 	[Test]
-	public void CancellationAfterIntentDoesNotSubmitAnImport ()
+	public async Task CancellationAfterIntentDoesNotSubmitAnImport ()
 		{
 		using var cancel = new CancellationTokenSource ();
 		var session = new Session (cancel: cancel);
-		Assert.ThrowsAsync<OperationCanceledException> (() => WorkflowRollback.ExecuteAsync (session, cancel.Token));
+		await Assert.ThrowsAsync<OperationCanceledException> (() => WorkflowRollback.ExecuteAsync (session, cancel.Token));
 		Assert.That (session.Events, Does.Not.Contain ("Import"));
 		}
 	[TestCase (null, true)]
@@ -104,15 +104,15 @@ public sealed class RollbackTests
 		if (clears)
 			await WorkflowRollback.ExecuteGuardedAsync (session, Begin, End, CancellationToken.None);
 		else
-			Assert.ThrowsAsync<IOException> (() => WorkflowRollback.ExecuteGuardedAsync (session, Begin, End, CancellationToken.None));
+			await Assert.ThrowsAsync<IOException> (() => WorkflowRollback.ExecuteGuardedAsync (session, Begin, End, CancellationToken.None));
 		Assert.That (acquired, Is.True);
 		Assert.That (released, Is.EqualTo (clears));
 		}
 	[Test]
-	public void BusyExecutionGuardPreventsAnyRecoveryWork ()
+	public async Task BusyExecutionGuardPreventsAnyRecoveryWork ()
 		{
 		var session = new Session ();
-		Assert.ThrowsAsync<IOException> (() => WorkflowRollback.ExecuteGuardedAsync (session, _ => throw new IOException ("Busy"),
+		await Assert.ThrowsAsync<IOException> (() => WorkflowRollback.ExecuteGuardedAsync (session, _ => throw new IOException ("Busy"),
 			_ => throw new AssertionException ("Must not release someone else's guard"), CancellationToken.None));
 		Assert.That (session.Events, Is.Empty);
 		}

@@ -129,12 +129,12 @@ public sealed class AndroidWorkflowTests
 		Assert.That (record.RootElement.GetProperty ("PackageSha256").GetString (), Is.EqualTo (context.PackageSha256));
 		Assert.That (record.RootElement.GetProperty ("ReleaseSourceCommit").GetString (), Is.EqualTo (context.ReleaseSourceCommit));
 		Assert.That (File.ReadAllText (Path.Combine (_directory, "home", "hierarchy.xml")), Does.Not.Contain ("private-sentinel"));
-		Assert.ThrowsAsync<IOException> (() => session.CaptureAsync ("home", _ => { }));
+		await Assert.ThrowsAsync<IOException> (() => session.CaptureAsync ("home", _ => { }));
 		session.Complete (restorationConfirmed: true);
 		var completion = AndroidWorkflowSession.Read<AndroidRunCompletion> (Path.Combine (_directory, "completion.json"));
 		Assert.That (completion.RestorationConfirmed, Is.True);
 		Assert.That (completion.PackageSha256, Is.EqualTo (context.PackageSha256));
-		Assert.ThrowsAsync<InvalidOperationException> (() => session.CaptureAsync ("later", _ => { }));
+		await Assert.ThrowsAsync<InvalidOperationException> (() => session.CaptureAsync ("later", _ => { }));
 		}
 
 	[Test]
@@ -145,38 +145,38 @@ public sealed class AndroidWorkflowTests
 		var device = new AndroidDevice (new CaptureTransport (), "example.app");
 		var session = await AndroidWorkflowSession.OpenAsync (context, device, CancellationToken.None);
 		session.Complete (restorationConfirmed: true);
-		Assert.ThrowsAsync<IOException> (() => AndroidWorkflowSession.OpenAsync (context, device, CancellationToken.None));
+		await Assert.ThrowsAsync<IOException> (() => AndroidWorkflowSession.OpenAsync (context, device, CancellationToken.None));
 		}
 
 	[Test]
-	public void FailedReadOnlyReadinessReportsRestorationButExposesNoSession ()
+	public async Task FailedReadOnlyReadinessReportsRestorationButExposesNoSession ()
 		{
 		using var lease = AndroidSessionLease.Acquire (_lock, _owner);
 		var context = Context ();
 		context = context with { Profile = context.Profile with { ExpectedHomeText = "Wrong Home" } };
-		Assert.CatchAsync (() => AndroidWorkflowSession.OpenAsync (context, new (new CaptureTransport (), "example.app"), CancellationToken.None));
+		await Assert.CatchAsync (() => AndroidWorkflowSession.OpenAsync (context, new (new CaptureTransport (), "example.app"), CancellationToken.None));
 		Assert.That (AndroidWorkflowSession.Read<AndroidRunCompletion> (Path.Combine (_directory, "completion.json")).RestorationConfirmed, Is.True);
 		Assert.That (Directory.GetFiles (_directory, "observation.json", SearchOption.AllDirectories), Is.Empty);
 		Assert.That (File.Exists (_lock), Is.True);
 		}
 
 	[Test]
-	public void CrestronSessionRejectsHomeTextBehindAnOpenDriverPanel ()
+	public async Task CrestronSessionRejectsHomeTextBehindAnOpenDriverPanel ()
 		{
 		using var lease = AndroidSessionLease.Acquire (_lock, _owner);
 		var context = Context ();
 		context = context with { Profile = context.Profile with { Application = "com.crestron.phoenix.app" } };
 		var xml = "<hierarchy><node package=\"com.crestron.phoenix.app\" resource-id=\"com.crestron.phoenix.app:id/home_wholeHouse_name\" text=\"Example Home\" enabled=\"true\" bounds=\"[0,0][100,100]\"/><node package=\"com.crestron.phoenix.app\" resource-id=\"com.crestron.phoenix.app:id/customdevices_toolbarClose\" enabled=\"true\" bounds=\"[0,0][20,20]\"/></hierarchy>";
-		Assert.ThrowsAsync<InvalidOperationException> (() => AndroidWorkflowSession.OpenAsync (context, new (new CaptureTransport (xml), context.Profile.Application), CancellationToken.None));
+		await Assert.ThrowsAsync<InvalidOperationException> (() => AndroidWorkflowSession.OpenAsync (context, new (new CaptureTransport (xml), context.Profile.Application), CancellationToken.None));
 		Assert.That (AndroidWorkflowSession.Read<AndroidRunCompletion> (Path.Combine (_directory, "completion.json")).RestorationConfirmed, Is.True);
 		}
 
 	[Test]
-	public void FailedPageAssertionKeepsCaptureButCannotCreatePassingObservation ()
+	public async Task FailedPageAssertionKeepsCaptureButCannotCreatePassingObservation ()
 		{
 		using var lease = AndroidSessionLease.Acquire (_lock, _owner);
 		var session = new AndroidWorkflowSession (Context (), new (new CaptureTransport (), "example.app"));
-		Assert.ThrowsAsync<InvalidOperationException> (() => session.CaptureAsync ("wrong-page", _ => throw new InvalidOperationException ()));
+		await Assert.ThrowsAsync<InvalidOperationException> (() => session.CaptureAsync ("wrong-page", _ => throw new InvalidOperationException ()));
 		Assert.That (File.Exists (Path.Combine (_directory, "wrong-page", "screen.png")), Is.True);
 		Assert.That (File.Exists (Path.Combine (_directory, "wrong-page", "observation.json")), Is.False);
 		session.Complete (restorationConfirmed: false);

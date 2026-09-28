@@ -17,8 +17,6 @@ namespace NUnit.Framework.Tests.TestUtilities
         private readonly long _fileLength;
         private bool _disposedValue = false;
 
-        // Keep generated test files in the driver's work directory; Crestron /temp metadata
-        // lookups can report missing files even when the same files can be opened and read.
         public TestFile(string resourceName)
             : this(Path.Combine(TestContext.CurrentContext.WorkDirectory, $"nunit-test-{Guid.NewGuid():N}.tmp"), resourceName, false)
         {
@@ -73,7 +71,6 @@ namespace NUnit.Framework.Tests.TestUtilities
                     }
                 }
             }
-
             TestFileDiagnostics.Write(_fileInfo.FullName);
         }
 

@@ -1,10 +1,13 @@
-# NUnit 5 snapshot provenance
+# NUnit 5.0.0 release provenance
 
 Repository: https://github.com/nunit/nunit
 
-Commit: `a45c70a519784f73bba4a685cb30e28077273bbe`.
+Commit: `110e911227972b606241cd5782a7c8a51d2c8f9d`.
 
-Matching framework package: official MyGet `NUnit 5.0.0-beta.1.52`; informational version `5.0.0-beta.1.52+a45c70a519784f73bba4a685cb30e28077273bbe`.
+Matching framework package: official nuget.org `NUnit 5.0.0`; informational version `5.0.0+110e911227972b606241cd5782a7c8a51d2c8f9d`.
+
+Package SHA-256: `3ce258aa450162d55559f60335525238f03ae40b6775f605c285ba834fc28ec3`.
+The earlier beta report retains its original identity and is not final-release evidence.
 
 Copied files are byte-for-byte upstream originals. [FILES.json](FILES.json) records destination and original repository paths and SHA-256 digests. No source fixes, notice-only edits or adaptations from the stable suite have been applied. `PROVENANCE.md` and `FILES.json` are local documentation, not upstream source.
 

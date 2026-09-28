@@ -22,7 +22,7 @@ pwsh -NoProfile -File .\New-ProcessorTestProject.ps1 `
   -ExpectedUnitTestCount 42 -IncludeLiveTests
 ```
 
-The test project must support net472 and use the official NUnit framework version used by the host (currently 4.6.1). Keep desktop-only test SDKs, adapters and collectors private using `PrivateAssets="all"`, so they do not become processor dependencies. The test framework and application dependencies remain normal references.
+The test project must support net472 and use the official NUnit framework version used by the host (default 5.0.0 in the NUnit 5 migration). Existing NUnit 4 packages can explicitly set `ProcessorNUnitVersion=4.6.1`; keep the test project and host framework versions aligned. See [NUnit 5 migration](NUnit5Migration.md). Keep desktop-only test SDKs, adapters and collectors private using `PrivateAssets="all"`, so they do not become processor dependencies. The test framework and application dependencies remain normal references.
 
 The generator refuses to overwrite an existing output directory. Use -Solution to add the package to the collection or driver solution. Without that argument, it adds the package to the solution in its parent directory when unambiguous. It does not create a separate solution. Command-line builds skip processor packaging unless `-p:BuildProcessorTestPackages=true` is supplied, preserving ordinary library and CI builds without the Crestron SDK. It also adds local settings patterns to the owning repository's `.git/info/exclude`; it does not add settings rules to tracked `.gitignore` files.
 

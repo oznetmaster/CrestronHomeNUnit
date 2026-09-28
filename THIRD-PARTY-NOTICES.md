@@ -2,7 +2,7 @@
 
 Crestron Home NUnit includes or depends on the following third-party software. Copyright and license terms for these components are independent of the root project license. Merging assemblies or renaming compatibility types does not remove those terms.
 
-This inventory describes the dependencies restored for the initial publication draft. Keep it synchronized with dependency upgrades and the actual contents of release assets. Some support packages supply source or reference-only assets rather than standalone runtime DLLs.
+This inventory describes the dependencies restored for the current tooling release. Keep it synchronized with dependency upgrades and the actual contents of release assets. Some support packages supply source or reference-only assets rather than standalone runtime DLLs.
 
 ## Application icon
 
@@ -13,27 +13,27 @@ Public source builds use the original MIT-licensed test-grid/checkmark icon in `
 ## NUnit framework and selected framework self-tests
 
 - Project: [NUnit](https://github.com/nunit/nunit).
-- Framework package: **NUnit 4.6.1**, obtained from NuGet; the framework is not compiled from a private source fork.
-- Imported self-test source: tag **v4.6.1**, commit **b9197a6f17635580a3a397f3eb0f28bddba2e0c7**.
+- Framework package: **NUnit 5.0.0**, obtained from NuGet; the framework is not compiled from a private source fork.
+- Imported self-test source: commit **110e911227972b606241cd5782a7c8a51d2c8f9d**, matching the 5.0.0 NuGet binary.
 - Upstream file attribution: **Copyright (c) Charlie Poole, Rob Prouse and Contributors**.
-- Pinned license attribution: **Copyright (c) 2024 Charlie Poole, Rob Prouse**.
-- License: MIT; full unchanged text in [licenses/NUnit-4.6.1-LICENSE.txt](licenses/NUnit-4.6.1-LICENSE.txt), also retained in `vendor/nunit/LICENSE.txt` in the source repository.
+- Pinned license attribution: **Copyright (c) 2009-2019 Charlie Poole, 2014-2025 Rob Prouse, 2026 Terje Sandstrom and Contributors**.
+- License: MIT; full unchanged text in [licenses/NUnit-5.0.0-LICENSE.txt](licenses/NUnit-5.0.0-LICENSE.txt), also retained in `vendor/nunit/LICENSE.txt` in the source repository.
 
 The selected Assertions, Constraints and Syntax tests, their supporting utilities, test-data fixtures and the upstream test signing key remain NUnit material. The key is the public test key supplied by the NUnit repository to support friend-assembly access; it is not a private release/deployment credential.
 
-Local source adaptations are recorded in `vendor/nunit/PROVENANCE.md`: driver-work-directory test files and diagnostics, recreation of a disposed wait event between runs, and fresh mutable constraint data for repeated discovery. Local modification notices identify Neil Colvin's changes while retaining the upstream notice and MIT license. A notice-only header was added to `ConstraintCastingTests.cs`, which had no existing copyright header. No claim is made that the selected tests are the entire NUnit test suite.
+Local source adaptations are recorded in `vendor/nunit/PROVENANCE.md`: driver-work-directory test files and diagnostics, fresh mutable constraint data for repeated discovery, and original public NUnit metadata for compiler fixtures in the merged host. Local modification notices identify Neil Colvin's changes while retaining the upstream notice and MIT license.  No claim is made that the selected tests are the entire NUnit test suite.
 
 Post-merge modifications to the framework include compatibility namespace/type-reference repairs, the net472 async-state-machine reflection lookup, and restoration of metadata affected by ILRepack. These adaptations are described in the README and packaging scripts.
 
-The separately copied `System.Threading.Lock` compatibility source retains its NUnit notice and the accompanying [NUnit shim license](licenses/NUnit-Shims-LICENSE.txt), whose attribution differs from the pinned v4.6.1 license. `OverloadResolutionPriorityAttribute.cs` retains the .NET Foundation's MIT notice; see [the .NET license](licenses/DotNet-LICENSE.txt).
+The separately copied `System.Threading.Lock` compatibility source retains its NUnit notice and the accompanying [NUnit shim license](licenses/NUnit-Shims-LICENSE.txt), whose attribution differs from the current framework license. `OverloadResolutionPriorityAttribute.cs` retains the .NET Foundation's MIT notice; see [the .NET license](licenses/DotNet-LICENSE.txt).
 
-## Optional NUnit 5 diagnostic snapshot
+## Separate NUnit 5 diagnostic suite
 
-The projects under [NUnit5](NUnit5/README.md) independently pin NUnit **5.0.0-beta.1.52** from the official MyGet feed and unchanged selected self-test source at **a45c70a519784f73bba4a685cb30e28077273bbe**. They do not replace the stable dependency above. Original NUnit copyright, MIT license and upstream notices are retained in `NUnit5/vendor/nunit`; its provenance file records the source mapping and hashes. Roslyn **5.9.0**, System.Collections.Immutable **10.0.12**, System.Memory **4.6.3** and Microsoft.Bcl.AsyncInterfaces **10.0.12** support the diagnostic tests. Their .NET MIT license and Roslyn third-party notices are under `NUnit5/licenses` and included in the diagnostic processor package.
+The projects under [NUnit5](NUnit5/README.md) independently pin released NUnit **5.0.0** from NuGet and unchanged selected self-test source at **110e911227972b606241cd5782a7c8a51d2c8f9d**. They retain upstream failures separately from the adapted production fixtures. Original NUnit copyright, MIT license and upstream notices are retained in `NUnit5/vendor/nunit`; its provenance file records source mapping and hashes. Roslyn **5.9.0**, System.Collections.Immutable **10.0.12**, System.Memory **4.6.3** and Microsoft.Bcl.AsyncInterfaces **10.0.12** support the diagnostic tests. Their .NET MIT license and Roslyn third-party notices are under `NUnit5/licenses` and included in the diagnostic processor package. Earlier beta results remain historical records.
 
 ## Configuration workflow dependency
 
-The CLI workflow and Test Explorer adapter use [CrestronHomeDevTools 1.6.0](https://github.com/oznetmaster/CrestronHomeDevTools), copyright (c) 2026 Neil Colvin, under the MIT license. It uses the same SSH.NET version listed below and adds no Crestron SDK runtime dependency to the desktop tooling. The adapter's NuGet package includes project-owned Workflow, Android, Client and Transport assemblies under the root MIT license; third-party runtime dependencies are restored as separate NuGet packages with their own licenses. Microsoft.TestPlatform.ObjectModel 18.9.0 is a build dependency under Microsoft's MIT license, supplied at runtime by the VSTest host.
+The CLI workflow and Test Explorer adapter use [CrestronHomeDevTools 1.13.1](https://github.com/oznetmaster/CrestronHomeDevTools), copyright (c) 2026 Neil Colvin, under the MIT license. It uses the same SSH.NET version listed below and adds no Crestron SDK runtime dependency to the desktop tooling. The adapter's NuGet package includes project-owned Workflow, Android, Client and Transport assemblies under the root MIT license; third-party runtime dependencies are restored as separate NuGet packages with their own licenses. Microsoft.TestPlatform.ObjectModel 18.9.0 is a build dependency under Microsoft's MIT license, supplied at runtime by the VSTest host.
 
 ## Runtime and source dependencies
 
@@ -53,7 +53,7 @@ The CLI workflow and Test Explorer adapter use [CrestronHomeDevTools 1.6.0](http
 
 Hafner packages restored by the processor project: CallerInformationAttributes.G2 1.0.0; ConstantExpectedAttribute 2.0.0; DynamicallyAccessedMembersAttribute 1.1.3; ExperimentalAttribute 1.0.0; FeatureGuardAttribute 1.0.0; NullableReferenceTypeAttributes.G1, G2 and G3 1.0.3. The metapackage itself is 1.9.0. Original source notices in NuGet-generated compatibility files remain intact.
 
-Microsoft/.NET support packages restored across the runner and processor graphs include Microsoft.Bcl.AsyncInterfaces 8.0.0 and 10.0.12, Microsoft.Bcl.Cryptography 10.0.10, Microsoft.Extensions.DependencyInjection.Abstractions 8.0.2, Microsoft.Extensions.Logging.Abstractions 8.0.3, System.Buffers 4.6.1, System.Collections.Immutable 8.0.0, System.Formats.Asn1 10.0.10, System.Memory 4.6.3, System.Numerics.Vectors 4.6.1, System.Runtime.CompilerServices.Unsafe 6.1.2, System.Threading.Tasks.Extensions 4.5.4 and 4.6.3, and System.ValueTuple 4.4.0 and 4.6.2. Framework reference dependencies may be satisfied by installed framework assemblies rather than copied into a distribution.
+Microsoft/.NET support packages restored across the tooling and processor graphs include Microsoft.Bcl.AsyncInterfaces 10.0.12, Microsoft.Extensions.DependencyInjection.Abstractions 8.0.2, Microsoft.Extensions.DependencyModel 8.0.2, Microsoft.Extensions.Logging.Abstractions 8.0.3, System.Buffers 4.6.1, System.Collections.Immutable 10.0.12, System.Memory 4.6.3, System.Numerics.Vectors 4.6.1, System.Reflection.Metadata 10.0.1, System.Runtime.CompilerServices.Unsafe 6.1.2, System.Security.Cryptography.Pkcs 10.0.0, System.Text.Encoding.CodePages 8.0.0, System.Threading.Tasks.Extensions 4.6.3 and System.ValueTuple 4.6.2. Framework reference dependencies may be satisfied by installed framework assemblies rather than copied into a distribution.
 
 Project and source links:
 
@@ -64,7 +64,7 @@ Project and source links:
 
 ## License-text provenance
 
-NUnit 4.6.1 and the copied NUnit shim licenses come from the existing source imports. Bouncy Castle's license comes from its restored 2.7.0 NuGet package. Makaretu.Dns is pinned to package repository commit `701463d2091e6d98d4cc4490abb0e0ead8ae2985`; SSH.NET to `7b2fd3dbf2c86a80a7b06cea020aa5f821c9902e`; Hafner's metapackage to `e08289a2da4abfaac9b739a7987a74f6daf0622f`.
+The NUnit 5.0.0 license and notices come from the exact upstream source commit named above. The historical NUnit 4.6.1 license and copied NUnit shim license remain from earlier source imports. Bouncy Castle's license comes from its restored 2.7.0 NuGet package. Makaretu.Dns is pinned to package repository commit `701463d2091e6d98d4cc4490abb0e0ead8ae2985`; SSH.NET to `7b2fd3dbf2c86a80a7b06cea020aa5f821c9902e`; Hafner's metapackage to `e08289a2da4abfaac9b739a7987a74f6daf0622f`.
 
 The remaining license texts were obtained from their upstream repositories for this publication review. SimpleBase 1.3.1's NuGet metadata identifies the Apache license; the included Apache-2.0 text was obtained from upstream tag 1.7.0 because no 1.3.1 tag was available in the upstream tag listing. This does not change the shipped dependency version. The .NET MIT text is from runtime tag v10.0.0. `licenses/SOURCES.json` records retrieval URLs where applicable; local package/import sources are described here.
 
@@ -85,3 +85,7 @@ The .NET SDK, Visual Studio/MSBuild, PowerShell, ILRepack and Posh-SSH are separ
 Include the root license, this notice and the applicable full third-party license texts when redistributing binary releases. Processor packages carry the host notices under `Licenses/CrestronHomeNUnit`; Windows runner distributions carry them beside the executable. Keep upstream source notices when distributing source.
 
 Authors of additional test packages must also include the licenses for their own tests and application dependencies. This notice covers the shared host and this repository's supplied components; it does not automatically cover every third-party library a future test suite may reference.
+
+## Framework compiler self-tests
+
+The framework self-test host includes Microsoft.CodeAnalysis.CSharp and Microsoft.CodeAnalysis.Common 5.9.0 under the MIT license, with [Roslyn additional notices](licenses/Roslyn-5.9.0-ThirdPartyNotices.rtf). The exact original NUnit NuGet binary is embedded as metadata for compiler fixtures, never loaded as a second runtime framework. Additional upstream NUnit 5 notices are retained under `licenses/NUnit-5.0.0-*`. Ordinary generated consumer test packages do not acquire Roslyn from the shared host.

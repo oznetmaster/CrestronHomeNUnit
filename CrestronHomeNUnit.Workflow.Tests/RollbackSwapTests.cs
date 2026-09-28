@@ -51,7 +51,7 @@ public sealed class RollbackSwapTests
 			if (succeeds)
 				await prepared.SwapOnceAsync (CancellationToken.None);
 			else
-				Assert.CatchAsync (async () => await prepared.SwapOnceAsync (CancellationToken.None));
+				await Assert.CatchAsync (async () => await prepared.SwapOnceAsync (CancellationToken.None));
 			Assert.That (connection.Submissions, Is.EqualTo (submissions));
 			Assert.That (File.Exists (Path.Combine (directory, "SwapCompleted.json")), Is.EqualTo (succeeds));
 			if (succeeds)

@@ -130,7 +130,7 @@ public sealed class DebugVersionTests
 			{
 			var text = JsonSerializer.Serialize (new { GeneralInformation = new { Guid = Guid.NewGuid (), BaseModel = "Example", DriverVersion = "1.2.3.2" } });
 			await File.WriteAllTextAsync (path, text);
-			Assert.ThrowsAsync<OperationCanceledException> (() => WorkflowDebugVersion.PrepareAsync (path, (_, _) =>
+			await Assert.ThrowsAsync<OperationCanceledException> (() => WorkflowDebugVersion.PrepareAsync (path, (_, _) =>
 				{
 				cancellation.Cancel ();
 				return Task.FromResult<IReadOnlyList<DriverInfo>> ([Driver ("1.2.3.42")]);

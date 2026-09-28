@@ -39,7 +39,8 @@ public sealed partial class CrestronHomeExtensionNavigationTests
 	[TearDown]
 	public void TearDown ()
 		{
-		_lease.Release ();
+		try { _lease.Release (); }
+		finally { _lease.Dispose (); }
 		Directory.Delete (_directory, true);
 		}
 
@@ -72,7 +73,7 @@ public sealed partial class CrestronHomeExtensionNavigationTests
 		{
 		await _navigation.OpenPageAsync (Text ("Open"), "Schedule", Close);
 		_transport.Error = error;
-		Assert.ThrowsAsync<InvalidDataException> (() => _navigation.InspectSelectionAsync ("bad", Text ("PICK"), ["First", "Second", "Third"], "Second"));
+		await Assert.ThrowsAsync<InvalidDataException> (() => _navigation.InspectSelectionAsync ("bad", Text ("PICK"), ["First", "Second", "Third"], "Second"));
 		Assert.That (_transport.Selection, Is.False);
 		await _navigation.RestoreRootAsync (CancellationToken.None);
 		Assert.That (_transport.Depth, Is.EqualTo (1));
@@ -83,7 +84,7 @@ public sealed partial class CrestronHomeExtensionNavigationTests
 		{
 		await _navigation.OpenPageAsync (Text ("Open"), "Schedule", Close);
 		_transport.Error = "scroll";
-		Assert.ThrowsAsync<IOException> (() => _navigation.InspectSelectionAsync ("scroll", Text ("PICK"), ["First", "Second", "Third"], "Second"));
+		await Assert.ThrowsAsync<IOException> (() => _navigation.InspectSelectionAsync ("scroll", Text ("PICK"), ["First", "Second", "Third"], "Second"));
 		Assert.That (_transport.Scrolls, Is.EqualTo (1));
 		Assert.That (_transport.Selection, Is.False);
 		await _navigation.RestoreRootAsync (CancellationToken.None);
@@ -95,7 +96,7 @@ public sealed partial class CrestronHomeExtensionNavigationTests
 		await _navigation.OpenPageAsync (Text ("Open"), "Schedule", Close);
 		_transport.Error = "unexpected";
 		_transport.FailBack = true;
-		var failure = Assert.ThrowsAsync<AggregateException> (() => _navigation.InspectSelectionAsync ("cleanup", Text ("PICK"), ["First", "Second", "Third"], "Second"));
+		var failure = await Assert.ThrowsAsync<AggregateException> (() => _navigation.InspectSelectionAsync ("cleanup", Text ("PICK"), ["First", "Second", "Third"], "Second"));
 		Assert.That (failure!.InnerExceptions[0], Is.TypeOf<InvalidDataException> ());
 		Assert.That (failure.InnerExceptions[1], Is.TypeOf<IOException> ());
 		Assert.That (_transport.Inputs.Count (input => input == "back"), Is.EqualTo (1));

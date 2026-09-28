@@ -100,11 +100,11 @@ public sealed class AndroidStageTests
 		}
 
 	[TestCase ("dependency"), TestCase ("manifest-and-dependency"), TestCase ("discovery"), TestCase ("receipt")]
-	public void ChangedProducerOrDiscoveryCannotReportAPassingStage (string change)
+	public async Task ChangedProducerOrDiscoveryCannotReportAPassingStage (string change)
 		{
 		using var lease = AndroidSessionLease.Acquire (_profile.LockPath, _owner);
 		var output = Path.Combine (_root, "changed-producer");
-		Assert.ThrowsAsync<InvalidDataException> (() => WorkflowAndroid.RunAsync (new (_project, "unused"), _profile, _owner,
+		await Assert.ThrowsAsync<InvalidDataException> (() => WorkflowAndroid.RunAsync (new (_project, "unused"), _profile, _owner,
 			"192.0.2.1", 7, _package, new ('B', 64), output, CancellationToken.None,
 			async (_, arguments, _, _, token, _) =>
 				{
@@ -139,11 +139,11 @@ public sealed class AndroidStageTests
 		}
 
 	[Test]
-	public void FailedDiscoveryCannotStartExecution ()
+	public async Task FailedDiscoveryCannotStartExecution ()
 		{
 		using var lease = AndroidSessionLease.Acquire (_profile.LockPath, _owner);
 		int calls = 0;
-		Assert.ThrowsAsync<InvalidDataException> (() => WorkflowAndroid.RunAsync (new (_project, "unused"), _profile, _owner,
+		await Assert.ThrowsAsync<InvalidDataException> (() => WorkflowAndroid.RunAsync (new (_project, "unused"), _profile, _owner,
 			"192.0.2.1", 7, _package, new ('B', 64), Path.Combine (_root, "failed-discovery"), CancellationToken.None,
 			(_, arguments, _, _, _, environment) =>
 				{
@@ -183,11 +183,11 @@ public sealed class AndroidStageTests
 		}
 
 	[Test]
-	public void InterruptedChildRetainsReservationAndCannotCreateCompletion ()
+	public async Task InterruptedChildRetainsReservationAndCannotCreateCompletion ()
 		{
 		using var lease = AndroidSessionLease.Acquire (_profile.LockPath, _owner);
 		var output = Path.Combine (_root, "interrupted");
-		Assert.ThrowsAsync<OperationCanceledException> (() => WorkflowAndroid.RunAsync (new (_project, "unused"), _profile, _owner,
+		await Assert.ThrowsAsync<OperationCanceledException> (() => WorkflowAndroid.RunAsync (new (_project, "unused"), _profile, _owner,
 			"192.0.2.1", 7, _package, new ('B', 64), output, CancellationToken.None,
 			(_, _, _, _, _, _) => throw new OperationCanceledException ()));
 		Assert.That (File.Exists (_profile.LockPath), Is.True);
@@ -202,7 +202,7 @@ public sealed class AndroidStageTests
 			<Project Sdk="Microsoft.NET.Sdk">
 			<PropertyGroup><TargetFramework>net10.0</TargetFramework><IsTestProject>true</IsTestProject></PropertyGroup>
 			<ItemGroup>
-			<PackageReference Include="NUnit" Version="4.6.1" />
+			<PackageReference Include="NUnit" Version="5.0.0" />
 			<PackageReference Include="NUnit3TestAdapter" Version="6.3.0" />
 			<PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
 			</ItemGroup></Project>
@@ -275,7 +275,7 @@ public sealed class AndroidStageTests
 			}
 		Task<AndroidTestOutcome> Execute () => WorkflowAndroid.RunAsync (plan, _profile, _owner, "192.0.2.1", 7, _package, new ('B', 64), output, CancellationToken.None, Run);
 		if (fault is "unknown" or "selection" or "settings")
-			Assert.ThrowsAsync<InvalidDataException> (Execute);
+			await Assert.ThrowsAsync<InvalidDataException> (Execute);
 		else
 			Assert.That ((await Execute ()).Tests.MeetsGate, Is.False);
 		Assert.That (executions, Is.EqualTo (fault == "unknown" ? 0 : 1));

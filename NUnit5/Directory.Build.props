@@ -2,8 +2,8 @@
 <Project>
   <Import Project="..\Directory.Build.props" />
   <PropertyGroup>
-    <!-- Fixed upstream snapshot for test/report work only. Stable projects keep NUnit 4.6.1. -->
-    <NUnitVersion>5.0.0-beta.1.52</NUnitVersion>
+    <!-- Pin the unchanged upstream diagnostic suite independently of the production fixtures. -->
+    <NUnitVersion>5.0.0</NUnitVersion>
     <ProcessorNUnitVersion>$(NUnitVersion)</ProcessorNUnitVersion>
     <DefineConstants>$(DefineConstants);NUNIT5_SNAPSHOT</DefineConstants>
   </PropertyGroup>

@@ -75,10 +75,10 @@ public sealed class InstalledDriverPlanTests
 		}
 
 	[Test]
-	public void WrongCandidateHashStopsBeforeAnyReservationOrFixtureBuild ()
+	public async Task WrongCandidateHashStopsBeforeAnyReservationOrFixtureBuild ()
 		{
 		var results = Path.Combine (_root, "results");
-		var exception = Assert.ThrowsAsync<InvalidDataException> (() => InstalledDriverTests.RunAsync (_plan, new NetworkCredential ("unused", "unused"), results));
+		var exception = await Assert.ThrowsAsync<InvalidDataException> (() => InstalledDriverTests.RunAsync (_plan, new NetworkCredential ("unused", "unused"), results));
 		Assert.That (exception!.Message, Does.Contain ("trusted package receipt"));
 		Assert.That (File.Exists (Path.Combine (results, "Phases.jsonl")), Is.False);
 		Assert.That (Directory.Exists (Path.Combine (results, "AndroidUI")), Is.False);
@@ -88,12 +88,12 @@ public sealed class InstalledDriverPlanTests
 		}
 
 	[Test]
-	public void ExistingResultsCannotBeOverwritten ()
+	public async Task ExistingResultsCannotBeOverwritten ()
 		{
 		var results = Path.Combine (_root, "results");
 		Directory.CreateDirectory (results);
 		File.WriteAllText (Path.Combine (results, "retained.txt"), "previous evidence");
-		Assert.ThrowsAsync<InvalidOperationException> (() => InstalledDriverTests.RunAsync (_plan, new NetworkCredential ("unused", "unused"), results));
+		await Assert.ThrowsAsync<InvalidOperationException> (() => InstalledDriverTests.RunAsync (_plan, new NetworkCredential ("unused", "unused"), results));
 		Assert.That (File.ReadAllText (Path.Combine (results, "retained.txt")), Is.EqualTo ("previous evidence"));
 		}
 

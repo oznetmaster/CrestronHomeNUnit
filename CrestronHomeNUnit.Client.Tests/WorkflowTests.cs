@@ -76,10 +76,10 @@ public sealed class WorkflowTests
 		}
 
 	[Test]
-	public void DriverDeploymentRequiresPostdeploymentChecks ()
+	public async Task DriverDeploymentRequiresPostdeploymentChecks ()
 		{
 		var operations = new FakeOperations ();
-		Assert.ThrowsAsync<ArgumentException> (async () => await ProcessorWorkflow.RunAsync (new (true, true, true, false, true), operations));
+		await Assert.ThrowsAsync<ArgumentException> (async () => await ProcessorWorkflow.RunAsync (new (true, true, true, false, true), operations));
 		Assert.That (operations.Calls, Is.Empty);
 		}
 

@@ -26,12 +26,12 @@ public sealed class WorkflowConnectionTests
 
 	[TestCase (1)]
 	[TestCase (2)]
-	public void OwnershipLossPreventsContinuation (int failureAt)
+	public async Task OwnershipLossPreventsContinuation (int failureAt)
 		{
 		var previous = new Fake ();
 		var fresh = new Fake ();
 		int checks = 0, connections = 0;
-		Assert.ThrowsAsync<IOException> (async () => await WorkflowConnection.RefreshAsync (new (previous, true),
+		await Assert.ThrowsAsync<IOException> (async () => await WorkflowConnection.RefreshAsync (new (previous, true),
 			_ => { connections++; return Task.FromResult (new ConfigurationClient (fresh, true)); },
 			_ => ++checks == failureAt ? throw new IOException () : Task.CompletedTask, default));
 		Assert.That (previous.Disposed, Is.False);
@@ -40,22 +40,22 @@ public sealed class WorkflowConnectionTests
 		}
 
 	[Test]
-	public void FailedAuthenticationIsNotRetried ()
+	public async Task FailedAuthenticationIsNotRetried ()
 		{
 		var previous = new Fake ();
 		int attempts = 0;
-		Assert.ThrowsAsync<IOException> (async () => await WorkflowConnection.RefreshAsync (new (previous, true),
+		await Assert.ThrowsAsync<IOException> (async () => await WorkflowConnection.RefreshAsync (new (previous, true),
 			_ => { attempts++; throw new IOException (); }, _ => Task.CompletedTask, default));
 		Assert.That (attempts, Is.EqualTo (1));
 		Assert.That (previous.Disposed, Is.False);
 		}
 
 	[Test]
-	public void CancellationBeforeRefreshDoesNotOpenAConnection ()
+	public async Task CancellationBeforeRefreshDoesNotOpenAConnection ()
 		{
 		using var cancelled = new CancellationTokenSource ();
 		cancelled.Cancel ();
-		Assert.ThrowsAsync<OperationCanceledException> (async () => await WorkflowConnection.RefreshAsync (new (new Fake (), true),
+		await Assert.ThrowsAsync<OperationCanceledException> (async () => await WorkflowConnection.RefreshAsync (new (new Fake (), true),
 			_ => throw new AssertionException ("Unexpected connection"), _ => throw new AssertionException ("Unexpected lease access"), cancelled.Token));
 		}
 

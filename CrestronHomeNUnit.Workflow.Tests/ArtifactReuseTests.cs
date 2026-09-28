@@ -90,7 +90,7 @@ public sealed class ArtifactReuseTests
 	public async Task FailedOrIncompleteTestsCannotAuthorizeReuse (string outcome, bool complete)
 		{
 		await WriteResult (outcome, complete);
-		Assert.ThrowsAsync<InvalidDataException> (async () => await Reuse ());
+		await Assert.ThrowsAsync<InvalidDataException> (async () => await Reuse ());
 		}
 	[TestCase ("Held")]
 	[TestCase ("ReleaseUnconfirmed")]
@@ -101,7 +101,7 @@ public sealed class ArtifactReuseTests
 			RunId = _run,
 			State = state
 			});
-		Assert.ThrowsAsync<InvalidDataException> (async () => await Reuse ());
+		await Assert.ThrowsAsync<InvalidDataException> (async () => await Reuse ());
 		}
 	[Test]
 	public async Task SourceOrToolchainChangesRequestAFreshBuild ()
@@ -117,7 +117,7 @@ public sealed class ArtifactReuseTests
 			{
 			SourceSha256 = "different"
 			});
-		Assert.ThrowsAsync<InvalidDataException> (async () => await Reuse ());
+		await Assert.ThrowsAsync<InvalidDataException> (async () => await Reuse ());
 		}
 	[TestCase ("1.002.003.0008")]
 	[TestCase ("1.2.3.9")]
@@ -128,15 +128,15 @@ public sealed class ArtifactReuseTests
 	public async Task OlderAndUnrelatedCatalogueEntriesAllowReuse ()
 		=> Assert.That (await Reuse (catalogue: [new () { Id = "catalogue", Model = "Example", Version = "1.2.3.7" }, new () { Id = "catalogue", Model = "Other" }]), Is.Not.Null);
 	[Test]
-	public void UnreadableMatchingCatalogueVersionFailsClosed ()
-		=> Assert.ThrowsAsync<InvalidDataException> (async () => await Reuse (catalogue: [new () { Id = "catalogue", Model = "Example", Version = "unknown" }]));
+	public async Task UnreadableMatchingCatalogueVersionFailsClosed ()
+		=> await Assert.ThrowsAsync<InvalidDataException> (async () => await Reuse (catalogue: [new () { Id = "catalogue", Model = "Example", Version = "unknown" }]));
 	[Test]
 	public async Task ChangedBytesAreRejectedBeforeAndAfterSelection ()
 		{
 		var retained = await Reuse ();
 		await File.AppendAllTextAsync (_package, "corruption");
-		Assert.ThrowsAsync<InvalidDataException> (async () => await Reuse ());
-		Assert.ThrowsAsync<InvalidDataException> (() => WorkflowArtifacts.CopyVerifiedAsync (retained!, Path.Combine (_root, "new.pkg"), CancellationToken.None));
+		await Assert.ThrowsAsync<InvalidDataException> (async () => await Reuse ());
+		await Assert.ThrowsAsync<InvalidDataException> (() => WorkflowArtifacts.CopyVerifiedAsync (retained!, Path.Combine (_root, "new.pkg"), CancellationToken.None));
 		Assert.That (File.Exists (Path.Combine (_root, "new.pkg")), Is.False);
 		}
 	[TestCase ("Other", "1.2.3.8")]
@@ -152,7 +152,7 @@ public sealed class ArtifactReuseTests
 				DriverVersion = version
 				}
 			});
-		Assert.ThrowsAsync<InvalidDataException> (async () => await Reuse ());
+		await Assert.ThrowsAsync<InvalidDataException> (async () => await Reuse ());
 		}
 	[Test]
 	public async Task ChangedPackageIdentityReceiptIsRejected ()
@@ -164,7 +164,7 @@ public sealed class ArtifactReuseTests
 				DriverId = Guid.NewGuid ().ToString ()
 				}
 			});
-		Assert.ThrowsAsync<InvalidDataException> (async () => await Reuse ());
+		await Assert.ThrowsAsync<InvalidDataException> (async () => await Reuse ());
 		}
 	[Test]
 	public async Task OlderReceiptsAndCustomManifestLayoutsBuildNormally ()
@@ -178,14 +178,14 @@ public sealed class ArtifactReuseTests
 		Assert.That (await Reuse (), Is.Null);
 		}
 	[Test]
-	public void MissingEvidenceCannotAuthorizeReuse ()
+	public async Task MissingEvidenceCannotAuthorizeReuse ()
 		{
 		File.Delete (Path.Combine (_root, "Workflow.json"));
-		Assert.ThrowsAsync<FileNotFoundException> (async () => await Reuse ());
+		await Assert.ThrowsAsync<FileNotFoundException> (async () => await Reuse ());
 		}
 	[Test]
-	public void ActualDriverRequiresItsOwnSuccessfulPostDeploymentChecks ()
-		=> Assert.ThrowsAsync<InvalidDataException> (async () => await WorkflowArtifacts.TryReuseAsync (_root, "actual", "Example.pkg", _manifest,
+	public async Task ActualDriverRequiresItsOwnSuccessfulPostDeploymentChecks ()
+		=> await Assert.ThrowsAsync<InvalidDataException> (async () => await WorkflowArtifacts.TryReuseAsync (_root, "actual", "Example.pkg", _manifest,
 			Source, Inputs, (_, _) => throw new AssertionException ("Must not contact processor"), CancellationToken.None));
 
 	[Test]
