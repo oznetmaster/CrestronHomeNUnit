@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.12.4 - 2026-09-28
+
+Android workflow discovery now accepts NUnit Explicit cases when the plan supplies exact `androidTests.requiredTests` names. Previously, discovery rejected these cases before the explicitly selected tests could execute. Runs without an exact selection continue to reject Explicit cases; ignored and invalid discovery entries remain errors.
+
+The full discovery inventory and selected/excluded partition remain retained. Results must still match the selected cases exactly and pass without skipped cases. This change does not turn a selected subset into complete-project coverage or authorize physical device actions.
+
+Validation: all 328 offline workflow tests passed, including selected Explicit execution and rejection without exact selection. No new physical-device validation is claimed. NUnit remains 4.6.1.
+
+This release also retains the corrected NuGet README links and package release-note metadata published in the 1.12.3 documentation-only adapter patch.
+
 ## 1.12.3 - 2026-09-25
 
 NuGet-only documentation patch: repair adapter README links and include release notes in package metadata. Runtime binaries are unchanged from 1.12.2; the existing GitHub release is unchanged.
