@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.1.2 - 2026-09-29
+
+Exact Android test selections can now run a mixture of ordinary and Explicit cases. Previously, NUnit adapter 6.3.0's Current execution path omitted the selected Explicit cases when ordinary cases were included. The workflow coverage check rejected the incomplete results, but manual-event tests never reached their operator prompts.
+
+Selected execution now uses the adapter's documented Legacy discovery mode and Relaxed explicit mode with the same generated, pinned exact-name filter. The initial full inventory discovery stays in Current mode. Unselected ordinary and Explicit tests remain excluded. Runs without an exact selection still reject Explicit cases before execution. No device authority, physical prerequisite, restoration check or coverage requirement is relaxed.
+
+Validation: all 349 offline workflow tests passed. A real-adapter regression reproduced the omission before the fix and passed afterwards for ordinary, all-explicit and mixed selections, including duplicate names, filter-like characters in names, and deliberately failing unselected ordinary and Explicit cases. No physical devices were used by these regression tests. Live manual-event execution and a complete submission rehearsal remain to be verified. Earlier incomplete runs remain failed; this release does not rewrite their evidence. NUnit remains 5.0.0 and the processor runner implementation is unchanged.
+
 ## 2.1.1 - 2026-09-29
 
 Release workflows can opt in to reusing a stored, uninstalled release package with `releaseCandidate.reuseVerifiedStoredPackage`. The runner verifies its SHA-256 against the pinned candidate, its local manifest identity, and one exact local catalogue entry before installing a new instance. It rejects newer or ambiguous entries, different bytes, changing catalogue state, and any installed package model or alias. Verification runs under the existing processor lease using pinned SSH; it does not upload, delete, renumber or rebuild the release, or reboot the processor.
