@@ -13,7 +13,7 @@ The session accepts only the expected Home or an unobstructed Home explicitly na
 
 Selection and endpoint captures are retained under `session-selection.*`. The phase intentionally finishes on its expected Home; give the subsequent phase an explicit reverse starting-Home allowance if it must switch back. A failure after navigation begins leaves restoration unconfirmed, requiring inspection rather than silently continuing. Saved endpoint inspection does not prove the app's active network route or installed driver identity; the existing processor/candidate checks and live fixture observations remain necessary.
 
-This addition has offline test coverage; live multi-processor switching has not yet been validated.
+Validation includes 159 Android tests and live reciprocal switching between two saved processor Homes, including saved address/port inspection and return to the original Home. This navigation check did not send device commands or establish a complete submission rehearsal.
 
 From TestAdapter **1.12.2**, saved-endpoint inspection supports both grid and list views in My Systems with multiple saved Homes. It selects the menu within the uniquely named Home's own card. Missing or ambiguous cards and menus fail without choosing another Home.
 

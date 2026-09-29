@@ -1,11 +1,5 @@
 # Changelog
 
-## Unreleased
-
-Android profiles can explicitly allow session opening from other named saved Homes through `AllowedStartingHomes`. The session navigates to its expected Home and verifies its saved local processor address and port before returning to test code. Default opening remains read-only. Unknown screens and unapproved starting Homes receive no input; uncertain navigation is not replayed or reported as restored. This supports sequential phases on different processors using one reserved emulator. Offline validation is complete; live switching remains to be verified.
-
-Android profile equality compares allowed Home names by value. Independently loaded copies of the same profile remain equal, preserving downstream session and final-cleanup checks; changed navigation permissions remain unequal.
-
 ## 2.0.0 - 2026-09-28
 
 Processor test packages now default to released NUnit 5.0.0 while continuing to target .NET Framework 4.7.2. This is a major tooling update because NUnit 5 changes assertion APIs: await ThrowsAsync, CatchAsync and DoesNotThrowAsync, including before reading returned exception properties. Existing NUnit 4 projects can explicitly set ProcessorNUnitVersion=4.6.1; keep the test project's framework version aligned with its package host.
