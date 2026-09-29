@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.1.0 - 2026-09-29
+
+Android workflows can now switch between explicitly permitted saved Homes before running a test phase. Set `AllowedStartingHomes` in each Android profile when sequential phases share one emulator. The workflow selects the expected Home, checks its saved local processor address and port, and returns to Home before exposing the session to tests.
+
+Unknown screens, unapproved starting Homes and ambiguous destinations stop without speculative input. Uncertain input is not replayed or reported as restored. Both profiles must use the same emulator reservation. A matching saved address is connection-settings evidence; it does not replace installed-driver or live-route checks.
+
+Android profile equality now compares permitted Home names by value, so independent JSON reads preserve session and final-cleanup checks.
+
+Validation: 159 Android tests passed. Live navigation switched between two saved processor Homes, verified both saved addresses and ports, and returned to the original Home. The downstream DevTools regression suite passed all 1,680 tests. These checks establish navigation and integration behavior, not a completed driver submission rehearsal. Processor execution remains on NUnit 5.0.0; this release does not change the processor runner.
+
 ## 2.0.0 - 2026-09-28
 
 Processor test packages now default to released NUnit 5.0.0 while continuing to target .NET Framework 4.7.2. This is a major tooling update because NUnit 5 changes assertion APIs: await ThrowsAsync, CatchAsync and DoesNotThrowAsync, including before reading returned exception properties. Existing NUnit 4 projects can explicitly set ProcessorNUnitVersion=4.6.1; keep the test project's framework version aligned with its package host.
