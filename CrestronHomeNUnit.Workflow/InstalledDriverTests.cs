@@ -48,8 +48,8 @@ public static class InstalledDriverTests
 		report.Flush (flushToDisk: true);
 		try
 			{
-			using var deadline = CancellationTokenSource.CreateLinkedTokenSource (token);
-			deadline.CancelAfter (TimeSpan.FromSeconds (plan.TimeoutSeconds));
+			await using var deadline = new WorkflowActiveDeadline(TimeSpan.FromSeconds(plan.TimeoutSeconds), token,
+				plan.OperatorReadiness == null ? null : plan.OperatorReadiness.IsPending);
 			// Snapshot once, holding both the source and the retained candidate against replacement.
 			var package = Path.Combine (results, Path.GetFileName (plan.PackagePath));
 			await using (var output = new FileStream (package, FileMode.CreateNew, FileAccess.Write, FileShare.None))
@@ -72,6 +72,9 @@ public static class InstalledDriverTests
 			var source = await WorkflowEvidence.SourceDigestAsync (plan.SourceRoots, deadline.Token).ConfigureAwait (false);
 			using var operations = new Operations (plan, credential, results, package, identity, profile, profileHash, source);
 			var result = await RunCoreAsync (operations, deadline.Token).ConfigureAwait (false);
+			deadline.ThrowIfFaulted();
+			if(plan.OperatorReadiness is {} readiness && readiness.ReadStatus()?.Response?.Outcome != SubmissionOperatorOutcome.Done)
+				throw new InvalidDataException("Prepared fixture did not retain its required readiness acknowledgement.");
 			report.Position = 0;
 			report.SetLength (0);
 			await JsonSerializer.SerializeAsync (report, result, cancellationToken: CancellationToken.None).ConfigureAwait (false);
@@ -226,7 +229,8 @@ public static class InstalledDriverTests
 			var result = await WorkflowManagedAndroid.RunAsync (plan.AndroidTests, actual, Path.Combine (results, "AndroidManagedChildren"),
 				TimeSpan.FromSeconds (120), ct => ConfigurationClient.ConnectAsync (Connection, credential, ct), VerifyOwnership,
 				(bindings, ct) => WorkflowAndroid.RunAsync (plan.AndroidTests, profile, _owner, plan.Host, actual.DeviceId, package, source,
-					Path.Combine (results, "AndroidUI"), ct, releaseSourceCommit: plan.PackageSourceCommit, managedDevices: bindings), token).ConfigureAwait (false);
+					Path.Combine (results, "AndroidUI"), ct, releaseSourceCommit: plan.PackageSourceCommit, managedDevices: bindings,
+					operatorReadiness: plan.OperatorReadiness), token).ConfigureAwait (false);
 			Record ("Android tests", result.Passed ? "Passed" : "Failed");
 			return result;
 			}

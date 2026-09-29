@@ -19,6 +19,7 @@ public sealed record InstalledDriverTestPlan
 	public required AndroidTestPlan AndroidTests { get; init; }
 	public int TimeoutSeconds { get; init; } = 900;
 	public int LeaseWaitSeconds { get; init; }
+	public InstalledOperatorReadiness? OperatorReadiness { get; init; }
 
 	public void Validate ()
 		{
@@ -47,6 +48,10 @@ public sealed record InstalledDriverTestPlan
 			throw new ArgumentException ("Provide an Android fixture project inside a source root and its existing private session profile.");
 		AndroidTests.ValidateManagedChildren ();
 		AndroidTestSelection.Validate (AndroidTests.RequiredTests);
+		if (OperatorReadiness != null) {
+			OperatorReadiness.Validate();
+			if (AndroidTests.RequiredTests?.Count != 1) throw new ArgumentException("Prepared readiness requires exactly one selected test.");
+		}
 		AndroidWorkflowSession.Read<AndroidSessionProfile> (AndroidTests.ProfilePath).Validate ();
 		}
 	}

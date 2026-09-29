@@ -1,13 +1,15 @@
-# Crestron Home NUnit v2.1.2
+# Crestron Home NUnit v2.2.0
 
-Exact Android test selections can now run a mixture of ordinary and Explicit cases. Previously, NUnit adapter 6.3.0's Current execution path omitted the selected Explicit cases when ordinary cases were included. The workflow coverage check rejected the incomplete results, but manual-event tests never reached their operator prompts.
+Installed-driver UI tests can opt in to preparing the app before asking the operator to be ready. The new `OperatorReadiness` binding selects one exact fixture, private inbox, run and request. The fixture can finish compilation, discovery and navigation before displaying Ready, eliminating the subsequent preparation delay.
 
-Selected execution now uses the adapter's documented Legacy discovery mode and Relaxed explicit mode with the same generated, pinned exact-name filter. The initial full inventory discovery stays in Current mode. Unselected ordinary and Explicit tests remain excluded. Runs without an exact selection still reject Explicit cases before execution. No device authority, physical prerequisite, restoration check or coverage requirement is relaxed.
+The runner measures active-work time monotonically and excludes only that validated, pending readiness wait. An operator can return the next morning without exhausting the action budget. External cancellation still works; malformed or mismatched requests fail closed. The prepared test retains processor and emulator reservations while waiting. Tests must refresh their event baselines after Ready, and the runner requires the retained acknowledgement in addition to all existing evidence and restoration checks. No failed physical attempt is automatically replayed.
 
-Validation: all 349 offline workflow tests passed. A real-adapter regression reproduced the omission before the fix and passed afterwards for ordinary, all-explicit and mixed selections, including duplicate names, filter-like characters in names, and deliberately failing unselected ordinary and Explicit cases. No physical devices were used by these regression tests. Live manual-event execution and a complete submission rehearsal remain to be verified. Earlier incomplete runs remain failed; this release does not rewrite their evidence. NUnit remains 5.0.0 and the processor runner implementation is unchanged.
+The metadata handoff is cleared during discovery and omitted for ordinary plans. Use a cooperating fixture with DevTools 1.24.0 or later for the prepared helper and clock-independent action protocol. Existing plans retain their current behavior. NUnit remains 5.0.0; processor execution and driver code are unchanged.
+
+Validation: the offline workflow suite includes overnight readiness, long scheduler gaps, active-time expiry, cancellation, exact request binding and invalid-record checks. Full hardware rehearsal under this opt-in path remains pending; earlier failed attempts remain unchanged.
 
 ## Updating
 
-Update the Windows CLI/runner distribution or CrestronHomeNUnit.TestAdapter to 2.1.2. No plan changes are required. Adopt the release in a new pinned workflow attempt; keep completed and failed attempts on their original tool versions. See https://github.com/oznetmaster/CrestronHomeNUnit/blob/main/docs/AndroidUiTesting.md for exact selection and evidence requirements. Visual Studio and VS Code use the same adapter.
+Update CrestronHomeNUnit.TestAdapter or the Windows runner/CLI distribution to 2.2.0. Adopt prepared readiness only in a new frozen workflow plan. See https://github.com/oznetmaster/CrestronHomeNUnit/blob/main/docs/InstalledDriverTests.md for the contract. Visual Studio and VS Code continue to use the same adapter.
 
 Copyright (c) 2026 Neil Colvin. Licensed under the MIT License; see LICENSE.

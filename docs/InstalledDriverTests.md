@@ -1,5 +1,13 @@
 # Test an unchanged installed driver
 
+## Prepared human readiness (2.2.0)
+
+An installed-driver plan may set `OperatorReadiness` with an absolute private `Directory`, exact `RunKey`, unique `Step`, and `Instructions`. This requires exactly one explicitly selected test. The runner completes candidate verification, compilation, discovery and app selection before entering that fixture. A cooperating fixture finishes navigation, then calls `SubmissionPreparedReadiness.WaitAsync` from DevTools 1.24.0 or later. The runner passes the binding in `CRESTRON_SUBMISSION_PREPARED_READINESS` only to execution, never discovery; this variable contains routing metadata, not credentials.
+
+While that exact readiness request remains unanswered, the active-work timeout pauses indefinitely. Cancellation and malformed-request detection remain effective. The test host and processor/emulator reservations stay held to protect the prepared screen; this mode trades resource availability for immediate handoff after Ready. It is opt-in. Existing plans keep their normal bounded timeout.
+
+After Ready, refresh event baselines before arming observation and publishing the action request. Do not repeat compilation or navigation. A reply alone never proves a device event. The runner requires the retained readiness acknowledgement as well as passing tests, restoration, candidate verification and reservation release. A interrupted fixture is not automatically replayed, even though an unanswered readiness record itself remains durable.
+
 Use **Crestron Home NUnit 1.12.1** and **CrestronHomeDevTools 1.13.1** or later. The adapter declares the DevTools dependency; the Windows CLI download includes it. The initial 1.12.0 implementation could reject a valid installed candidate because the payload checker treated its full configuration catalogue ID as a storage-folder name. The corrected checker resolves the unversioned driver key and separate version directory while retaining candidate-version and file-integrity checks.
 
 Isolated NuGet and CLI acceptance covers plan validation, selected-case execution rules, retained evidence and refusal of invalid inputs. A hardware run of the corrected workflow passed selected read-only Android fixtures, candidate verification before and after, declared temporary-child creation/removal, Home restoration and reservation release. This validates those exercised paths; it does not establish that every driver fixture, control operation or recovery scenario has been tested.

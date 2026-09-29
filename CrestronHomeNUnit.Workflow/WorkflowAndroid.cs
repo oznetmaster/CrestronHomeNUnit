@@ -24,7 +24,7 @@ internal delegate Task<int> AndroidTestProcess (string executable, IEnumerable<s
 internal static class WorkflowAndroid
 	{
 	public static async Task<AndroidTestOutcome> RunAsync (AndroidTestPlan plan, AndroidSessionProfile profile, string owner,
-		string host, int deviceId, string package, string source, string directory, CancellationToken token, AndroidTestProcess? runProcess = null, string? releaseSourceCommit = null, IReadOnlyList<AndroidManagedDeviceBinding>? managedDevices = null)
+		string host, int deviceId, string package, string source, string directory, CancellationToken token, AndroidTestProcess? runProcess = null, string? releaseSourceCommit = null, IReadOnlyList<AndroidManagedDeviceBinding>? managedDevices = null, InstalledOperatorReadiness? operatorReadiness = null)
 		{
 		var requiredTests = plan.RequiredTests?.ToArray ();
 		AndroidTestSelection.Validate (requiredTests);
@@ -48,7 +48,7 @@ internal static class WorkflowAndroid
 		runProcess ??= WorkflowEvidence.ProcessAsync;
 		int discoveryExit = await runProcess ("dotnet", common.Concat (["--list-tests", "--", "NUnit.DumpXmlTestDiscovery=true"]),
 			Path.GetDirectoryName (plan.Project)!, Path.Combine (directory, "Discovery.log"), token,
-			new Dictionary<string, string> { [AndroidWorkflowSession.CONTEXT_VARIABLE] = "" }).ConfigureAwait (false);
+			new Dictionary<string, string> { [AndroidWorkflowSession.CONTEXT_VARIABLE] = "", [InstalledOperatorReadiness.EnvironmentVariable] = "" }).ConfigureAwait (false);
 		if (discoveryExit != 0)
 			throw new InvalidDataException ("Android test discovery failed; execution was not started.");
 		var dumps = Directory.GetFiles (Path.Combine (assemblyDirectory, "Dump"), "D_*.dll.dump");
@@ -90,7 +90,8 @@ internal static class WorkflowAndroid
 		if (selection != null)
 			arguments = arguments.Concat (["--settings", selection.SettingsPath]);
 		int exit = await runProcess ("dotnet", arguments, Path.GetDirectoryName (plan.Project)!, Path.Combine (directory, "Tests.log"), token,
-			new Dictionary<string, string> { [AndroidWorkflowSession.CONTEXT_VARIABLE] = contextPath }).ConfigureAwait (false);
+			new Dictionary<string, string> { [AndroidWorkflowSession.CONTEXT_VARIABLE] = contextPath,
+				[InstalledOperatorReadiness.EnvironmentVariable] = operatorReadiness == null ? "" : JsonSerializer.Serialize(operatorReadiness) }).ConfigureAwait (false);
 		AndroidSessionLease.VerifyOwner (profile.LockPath, owner);
 		producer.RequireUnchanged (assemblyDirectory, manifestPath, token);
 		selection?.RequireUnchanged ();
