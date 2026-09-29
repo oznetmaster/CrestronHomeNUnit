@@ -14,6 +14,25 @@ public sealed record AndroidSessionProfile (string AdbExecutable, string DeviceS
 	/// <summary>Explicit opt-in to navigation from these saved Homes. Empty preserves read-only session opening.</summary>
 	public IReadOnlyList<string> AllowedStartingHomes { get; init; } = [];
 
+	// Profiles are compared after independent JSON reads (including final removal).
+	// A list's object identity must not make otherwise identical settings unequal.
+	public bool Equals (AndroidSessionProfile? other) => other is not null &&
+		AdbExecutable == other.AdbExecutable && DeviceSerial == other.DeviceSerial &&
+		Application == other.Application && ExpectedHomeText == other.ExpectedHomeText &&
+		LockPath == other.LockPath && LocalPort == other.LocalPort &&
+		(ReferenceEquals (AllowedStartingHomes, other.AllowedStartingHomes) ||
+		AllowedStartingHomes is not null && other.AllowedStartingHomes is not null &&
+		AllowedStartingHomes.SequenceEqual (other.AllowedStartingHomes, StringComparer.Ordinal));
+	public override int GetHashCode ()
+		{
+		var hash = new HashCode ();
+		hash.Add (AdbExecutable, StringComparer.Ordinal); hash.Add (DeviceSerial, StringComparer.Ordinal);
+		hash.Add (Application, StringComparer.Ordinal); hash.Add (ExpectedHomeText, StringComparer.Ordinal);
+		hash.Add (LockPath, StringComparer.Ordinal); hash.Add (LocalPort);
+		if (AllowedStartingHomes is not null) foreach (string home in AllowedStartingHomes) hash.Add (home, StringComparer.Ordinal);
+		return hash.ToHashCode ();
+		}
+
 	public void Validate ()
 		{
 		if (AllowedStartingHomes == null || AllowedStartingHomes.Any (string.IsNullOrWhiteSpace) ||
