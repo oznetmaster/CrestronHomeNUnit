@@ -194,9 +194,10 @@ public sealed class AndroidStageTests
 		Assert.That (File.Exists (Path.Combine (output, "completion.json")), Is.False);
 		}
 
-	[TestCase (false)]
-	[TestCase (true)]
-	public async Task ExactSelectionUsesRealAdapterAndCannotRunUnselectedFailure (bool explicitCases)
+	[TestCase ("none")]
+	[TestCase ("all")]
+	[TestCase ("mixed")]
+	public async Task ExactSelectionUsesRealAdapterAndCannotRunUnselectedFailure (string explicitCases)
 		{
 		File.WriteAllText (_project, """
 			<Project Sdk="Microsoft.NET.Sdk">
@@ -217,12 +218,15 @@ public sealed class AndroidStageTests
 			    [TestCase("ignored", TestName = """Chosen("a,b" / 'x' \ or test == 'Other')""")]
 			    public void Special(string value) { Assert.Pass(); }
 			    [Test] public void Other() { Assert.Fail("Unselected physical actions must not execute."); }
+			    [Test, Explicit] public void OtherExplicit() { Assert.Fail("Unselected explicit actions must not execute."); }
 			}
 			"""");
-		if (explicitCases)
+		if (explicitCases != "none")
 			{
 			var casesPath = Path.Combine (_root, "Cases.cs");
-			File.WriteAllText (casesPath, File.ReadAllText (casesPath).Replace ("public void", "[Explicit] public void"));
+			var text = File.ReadAllText (casesPath).Replace ("public void Duplicates", "[Explicit] public void Duplicates");
+			if (explicitCases == "all") text = text.Replace ("public void Special", "[Explicit] public void Special").Replace ("public void Other()", "[Explicit] public void Other()");
+			File.WriteAllText (casesPath, text);
 			}
 		using var lease = AndroidSessionLease.Acquire (_profile.LockPath, _owner);
 		using var deadline = new CancellationTokenSource (TimeSpan.FromMinutes (3));
@@ -236,9 +240,10 @@ public sealed class AndroidStageTests
 		Assert.That (outcome.Tests.Passed, Is.EqualTo (3));
 		Assert.That (outcome.RestorationConfirmed, Is.False, "No Android or physical device is accessed by this acceptance test.");
 		using var selection = JsonDocument.Parse (File.ReadAllBytes (Path.Combine (output, "selection.json")));
-		Assert.That (selection.RootElement.GetProperty ("DiscoveredTests").GetArrayLength (), Is.EqualTo (4));
+		Assert.That (selection.RootElement.GetProperty ("DiscoveredTests").GetArrayLength (), Is.EqualTo (5));
 		Assert.That (selection.RootElement.GetProperty ("ExpectedTests").GetArrayLength (), Is.EqualTo (3));
-		Assert.That (selection.RootElement.GetProperty ("ExcludedTests")[0].GetString (), Is.EqualTo ("Example.Cases.Other"));
+		Assert.That (selection.RootElement.GetProperty ("ExcludedTests").EnumerateArray ().Select (e => e.GetString ()),
+			Is.EquivalentTo (new[] { "Example.Cases.Other", "Example.Cases.OtherExplicit" }));
 		using var pin = JsonDocument.Parse (File.ReadAllBytes (Path.Combine (output, "producer-pin.json")));
 		Assert.That (pin.RootElement.GetProperty ("SchemaVersion").GetInt32 (), Is.EqualTo (2));
 		Assert.That (pin.RootElement.GetProperty ("SelectionSha256").GetString (), Is.EqualTo

@@ -127,6 +127,17 @@ Discovery still records the complete runnable project. Every requested name must
 
 The private `selection.json` records the discovered, required and excluded inventories and the hash of generated `selection.runsettings`. Both are written before execution and checked afterwards against coordinator-held hashes. Selected runs use producer receipt schema 2 with `SelectionSha256`; complete-project runs retain schema 1. `coverage.json` includes the same selection hash. Evidence consumers must explicitly support schema 2 and independently retain the selection hash; they must not infer full-project coverage from a passing subset. Older consumers should reject selected runs.
 
+Exact selections may mix ordinary and Explicit tests. Selected execution uses the
+adapter's documented `DiscoveryMethod=Legacy` and `ExplicitMode=Relaxed` settings
+with the generated exact-name filter. Full inventory discovery still uses Current
+mode. The Current execution path in adapter 6.3.0 omitted Explicit cases from a
+mixed selection even with Relaxed alone; those missing results correctly failed
+the workflow coverage gate. Real-adapter regression tests cover ordinary,
+all-explicit and mixed selections, duplicate names and names containing apparent
+filter syntax, with deliberately failing unselected ordinary and explicit tests.
+No-selection runs continue to reject Explicit cases before execution. This setting
+does not grant authority to operate devices or remove manual prerequisites.
+
 This chooses cases within an ordinary combined workflow. It does not skip other workflow stages, enable reuse of an already-installed equal-version Release candidate, or prove that a project's intended coverage is complete. Keep the intended case groups under source control and review exclusions. Existing physical-state restoration and reservation rules apply unchanged.
 
 ### Retained test program integrity

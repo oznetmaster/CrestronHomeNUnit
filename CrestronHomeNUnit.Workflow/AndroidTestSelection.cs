@@ -41,7 +41,11 @@ internal sealed record AndroidTestSelection (string Path, string Sha256, string 
 		string expression = string.Join (" or ", expected.Distinct (StringComparer.Ordinal).Select (name => "test =~ " + Literal (name)));
 		using (var stream = new FileStream (settingsPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read))
 			{
-			new XDocument (new XElement ("RunSettings", new XElement ("NUnit", new XElement ("Where", expression)))).Save (stream);
+			// Current adapter execution omits Explicit cases from mixed selections even
+			// with Relaxed mode. Legacy execution honors the exact positive NUnit filter.
+			// Discovery remains Current; neither setting enables unselected physical tests.
+			new XDocument (new XElement ("RunSettings", new XElement ("NUnit",
+				new XElement ("DiscoveryMethod", "Legacy"), new XElement ("ExplicitMode", "Relaxed"), new XElement ("Where", expression)))).Save (stream);
 			stream.Flush (flushToDisk: true);
 			}
 		var settingsSha = Hash (settingsPath);
