@@ -32,6 +32,12 @@ Local tests and the processor test package continue to use Debug builds; project
 
 An equal or newer version of the same model already in the processor catalogue stops activation. The workflow does not rename, renumber or replace the candidate to bypass this conflict, and it cannot prove that an already loaded same-version driver contains these bytes. Prepare an eligible development processor before testing; do not delete installed production configuration to make a run pass. Repeating a submission uses the retained release artifact with a new results directory, but catalogue eligibility must still be resolved.
 
+### Reusing a verified stored release
+
+CrestronHomeNUnit 2.1.1 adds an explicit `releaseCandidate.reuseVerifiedStoredPackage: true` option. It permits a fresh installation from an existing local package only when its SHA-256 equals the pinned candidate, its local manifest identifies the same GUID/version/model/manufacturer, and exactly one equal-version local catalogue entry exists. Newer versions, ambiguous entries, missing storage, different bytes and catalogue changes during verification stop activation. Any installed instance of the package's model or aliases also stops reuse: stored bytes cannot establish what an already loaded process contains.
+
+Verification runs over pinned SSH while the workflow owns the processor lease. It does not upload, delete, renumber or rebuild the package, and does not request a reboot. Normal instance targeting, configuration and installed-driver tests still run. `actual-reuse.json` records the stored path, package and manifest hashes and catalogue identity; the compatibility `actual-import.json` receipt explicitly reports `VerifiedStoredPackage` rather than claiming a new import. The default remains off. This path has offline regression coverage; live activation validation is still pending.
+
 ## Evidence limits
 
 These checks bind a supplied package to declared release pins and tested local source. Trusted CI must establish the pins, source/dependency provenance and worker identity; the supplied hashes alone are not an authenticated build attestation. Optional Crestron submission has additional requirements maintained in [CrestronHomeDevTools](https://github.com/oznetmaster/CrestronHomeDevTools/blob/main/docs/CrestronSubmission.md). Ordinary GitHub/NuGet publication remains possible under the existing hardware-unavailable policy.

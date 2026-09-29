@@ -52,7 +52,7 @@ internal static class WorkflowCommand
 			}
 		catch (Exception exception)
 			{
-			Console.Error.WriteLine (exception is ArgumentException ? exception.Message : "Workflow could not complete. Inspect retained stage/build/test evidence and the processor lease before retrying.");
+			Console.Error.WriteLine (exception is ArgumentException ? exception.Message : $"Workflow could not complete ({exception.GetType ().Name}). Inspect retained stage/build/test evidence and the processor lease before retrying.");
 			return stop.IsCancellationRequested ? 130 : 2;
 			}
 		finally { Console.CancelKeyPress -= handler; }

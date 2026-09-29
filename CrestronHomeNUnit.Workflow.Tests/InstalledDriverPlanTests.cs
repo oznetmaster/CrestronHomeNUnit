@@ -105,6 +105,10 @@ public sealed class InstalledDriverPlanTests
 		if (deploymentInput) input["actualDriver"] = new System.Text.Json.Nodes.JsonObject ();
 		var path = Path.Combine (_root, "plan.json");
 		File.WriteAllText (path, input.ToJsonString ());
+		if (!deploymentInput)
+			_ = JsonSerializer.Deserialize<InstalledDriverTestPlan> (input.ToJsonString (), new JsonSerializerOptions
+				{ PropertyNameCaseInsensitive = true, UnmappedMemberHandling = System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow,
+					RespectRequiredConstructorParameters = true, RespectNullableAnnotations = true });
 		var results = Path.Combine (_root, "cli-results");
 		var start = new ProcessStartInfo ("dotnet") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
 		start.ArgumentList.Add (Path.Combine (AppContext.BaseDirectory, "CrestronHomeNUnit.Cli.dll"));
@@ -117,9 +121,10 @@ public sealed class InstalledDriverPlanTests
 		using var deadline = new CancellationTokenSource (TimeSpan.FromSeconds (30));
 		try { await process.WaitForExitAsync (deadline.Token); }
 		finally { if (!process.HasExited) { process.Kill (true); await process.WaitForExitAsync (); } }
-		Assert.That (process.ExitCode, Is.EqualTo (2), await output + await error);
+		var diagnostics = await output + await error;
+		Assert.That (process.ExitCode, Is.EqualTo (2), diagnostics);
 		Assert.That (File.Exists (Path.Combine (results, "Phases.jsonl")), Is.False);
-		Assert.That (File.Exists (Path.Combine (results, "InstalledDriverTests.json")), Is.EqualTo (!deploymentInput));
+		Assert.That (File.Exists (Path.Combine (results, "InstalledDriverTests.json")), Is.EqualTo (!deploymentInput), diagnostics);
 		Assert.That (File.Exists (Path.Combine (_root, "android.lock")), Is.False);
 		}
 	}

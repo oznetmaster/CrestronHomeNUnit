@@ -272,13 +272,17 @@ public static class WorkflowRunner
 				throw new InvalidOperationException ("Build inputs changed after package preparation; rebuild and rerun tests.");
 			var info = DriverDeployment.Inspect (package);
 			var catalogue = await client.GetDriversAsync (info.Model, deadline.Token).ConfigureAwait (false);
-			if (catalogue.Any (d => string.Equals (d.Model?.Trim (), info.Model.Trim (), StringComparison.OrdinalIgnoreCase)
-				 && WorkflowDebugVersion.ParseVersion (d.Version) >= WorkflowDebugVersion.ParseVersion (info.Version)))
+			bool existing = catalogue.Any (d => string.Equals (d.Model?.Trim (), info.Model.Trim (), StringComparison.OrdinalIgnoreCase)
+				 && WorkflowDebugVersion.ParseVersion (d.Version) >= WorkflowDebugVersion.ParseVersion (info.Version));
+			bool verifiedReuse = existing && prefix == "actual" && releasePackage != null && plan.ReleaseCandidate?.ReuseVerifiedStoredPackage == true;
+			if (existing && !verifiedReuse)
 				throw new InvalidOperationException (prefix == "actual" && releasePackage != null
 					? "An equal or newer model version is already in the catalogue. Reconcile the test processor before verifying this immutable release; its bytes and version will not be changed."
 					: "An equal or newer model version is already in the catalogue. Rerun the workflow to reconcile its Debug revision before deployment.");
+			var reused = verifiedReuse ? await WorkflowStoredRelease.VerifyAsync (client, _host, credential,
+				plan.SshFingerprint, lease.Owner, info, releasePackage!.Sha256, results, deadline.Token).ConfigureAwait (false) : null;
 			ActivationUncertain = true;
-			var imported = await DriverDeployment.DeployAsync (client, _host, credential, plan.SshFingerprint, package, Timeout, deadline.Token).ConfigureAwait (false);
+			var imported = reused ?? await DriverDeployment.DeployAsync (client, _host, credential, plan.SshFingerprint, package, Timeout, deadline.Token).ConfigureAwait (false);
 			await File.WriteAllTextAsync (Path.Combine (results, prefix + "-import.json"), JsonSerializer.Serialize (imported), deadline.Token).ConfigureAwait (false);
 			var ready = await DriverInstanceLifecycle.EnsureAsync (client, imported.CatalogueId, target.InstanceName, target.LocationId, target.ExpectedDeviceId, Timeout, deadline.Token, RebootHandler (target)).ConfigureAwait (false);
 			await File.WriteAllTextAsync (Path.Combine (results, prefix + "-activation.json"), JsonSerializer.Serialize (ready), deadline.Token).ConfigureAwait (false);

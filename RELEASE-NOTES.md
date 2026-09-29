@@ -1,15 +1,13 @@
-# Crestron Home NUnit v2.1.0
+# Crestron Home NUnit v2.1.1
 
-Android workflows can now switch between explicitly permitted saved Homes before running a test phase. Set `AllowedStartingHomes` in each Android profile when sequential phases share one emulator. The workflow selects the expected Home, checks its saved local processor address and port, and returns to Home before exposing the session to tests.
+Release workflows can opt in to reusing a stored, uninstalled release package with `releaseCandidate.reuseVerifiedStoredPackage`. The runner verifies its SHA-256 against the pinned candidate, its local manifest identity, and one exact local catalogue entry before installing a new instance. It rejects newer or ambiguous entries, different bytes, changing catalogue state, and any installed package model or alias. Verification runs under the existing processor lease using pinned SSH; it does not upload, delete, renumber or rebuild the release, or reboot the processor.
 
-Unknown screens, unapproved starting Homes and ambiguous destinations stop without speculative input. Uncertain input is not replayed or reported as restored. Both profiles must use the same emulator reservation. A matching saved address is connection-settings evidence; it does not replace installed-driver or live-route checks.
+The retained `actual-reuse.json` records how the package was verified. The existing deployment receipt explicitly distinguishes verified storage reuse from a new import. Reuse is disabled by default; ordinary Debug builds and release deployments retain their existing behavior. CLI failures now include the exception type without exposing arbitrary exception text.
 
-Android profile equality now compares permitted Home names by value, so independent JSON reads preserve session and final-cleanup checks.
-
-Validation: 159 Android tests passed. Live navigation switched between two saved processor Homes, verified both saved addresses and ports, and returned to the original Home. The downstream DevTools regression suite passed all 1,680 tests. These checks establish navigation and integration behavior, not a completed driver submission rehearsal. Processor execution remains on NUnit 5.0.0; this release does not change the processor runner.
+Validation: all 348 offline workflow tests passed, including 20 stored-release checks covering exact bytes, mismatched identity, ambiguous catalogue entries, unsafe paths, concurrent changes and existing instances. Live activation through the new reuse path is pending; these results do not establish a completed submission rehearsal. NUnit remains 5.0.0, and processor runner binaries are unchanged by this workflow fix.
 
 ## Updating
 
-Update the Windows CLI/runner distribution or CrestronHomeNUnit.TestAdapter to 2.1.0. Existing profiles need no changes: without `AllowedStartingHomes`, session opening remains read-only and requires the expected Home already displayed. See https://github.com/oznetmaster/CrestronHomeNUnit/blob/main/docs/AndroidUiTesting.md for profile configuration. Visual Studio and VS Code continue to use the same VSTest adapter.
+Update the Windows CLI/runner distribution or CrestronHomeNUnit.TestAdapter to 2.1.1. Existing plans need no changes. Enable reuse only for a verified, uninstalled stored release; see https://github.com/oznetmaster/CrestronHomeNUnit/blob/main/docs/ReleaseCandidateTesting.md . Visual Studio and VS Code use the same adapter.
 
 Copyright (c) 2026 Neil Colvin. Licensed under the MIT License; see LICENSE.

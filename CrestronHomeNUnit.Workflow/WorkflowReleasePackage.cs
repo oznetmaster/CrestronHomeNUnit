@@ -12,6 +12,9 @@ namespace CrestronHomeNUnit.Workflow;
 /// <summary>Trusted release-workflow pins for ActualDriver.PackagePath. This declaration is not a build attestation.</summary>
 public sealed record ReleaseCandidatePlan (string Sha256, string DriverGuid, string DriverVersion, string SourceRepository, string SourceCommit)
 	{
+	/// <summary>Allow an existing local release only after its stored bytes, manifest and catalogue
+	/// are verified against this immutable candidate. Does not permit version-only reuse.</summary>
+	public bool ReuseVerifiedStoredPackage { get; init; }
 	public void Validate (PackageBuildPlan actual)
 		{
 		if (Sha256?.Length != 64 || !Sha256.All (char.IsAsciiHexDigit) || !Guid.TryParse (DriverGuid, out _) ||
