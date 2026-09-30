@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+Installed-driver preparation failures retain the original phase, exception type and bounded credential-redacted message. A failure before a fixture can ask Ready no longer gets overwritten by a missing readiness response. Successful prepared fixtures still require the recorded acknowledgement. No change to physical retry authority or processor test execution.
+
 ## 2.2.0 - 2026-09-29
 
 Installed-driver UI tests can opt in to preparing the app before asking the operator to be ready. The new `OperatorReadiness` binding selects one exact fixture, private inbox, run and request. The fixture can finish compilation, discovery and navigation before displaying Ready, eliminating the subsequent preparation delay.

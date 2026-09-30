@@ -84,6 +84,31 @@ public sealed class InstalledDriverPhaseTests
 		Assert.That (fake.Calls, Does.Not.Contain ("tests"));
 		Assert.That (fake.Calls.Last (), Is.EqualTo ("release-processor"));
 		Assert.That (result.ReservationsReleased, Is.True);
+		Assert.That (result.Failure?.ExceptionType, Is.EqualTo (typeof (IOException).FullName));
+		Assert.That (result.Failure?.Message, Is.EqualTo ("Synthetic failure; no hardware"));
+		Assert.That (result.Failure?.Phase, Is.EqualTo (fault == "Before" ? "Before candidate verification" : "Android reservation"));
+		Assert.That (InstalledDriverTests.RequiresReadiness (result), Is.False);
+		var retained = JsonSerializer.Deserialize<InstalledDriverTestResult> (JsonSerializer.Serialize (result))!;
+		Assert.That (retained.Failure, Is.EqualTo (result.Failure));
+		}
+
+	[Test]
+	public async Task SuccessfulFixtureStillRequiresReadiness ()
+		{
+		var result = await InstalledDriverTests.RunCoreAsync (new Operations (), default);
+		Assert.That (InstalledDriverTests.RequiresReadiness (result), Is.True);
+		Assert.That (result.Failure, Is.Null);
+		}
+
+	[Test]
+	public void FailureEvidenceRedactsCredentialsBeforeTruncation ()
+		{
+		var result = new InstalledDriverTestResult (null, false, false, false, true, "failed")
+			{ Failure = new ("Before", "Example", new string ('x', 4090) + "secret-password account-name") };
+		var redacted = InstalledDriverTests.RedactFailure (result, new System.Net.NetworkCredential ("account-name", "secret-password"));
+		Assert.That (redacted.Failure!.Message.Length, Is.LessThanOrEqualTo (4096));
+		Assert.That (redacted.Failure.Message, Does.Not.Contain ("secret"));
+		Assert.That (redacted.Failure.Message, Does.Not.Contain ("account"));
 		}
 
 	[TestCase ("begin")]
