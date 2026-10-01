@@ -1,0 +1,67 @@
+name: NUnit 5 configuration policy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check every tracked test project and SDK lock
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $files = @(git ls-files '*.csproj' '*.props')
+          if ($LASTEXITCODE) { throw 'Cannot enumerate tracked project configuration.' }
+          foreach ($file in $files) {
+            [xml]$xml = Get-Content -LiteralPath $file -Raw
+            foreach ($reference in $xml.SelectNodes('//PackageReference[@Include="NUnit"]')) {
+              $version = [string]$reference.Version
+              if ($version -notmatch '^5[.]' -and $version -notin @('$(NUnitVersion)', '$(ProcessorNUnitVersion)')) {
+                throw "NUnit 5 is required in ${file}: $version"
+              }
+            }
+            foreach ($property in $xml.SelectNodes('//NUnitVersion | //ProcessorNUnitVersion')) {
+              if ($property.InnerText -notmatch '^5[.]' -and $property.InnerText -ne '$(NUnitVersion)') {
+                throw "NUnit framework override is not version 5 in $file"
+              }
+            }
+            foreach ($reference in $xml.SelectNodes('//PackageReference[@Include="CrestronHomeNUnit.TestAdapter"]')) {
+              if ([string]$reference.Version -match '^1[.]') { throw "Pre-NUnit-5 adapter in $file" }
+            }
+            foreach ($property in $xml.SelectNodes('//TestAdapterVersion | //CrestronHomeNUnitVersion')) {
+              if ($property.InnerText -match '^1[.]') { throw "Pre-NUnit-5 adapter default in $file" }
+            }
+          }
+          $revisions = @()
+          if (Test-Path ProcessorTestSdk.lock.json) {
+            $lock = Get-Content ProcessorTestSdk.lock.json -Raw | ConvertFrom-Json
+            if ($lock.repository -ne 'https://github.com/oznetmaster/CrestronHomeNUnit.git') { throw 'Unexpected processor SDK repository.' }
+            $revisions += $lock.revision
+          }
+          if (Test-Path sources.lock.json) {
+            $lock = Get-Content sources.lock.json -Raw | ConvertFrom-Json
+            $revisions += @($lock.sources | Where-Object repository -eq 'https://github.com/oznetmaster/CrestronHomeNUnit.git' | ForEach-Object revision)
+          }
+          foreach ($revision in @($revisions | Sort-Object -Unique)) {
+            if ($revision -notmatch '^[0-9a-f]{40}$') { throw 'SDK must be pinned to a full source revision.' }
+            $json = gh api "repos/oznetmaster/CrestronHomeNUnit/contents/ProcessorTestPackage/ProcessorTestPackage.props?ref=$revision"
+            if ($LASTEXITCODE) { throw 'Cannot verify the locked SDK.' }
+            $content = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String(($json | ConvertFrom-Json).content))
+            [xml]$sdk = $content
+            $default = @($sdk.SelectNodes('//ProcessorNUnitVersion') | ForEach-Object InnerText)
+            if ($default.Count -ne 1 -or $default[0] -notmatch '^5[.]') { throw "Locked processor SDK is not NUnit 5: $revision" }
+          }
+          Write-Host "NUnit 5 policy passed for $($files.Count) tracked project/configuration files."
