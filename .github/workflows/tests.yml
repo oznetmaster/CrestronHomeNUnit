@@ -19,6 +19,14 @@ jobs:
         run: ./tools/Test-DiscoveredCoverageGuards.ps1
       - name: Packaged metadata regressions
         run: ./tools/Test-PackageManifestVerification.ps1
+      - name: Package merge resolver regression
+        shell: pwsh
+        run: |
+          dotnet tool install dotnet-ilrepack --version 2.0.45 --tool-path artifacts/merge-tools
+          if ($LASTEXITCODE) { throw 'Cannot install pinned merger.' }
+          $tool = Get-ChildItem artifacts/merge-tools -Recurse -Filter ILRepackTool.dll | Select-Object -First 1
+          if (!$tool) { throw 'Merger assembly not found.' }
+          ./tools/Test-MergeAssemblyResolver.ps1 -ToolDirectory $tool.Directory.FullName -ResultsDirectory artifacts/merge-regression
       - name: Build solution without deployment
         run: dotnet build CrestronHomeNUnit.sln -c Release -p:CreateDriverPackage=false -p:DeployAfterBuild=false
       - name: Runner and transport regressions
