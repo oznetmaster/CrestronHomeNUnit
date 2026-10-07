@@ -7,4 +7,7 @@ Licensed under the MIT License. See LICENSE in the repository root.
     <PackageReference Include="NUnit" Version="$(NUnitVersion)" />
     <ProjectReference Include="..\CrestronHomeNUnit.CompatibilityLibrary\CrestronHomeNUnit.CompatibilityLibrary.csproj" />
   </ItemGroup>
+  <PropertyGroup>
+    <WarningsAsErrors>$(WarningsAsErrors);CS4014</WarningsAsErrors>
+  </PropertyGroup>
 </Project>

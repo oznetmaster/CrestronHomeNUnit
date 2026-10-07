@@ -9,4 +9,7 @@
     <ProjectReference Include="../CrestronHomeNUnit.TestAdapter/CrestronHomeNUnit.TestAdapter.csproj" />
     <ProjectReference Include="../CrestronHomeNUnit.Workflow/CrestronHomeNUnit.Workflow.csproj" />
   </ItemGroup>
+  <PropertyGroup>
+    <WarningsAsErrors>$(WarningsAsErrors);CS4014</WarningsAsErrors>
+  </PropertyGroup>
 </Project>

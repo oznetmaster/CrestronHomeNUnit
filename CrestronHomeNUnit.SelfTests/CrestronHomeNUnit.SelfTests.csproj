@@ -36,4 +36,7 @@ Licensed under the MIT License. See LICENSE in the repository root.
     <Compile Include="..\vendor\nunit\TestUtilities\*.cs" Link="TestUtilities\%(Filename)%(Extension)" />
     <Compile Include="..\vendor\nunit\testdata\*.cs" Link="TestData\%(Filename)%(Extension)" />
   </ItemGroup>
+  <PropertyGroup>
+    <WarningsAsErrors>$(WarningsAsErrors);CS4014</WarningsAsErrors>
+  </PropertyGroup>
 </Project>

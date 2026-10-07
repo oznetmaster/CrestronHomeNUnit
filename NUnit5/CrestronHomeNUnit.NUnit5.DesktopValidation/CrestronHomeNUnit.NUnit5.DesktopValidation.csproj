@@ -12,4 +12,7 @@
     <ProjectReference Include="..\CrestronHomeNUnit.NUnit5.SelfTests\CrestronHomeNUnit.NUnit5.SelfTests.csproj" />
     <ProjectReference Include="..\CrestronHomeNUnit.NUnit5.CompatibilityTests\CrestronHomeNUnit.NUnit5.CompatibilityTests.csproj" />
   </ItemGroup>
+  <PropertyGroup>
+    <WarningsAsErrors>$(WarningsAsErrors);CS4014</WarningsAsErrors>
+  </PropertyGroup>
 </Project>

@@ -6,4 +6,7 @@
     <Compile Include="..\..\CrestronHomeNUnit.Tests\LanguageTests.cs" Link="LanguageTests.cs" />
     <ProjectReference Include="..\..\CrestronHomeNUnit.CompatibilityLibrary\CrestronHomeNUnit.CompatibilityLibrary.csproj" />
   </ItemGroup>
+  <PropertyGroup>
+    <WarningsAsErrors>$(WarningsAsErrors);CS4014</WarningsAsErrors>
+  </PropertyGroup>
 </Project>
