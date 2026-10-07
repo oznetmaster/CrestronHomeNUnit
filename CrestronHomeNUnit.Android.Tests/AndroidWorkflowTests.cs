@@ -183,6 +183,65 @@ public sealed class AndroidWorkflowTests
 		Assert.That (AndroidWorkflowSession.Read<AndroidRunCompletion> (Path.Combine (_directory, "completion.json")).RestorationConfirmed, Is.False);
 		}
 
+	[Test]
+	public async Task MatchingCaptureRetainsOneSuccessfulReadWithoutDumpingItAgain ()
+		{
+		using var lease = AndroidSessionLease.Acquire (_lock, _owner);
+		var transport = new ObservedCaptureTransport ();
+		var session = new AndroidWorkflowSession (Context (), new (transport, "example.app"));
+		int attempts = 0;
+		var observation = await session.CaptureWhenAsync ("recovery", _ => ++attempts == 2, CancellationToken.None);
+		Assert.That (transport.Dumps, Is.EqualTo (2), "One waiting read and one successful read; no third proof read.");
+		Assert.That (transport.Screenshots, Is.EqualTo (1));
+		Assert.That (observation.ObservedUtc, Is.LessThanOrEqualTo (transport.ScreenshotStarted));
+		using var record = JsonDocument.Parse (File.ReadAllText (Path.Combine (_directory, "recovery", "observation.json")));
+		Assert.That (record.RootElement.GetProperty ("HierarchyObservedUtc").GetDateTimeOffset (), Is.EqualTo (observation.ObservedUtc));
+		Assert.That (record.RootElement.GetProperty ("FinishedUtc").GetDateTimeOffset (), Is.GreaterThanOrEqualTo (observation.ObservedUtc));
+		await Assert.ThrowsAsync<IOException> (() => session.CaptureWhenAsync ("recovery", _ => true, CancellationToken.None));
+		}
+
+	[Test]
+	public async Task CancelledWaitingCaptureProducesNoPassingEvidence ()
+		{
+		using var lease = AndroidSessionLease.Acquire (_lock, _owner);
+		using var cancellation = new CancellationTokenSource ();
+		var transport = new ObservedCaptureTransport ();
+		var session = new AndroidWorkflowSession (Context (), new (transport, "example.app"));
+		await Assert.CatchAsync<OperationCanceledException> (() => session.CaptureWhenAsync ("waiting", _ => {
+			cancellation.Cancel ();
+			return false;
+			}, cancellation.Token));
+		Assert.That (transport.Dumps, Is.EqualTo (1));
+		Assert.That (transport.Screenshots, Is.Zero);
+		Assert.That (File.Exists (Path.Combine (_directory, "waiting", "observation.json")), Is.False);
+		}
+
+	[Test]
+	public async Task MatchingCaptureFailureCannotBecomeAPassOrRetryAnAssertion ()
+		{
+		using var lease = AndroidSessionLease.Acquire (_lock, _owner);
+		var transport = new ObservedCaptureTransport ();
+		var session = new AndroidWorkflowSession (Context (), new (transport, "example.app"));
+		await Assert.ThrowsAsync<InvalidOperationException> (() => session.CaptureWhenAsync ("failure", _ => throw new InvalidOperationException (), CancellationToken.None));
+		Assert.That (transport.Dumps, Is.EqualTo (1));
+		Assert.That (transport.Screenshots, Is.Zero);
+		Assert.That (File.Exists (Path.Combine (_directory, "failure", "observation.json")), Is.False);
+		}
+
+	private sealed class ObservedCaptureTransport : IAndroidCommandTransport
+		{
+		private readonly CaptureTransport _inner = new ();
+		public int Dumps { get; private set; }
+		public int Screenshots { get; private set; }
+		public DateTimeOffset ScreenshotStarted { get; private set; }
+		public Task<byte[]> ExecuteAsync (IReadOnlyList<string> arguments, CancellationToken cancellationToken)
+			{
+			if (arguments.Contains ("uiautomator")) Dumps++;
+			if (arguments.Contains ("screencap")) { Screenshots++; ScreenshotStarted = DateTimeOffset.UtcNow; }
+			return _inner.ExecuteAsync (arguments, cancellationToken);
+			}
+		}
+
 	private sealed class CaptureTransport (string? hierarchy = null) : IAndroidCommandTransport
 		{
 		public Task<byte[]> ExecuteAsync (IReadOnlyList<string> arguments, CancellationToken cancellationToken)
@@ -190,8 +249,8 @@ public sealed class AndroidWorkflowTests
 			cancellationToken.ThrowIfCancellationRequested ();
 			if (arguments.Contains ("input")) throw new AssertionException ("Read-only evidence tests must not send input.");
 			if (arguments.Contains ("screencap")) return Task.FromResult (Convert.FromBase64String ("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aZ1cAAAAASUVORK5CYII="));
-			var text = arguments.Contains ("uiautomator") ? "UI hierarchy dumped to: fixture" : arguments.Contains ("cat") ?
-				(hierarchy ?? "<hierarchy><node package=\"example.app\" text=\"Example Home\" enabled=\"true\" bounds=\"[0,0][100,100]\"/><node password=\"true\" text=\"private-sentinel\" content-desc=\"private-sentinel\"/></hierarchy>") : "";
+			var text = arguments.Contains ("uiautomator") ?
+				(hierarchy ?? "<hierarchy><node package=\"example.app\" text=\"Example Home\" enabled=\"true\" bounds=\"[0,0][100,100]\"/><node password=\"true\" text=\"private-sentinel\" content-desc=\"private-sentinel\"/></hierarchy>") + "UI hierchary dumped to: /proc/self/fd/1" : "";
 			return Task.FromResult (Encoding.UTF8.GetBytes (text));
 			}
 		}

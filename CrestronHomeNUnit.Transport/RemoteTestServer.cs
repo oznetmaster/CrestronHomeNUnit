@@ -20,6 +20,7 @@ public sealed class RemoteTestServer : IDisposable
 	private readonly string _key;
 	private readonly ConcurrentDictionary<TcpClient, byte> _clients = new ();
 	private int _disposed;
+	private readonly NetworkLinkRecorder _networkLink = new ();
 	public int Port => ((IPEndPoint)_listener.LocalEndpoint).Port;
 
 	public RemoteTestServer (ITestExecutionHost host, string key, int port = DefaultPort, IPAddress? address = null)
@@ -117,6 +118,13 @@ public sealed class RemoteTestServer : IDisposable
 					continue;
 					}
 
+				if (request.Kind is "link-arm" or "link-read" or "link-stop")
+					{
+					try { messages.Write (WireMessage.Reply (request, "complete", _networkLink.Execute (request.Kind, request.TargetId))); }
+					catch (Exception error) { messages.Write (WireMessage.Reply (request, "error", error.Message)); }
+					continue;
+					}
+
 				if (request.Kind is not ("run" or "discover"))
 					{
 					messages.Write (WireMessage.Reply (request, "error", "Unknown command."));
@@ -199,6 +207,7 @@ public sealed class RemoteTestServer : IDisposable
 			}
 
 		_listener.Stop ();
+		_networkLink.Dispose ();
 		foreach (TcpClient client in _clients.Keys)
 			{
 			client.Close ();

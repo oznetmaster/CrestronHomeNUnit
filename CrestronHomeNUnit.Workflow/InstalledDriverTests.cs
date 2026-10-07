@@ -15,7 +15,10 @@ public sealed record InstalledDriverTestResult (WorkflowTestOutcome? Tests, bool
 	bool CleanupConfirmed, bool CandidateVerified, bool ReservationsReleased, string Detail)
 	{
 	public bool Passed => Tests?.MeetsGate == true && RestorationConfirmed && CleanupConfirmed && CandidateVerified && ReservationsReleased;
+	public InstalledDriverPhaseFailure? Failure { get; init; }
 	}
+
+public sealed record InstalledDriverPhaseFailure (string Phase, string ExceptionType, string Message);
 
 internal interface IInstalledDriverTestOperations
 	{
@@ -73,7 +76,8 @@ public static class InstalledDriverTests
 			using var operations = new Operations (plan, credential, results, package, identity, profile, profileHash, source);
 			var result = await RunCoreAsync (operations, deadline.Token).ConfigureAwait (false);
 			deadline.ThrowIfFaulted();
-			if(plan.OperatorReadiness is {} readiness && readiness.ReadStatus()?.Response?.Outcome != SubmissionOperatorOutcome.Done)
+			result = RedactFailure (result, credential);
+			if(RequiresReadiness (result) && plan.OperatorReadiness is {} readiness && readiness.ReadStatus()?.Response?.Outcome != SubmissionOperatorOutcome.Done)
 				throw new InvalidDataException("Prepared fixture did not retain its required readiness acknowledgement.");
 			report.Position = 0;
 			report.SetLength (0);
@@ -81,14 +85,16 @@ public static class InstalledDriverTests
 			report.Flush (flushToDisk: true);
 			return result;
 			}
-		catch
+		catch (Exception error)
 			{
 			try
 				{
 				report.Position = 0;
 				report.SetLength (0);
 				await JsonSerializer.SerializeAsync (report, new { State = "Failed", DriverUpdateAttempted = false,
-					Detail = "Preparation or evidence recording failed; inspect Phases.jsonl for reservation state." }, cancellationToken: CancellationToken.None).ConfigureAwait (false);
+					Detail = "Preparation or evidence recording failed; inspect Phases.jsonl for reservation state.",
+					Failure = RedactFailure (new (null, false, false, false, false, "")
+						{ Failure = DescribeFailure ("Preparation or evidence recording", error) }, credential).Failure }, cancellationToken: CancellationToken.None).ConfigureAwait (false);
 				report.Flush (flushToDisk: true);
 				}
 			catch { /* Keep the original failure when evidence storage also fails. */ }
@@ -96,33 +102,56 @@ public static class InstalledDriverTests
 			}
 		}
 
+	// A failed preparation never asked the operator anything. Preserve that failure;
+	// only successful fixture execution needs an additional readiness gate.
+	internal static bool RequiresReadiness (InstalledDriverTestResult result) => result.Passed;
+	private static InstalledDriverPhaseFailure DescribeFailure (string phase, Exception error) =>
+		new (phase, error.GetType ().FullName ?? error.GetType ().Name, error.Message);
+	internal static InstalledDriverTestResult RedactFailure (InstalledDriverTestResult result, NetworkCredential credential)
+		{
+		if (result.Failure is not {} failure) return result;
+		string message = failure.Message;
+		foreach (string secret in new[] { credential.Password, credential.UserName }.Where (s => !string.IsNullOrEmpty (s)).OrderByDescending (s => s.Length))
+			message = message.Replace (secret, "[redacted]", StringComparison.Ordinal);
+		return result with { Failure = failure with { Message = message.Length > 4096 ? message[..4096] : message } };
+		}
+
 	internal static async Task<InstalledDriverTestResult> RunCoreAsync (IInstalledDriverTestOperations operations, CancellationToken token)
 		{
 		bool safe = true, verified = false, released = false;
 		AndroidTestOutcome? outcome = null;
 		string detail = "Tests did not complete.";
+		string phase = "Processor reservation";
+		InstalledDriverPhaseFailure? failure = null;
 		try
 			{
 			await operations.AcquireProcessorAsync (token).ConfigureAwait (false);
+			phase = "Android reservation";
 			await operations.AcquireAndroidAsync (token).ConfigureAwait (false);
+			phase = "Before candidate verification";
 			await operations.VerifyCandidateAsync ("Before", token).ConfigureAwait (false);
 			// Even an interrupted guard creation must be inspected before another run.
 			safe = false;
+			phase = "Control guard";
 			await operations.BeginControlAsync (token).ConfigureAwait (false);
+			phase = "Android tests";
 			outcome = await operations.RunTestsAsync (token).ConfigureAwait (false);
 			if (outcome.SafeToRelease)
 				{
 				using var cleanup = new CancellationTokenSource (TimeSpan.FromSeconds (30));
+				phase = "Control guard release";
 				await operations.EndControlAsync (cleanup.Token).ConfigureAwait (false);
 				safe = true;
+				phase = "After candidate verification";
 				await operations.VerifyCandidateAsync ("After", token).ConfigureAwait (false);
 				verified = true;
 				detail = outcome.Passed ? "Selected installed-driver tests and restoration passed." : "Selected tests failed; restoration and owned-child cleanup were confirmed.";
 				}
 			else detail = "Restoration or owned-child cleanup is unconfirmed; reservations retained for inspection.";
 			}
-		catch (Exception)
+		catch (Exception error)
 			{
+			failure = DescribeFailure (phase, error);
 			detail = token.IsCancellationRequested ? "Cancelled or timed out; inspect phase receipts and reservation state before retrying."
 				: "Installed-driver phase could not complete; inspect phase receipts and reservation state before retrying.";
 			}
@@ -137,10 +166,10 @@ public static class InstalledDriverTests
 					await operations.ReleaseProcessorAsync (cleanup.Token).ConfigureAwait (false);
 					released = true;
 					}
-				catch { detail += " Reservation release could not be confirmed."; }
+				catch (Exception error) { failure ??= DescribeFailure ("Reservation release", error); detail += " Reservation release could not be confirmed."; }
 				}
 			}
-		return new (outcome?.Tests, outcome?.RestorationConfirmed == true, outcome?.CleanupConfirmed == true, verified, released, detail);
+		return new (outcome?.Tests, outcome?.RestorationConfirmed == true, outcome?.CleanupConfirmed == true, verified, released, detail) { Failure = failure };
 		}
 
 	internal static void RequirePackage (InstalledDriverTestTarget target, DriverPackageInfo package)

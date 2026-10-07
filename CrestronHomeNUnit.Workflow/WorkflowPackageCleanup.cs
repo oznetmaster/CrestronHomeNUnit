@@ -16,7 +16,7 @@ namespace CrestronHomeNUnit.Workflow;
 
 // Only created before this workflow uploads its test package, under the shared lease.
 // This is not a general catalogue purge and never removes pre-existing paths.
-internal sealed class WorkflowPackageCleanup (HashSet<string> protectedPaths, string owner, string evidence)
+internal sealed class WorkflowPackageCleanup (HashSet<string> protectedPaths, string owner, string evidence, bool borrowedControlGuard = false)
 	{
 	internal const string Storage = "/user/ThirdPartyDrivers/Storage/Rad/";
 	private const string Manifest = "/user/ThirdPartyDrivers/LocalRad.manifest";
@@ -49,17 +49,19 @@ internal sealed class WorkflowPackageCleanup (HashSet<string> protectedPaths, st
 		}
 
 	internal static async Task<WorkflowPackageCleanup> CaptureAsync (string host, NetworkCredential credential, string fingerprint,
-		 string owner, string evidence, CancellationToken token)
+		 string owner, string evidence, CancellationToken token, bool allowOwnedControlGuard = false)
 		{
 		using var sftp = await Connect (host, credential, fingerprint, token).ConfigureAwait (false);
 		await VerifyOwner (sftp, owner, token).ConfigureAwait (false);
-		await Idle (sftp, token).ConfigureAwait (false);
+		bool borrowed = allowOwnedControlGuard && await sftp.ExistsAsync (Guard, token).ConfigureAwait (false);
+		if (borrowed) RequireGuard(await Read(sftp, Guard, 128, token).ConfigureAwait(false), "control:", owner);
+		await Idle (sftp, token, allowGuard: borrowed).ConfigureAwait (false);
 		var paths = new HashSet<string> (StringComparer.Ordinal);
 		await foreach (var entry in sftp.ListDirectoryAsync (Storage, token).ConfigureAwait (false))
 			if (entry.Name is not "." and not "..") paths.Add (entry.FullName);
 		Directory.CreateDirectory (evidence);
-		await SaveNew (Path.Combine (evidence, "baseline.json"), JsonSerializer.SerializeToUtf8Bytes (new { Owner = owner, ProtectedPaths = paths }), token).ConfigureAwait (false);
-		return new (paths, owner, evidence);
+		await SaveNew (Path.Combine (evidence, "baseline.json"), JsonSerializer.SerializeToUtf8Bytes (new { Owner = owner, ProtectedPaths = paths, BorrowedControlGuard = borrowed }), token).ConfigureAwait (false);
+		return new (paths, owner, evidence, borrowed);
 		}
 
 	internal async Task<Result> RemoveAsync (ConfigurationClient client, string host, NetworkCredential credential, string fingerprint,
@@ -71,7 +73,8 @@ internal sealed class WorkflowPackageCleanup (HashSet<string> protectedPaths, st
 		byte[] expected = await File.ReadAllBytesAsync (localPackage, token).ConfigureAwait (false);
 		using var sftp = await Connect (host, credential, fingerprint, token).ConfigureAwait (false);
 		await VerifyOwner (sftp, owner, token).ConfigureAwait (false);
-		await Idle (sftp, token).ConfigureAwait (false);
+		if (borrowedControlGuard) RequireGuard(await Read(sftp, Guard, 128, token).ConfigureAwait(false), "control:", owner);
+		await Idle (sftp, token, allowGuard: borrowedControlGuard).ConfigureAwait (false);
 		if (await client.IsDriverRefreshInProgressAsync (token).ConfigureAwait (false) != false)
 			throw new InvalidOperationException ("Catalogue refresh must be confirmed idle before cleanup.");
 		byte[] manifest = await Read (sftp, Manifest, 4 * 1024 * 1024, token).ConfigureAwait (false);
@@ -88,14 +91,16 @@ internal sealed class WorkflowPackageCleanup (HashSet<string> protectedPaths, st
 			candidate.Path, Package = package, Sha256 = Convert.ToHexString (SHA256.HashData (stored)), Bytes = stored.Length
 			}), token).ConfigureAwait (false);
 		// Test hosts and lease release use this same exclusive marker. Hold it through refresh.
-		string marker = "cleanup:" + owner;
-		await using (var guard = await sftp.OpenAsync (Guard, FileMode.CreateNew, FileAccess.Write, token).ConfigureAwait (false))
+		string markerPrefix = borrowedControlGuard ? "control:" : "cleanup:";
+		if (!borrowedControlGuard)
 			{
-			await guard.WriteAsync (Encoding.UTF8.GetBytes (marker), token).ConfigureAwait (false);
+			await using var guard = await sftp.OpenAsync (Guard, FileMode.CreateNew, FileAccess.Write, token).ConfigureAwait (false);
+			await guard.WriteAsync (Encoding.UTF8.GetBytes (markerPrefix + owner), token).ConfigureAwait (false);
 			await guard.FlushAsync (token).ConfigureAwait (false);
 			}
 		// From this point an interrupted operation retains both marker and lease for inspection.
 		await VerifyOwner (sftp, owner, token).ConfigureAwait (false);
+		RequireGuard(await Read(sftp, Guard, 128, token).ConfigureAwait(false), markerPrefix, owner);
 		await Idle (sftp, token, allowGuard: true).ConfigureAwait (false);
 		var current = await Read (sftp, Manifest, 4 * 1024 * 1024, token).ConfigureAwait (false);
 		if (!manifest.AsSpan ().SequenceEqual (current))
@@ -125,10 +130,18 @@ internal sealed class WorkflowPackageCleanup (HashSet<string> protectedPaths, st
 			 : "Test package removed from storage and the catalogue.");
 		await Finish (result, token).ConfigureAwait (false);
 		await VerifyOwner (sftp, owner, token).ConfigureAwait (false);
-		if (Encoding.UTF8.GetString (await Read (sftp, Guard, 128, token).ConfigureAwait (false)) != marker)
-			throw new IOException ("Cleanup marker ownership changed.");
-		await sftp.DeleteFileAsync (Guard, token).ConfigureAwait (false);
+		RequireGuard(await Read(sftp, Guard, 128, token).ConfigureAwait(false), markerPrefix, owner);
+		// The enclosing installed-driver workflow owns this guard. Never remove it
+		// while its fixture is still running, including during observer cleanup.
+		if (!borrowedControlGuard) await sftp.DeleteFileAsync (Guard, token).ConfigureAwait (false);
 		return result;
+		}
+
+	internal static void RequireGuard(byte[] marker, string prefix, string owner)
+		{
+		if (!Guid.TryParseExact(owner, "N", out _) || prefix is not ("control:" or "cleanup:") ||
+			Encoding.UTF8.GetString(marker) != prefix + owner)
+			throw new IOException("Package cleanup guard ownership changed.");
 		}
 
 	private async Task<Result> Finish (Result result, CancellationToken token)

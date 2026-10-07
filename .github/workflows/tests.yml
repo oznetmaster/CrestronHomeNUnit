@@ -31,6 +31,8 @@ jobs:
         run: dotnet build CrestronHomeNUnit.sln -c Release -p:CreateDriverPackage=false -p:DeployAfterBuild=false
       - name: Runner and transport regressions
         run: ./CrestronHomeNUnit.TransportValidation/bin/Release/net10.0-windows/CrestronHomeNUnit.TransportValidation.exe
+      - name: Transport timing regressions
+        run: dotnet test CrestronHomeNUnit.Transport.Tests/CrestronHomeNUnit.Transport.Tests.csproj -c Release --no-build
       - name: CLI client regressions
         run: dotnet test CrestronHomeNUnit.Client.Tests/CrestronHomeNUnit.Client.Tests.csproj -c Release --no-build
       - name: Workflow regressions

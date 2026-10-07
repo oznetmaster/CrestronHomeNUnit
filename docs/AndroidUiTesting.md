@@ -11,7 +11,9 @@ By default session opening only reads the current screen and requires the expect
 
 The session accepts only the expected Home or an unobstructed Home explicitly named in this list. From an approved different Home it opens My Systems and selects the unique expected card. Before exposing the session to a fixture, it verifies the selected Home's saved local address against the workflow processor address and verifies `LocalPort`, then returns to the expected Home. It does not edit connection settings, dismiss unknown screens, operate devices or retry uncertain inputs. The expected Home must already be saved and authenticated; this does not provision a connection. A missing or ambiguous card stops the phase.
 
-Selection and endpoint captures are retained under `session-selection.*`. The phase intentionally finishes on its expected Home; give the subsequent phase an explicit reverse starting-Home allowance if it must switch back. A failure after navigation begins leaves restoration unconfirmed, requiring inspection rather than silently continuing. Saved endpoint inspection does not prove the app's active network route or installed driver identity; the existing processor/candidate checks and live fixture observations remain necessary.
+Selection and endpoint captures are retained under `session-selection.*`. The phase intentionally finishes on its expected Home; give the subsequent phase an explicit reverse starting-Home allowance if it must switch back. A failure after navigation begins leaves restoration unconfirmed unless the navigation cleanup verifies return to Home. A failed endpoint check still fails the test even when Home restoration succeeds. Saved endpoint inspection does not prove the app's active network route or installed driver identity; the existing processor/candidate checks and live fixture observations remain necessary.
+
+`SavedEndpointVerifiedOnOpen` is true only after the opted-in session has checked its configured address and port, retained those captures, and restored Home. A fixture can use that startup proof to avoid immediately opening the same editor again. It is false for ordinary read-only session opening; those fixtures must still inspect the endpoint if they require it. The property does not assert that settings or routing cannot change later. Editor scrolling uses a margin observed outside the clickable settings form, so the gesture does not start inside a text field. If no suitable margin exists, navigation stops without inventing a coordinate. After scrolling the editor, navigation waits for observable progress using reads only; a delayed accessibility update does not cause another swipe, and a stationary or uncertain gesture still fails within the navigation deadline.
 
 Validation includes 159 Android tests and live reciprocal switching between two saved processor Homes, including saved address/port inspection and return to the original Home. This navigation check did not send device commands or establish a complete submission rehearsal.
 
@@ -245,3 +247,46 @@ The binding supplies the child ID, parent driver ID, model, name and location. M
 The coordinator separates test success, independently verified restoration and confirmed child removal. A failed test can clean up after restoration, but remains failed. Unknown restoration, partial setup, lost reservations, interruptions or uncertain cleanup retain the child and journals for reconciliation. Commands and partial journals are never automatically replayed. Only children recorded as created by the run are removed, in reverse creation order, with preservation of other installed devices checked. This does not delete manually installed children or the actual driver.
 
 Inspect private `AndroidManagedChildren` journals alongside `AndroidUI` context, discovery, TRX and completion evidence. A run is not safe to release until both restoration and cleanup are confirmed. Keep these files outside public source and public artifacts. See the [DevTools lifecycle contract](https://github.com/oznetmaster/CrestronHomeDevTools/blob/v1.6.0/docs/ManagedChildValidation.md).
+# Timing a recovered UI state
+
+Use `AndroidWorkflowSession.CaptureWhenAsync` when waiting for a known UI state
+after an independently verified device action. It polls read-only hierarchy
+captures until the predicate matches, then retains that exact hierarchy and a
+screenshot. Pass a cancellation token that bounds the observation.
+
+The returned `AndroidHierarchyObservation` and the evidence record's
+`HierarchyObservedUtc` identify the successful hierarchy read. `FinishedUtc`
+includes later screenshot and evidence storage and must not be substituted for
+the state-observation time. Screenshot and ownership failures still fail the
+capture. No command is retried by this method. A false predicate means keep
+waiting; a thrown exception is a failure, not a retry request.
+
+Do not capture the same successful hierarchy a second time merely to persist
+proof before issuing the next independently authorized action. Evidence capture
+cost can otherwise delay that next observation. Removing the extra capture does
+not authorize subtracting elapsed time from an existing result.
+
+
+## Observing command completion during input transport
+
+The source-preview `AndroidDevice.ObserveTapAsync` starts a cancellable, read-only completion observer after validating the current page and selected control, immediately before sending one tap. The observer must attribute the response to that command; an already-complete observation is rejected before input. The caller continues to own processor and Android reservations and physical restoration.
+
+`AndroidInputObservation<T>` records the observed value, input/observation/transport-return UTC timestamps, and independent monotonic elapsed durations. A response can be observed before the Android input process returns. Success still requires both operations to succeed. Transport failure cancels and joins the observer; observer failure cancels in-flight transport and preserves the original error. Cancellation and failure never replay the tap. Supply a bounded token and a cancellation-aware observer.
+
+This removes the artificial delay caused by waiting for transport return before beginning observation. Dispatch overhead and polling latency remain included. It does not measure physical relay latency, first-visible UI latency, or driver-only execution time. Give this method a distinct versioned identity and collect matching before/after series. Never re-label old measurements, subtract estimated overhead, or compare a new method against an old baseline.
+
+### Recording through guarded input and feedback (source preview)
+
+Use `StartScreenRecordingUntilStoppedAsync` when a recording must span fresh page validation, one guarded input, and a subsequent feedback observation. The method returns after an encoded display frame arrives. Retain the handle for the owning test phase, observe and retain feedback, then call `StopAsync` and save its returned H.264 bytes. Dispose the handle to join unfinished recording and verify cleanup. The input observer's shorter cancellation scope must not own this recording.
+
+The recorder uses a private random stop marker and signals only its own Android recorder child. It checks an explicit remote completion record because ADB's transport exit status alone does not prove recorder success. A 90-second watchdog bounds tooling; expiry or an early-ended stream is incomplete evidence, not a driver response-time verdict. At most two read-only startup attempts are permitted before readiness, with failures retained and cleanup confirmed before retry. No input is replayed. Review the saved before/input/after frames; neither command completion nor transport return proves prompt UI feedback or physical relay timing.
+
+
+### Native tile details (source preview)
+
+A native room tile can operate equipment when tapped. For its read-only detail page, use `InspectRoomDetailsAsync` or `InspectRoomDetailsPagesAsync`; these select the observed `serviceDots` button bound to the literal tile name. They require the named tile and details button to be visible and unambiguous, and restore Home after inspection or assertion failure. A missing details button never falls back to tapping the tile.
+
+`InspectRoomExtensionAsync` and `InspectRoomExtensionPagesAsync` remain for reviewed navigation tiles. They now reject a matching details button before tapping the tile surface. Callers must not use generic navigation methods to exercise native power controls. These additions are validated in source before publication; they are not yet part of a published package.
+
+
+Workflow sessions use separate transport budgets: 55 seconds for a hierarchy read and 25 seconds for input commands. Page-readiness and caller cancellation still bound the overall operation. Read-only capture retries remain bounded; input commands are never replayed after an uncertain outcome. Recorded observations still validate a fresh hierarchy after recorder startup, before starting the input observer or response timer. These tooling budgets are not device response limits. Direct two-argument `AndroidDevice` construction keeps using its supplied transport for every operation; the additive three-argument overload allows a caller-owned hierarchy transport.

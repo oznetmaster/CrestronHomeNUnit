@@ -17,19 +17,36 @@ public sealed class CrestronHomeNavigation
 		get; private set;
 		}
 
-	public CrestronHomeNavigation (AndroidWorkflowSession session) : this (session, TimeSpan.FromSeconds (25)) { }
+	// Observation tooling budget: hierarchy reads have their own bounded transport.
+    // This overall page deadline includes read retries and validation; it is not
+    // a driver response/recovery criterion. Caller deadlines still take precedence.
+    public CrestronHomeNavigation (AndroidWorkflowSession session) : this (session, TimeSpan.FromSeconds (90)) { }
 
 	internal CrestronHomeNavigation (AndroidWorkflowSession session, TimeSpan readinessTimeout)
 		{
 		if (session.Context.Profile.Application != "com.crestron.phoenix.app")
 			throw new ArgumentException ("This navigation sequence requires the Crestron Home Android application.", nameof (session));
-		if (readinessTimeout <= TimeSpan.Zero || readinessTimeout > TimeSpan.FromMinutes (1))
+		if (readinessTimeout <= TimeSpan.Zero || readinessTimeout > TimeSpan.FromMinutes (2))
 			throw new ArgumentOutOfRangeException (nameof (readinessTimeout));
 		_session = session;
 		_readinessTimeout = readinessTimeout;
 		}
 
-	private static AndroidSelector Id (string id) => CrestronHomePages.Resource (id);
+	internal async Task RestoreAndCaptureHomeAsync (string checkId, TimeSpan? phaseBudget = null, CancellationToken cancellationToken = default)
+        {
+        var budget = phaseBudget ?? TimeSpan.FromMinutes (2);
+        if (budget <= TimeSpan.Zero || budget > TimeSpan.FromMinutes (2))
+            throw new ArgumentOutOfRangeException (nameof (phaseBudget));
+        // Each recognized navigation step and final proof receive a bounded tooling
+        // budget. Earlier page transitions must not consume a later screen read's
+        // allowance. The caller deadline and four-step limit remain authoritative.
+        await RestoreHomeAsync (budget, cancellationToken).ConfigureAwait (false);
+        using var evidence = CancellationTokenSource.CreateLinkedTokenSource (cancellationToken);
+        evidence.CancelAfter (budget);
+        await _session.CaptureAsync (checkId + ".home-restored", Home, evidence.Token).ConfigureAwait (false);
+        }
+
+    private static AndroidSelector Id (string id) => CrestronHomePages.Resource (id);
 	private AndroidSelector HomeCard => new (AndroidSelectorKind.ContentDescription, _session.Context.Profile.ExpectedHomeText);
 	private static AndroidSelector MySystems => new (AndroidSelectorKind.ContentDescription, "home_wholeHouse_popoverButtonMySystemsLabel");
 	private void Home (AndroidHierarchy hierarchy) => CrestronHomePages.RequireHome (hierarchy, _session.Context.Profile.ExpectedHomeText);
@@ -80,6 +97,10 @@ public sealed class CrestronHomeNavigation
 		{
 		using var timeout = CancellationTokenSource.CreateLinkedTokenSource (token);
 		timeout.CancelAfter (_readinessTimeout);
+		AndroidHierarchy? lastPage = null;
+		Exception? lastRejection = null;
+		var elapsed = System.Diagnostics.Stopwatch.StartNew ();
+		int capturesStarted = 0, capturesCompleted = 0;
 		try
 			{
 			while (true)
@@ -88,19 +109,65 @@ public sealed class CrestronHomeNavigation
 				_session.VerifyActive ();
 				try
 					{
-					verify (await _session.Device.CaptureAsync (timeout.Token).ConfigureAwait (false));
+					capturesStarted++;
+					lastPage = await _session.Device.CaptureAsync (timeout.Token).ConfigureAwait (false);
+					capturesCompleted++;
+					verify (lastPage);
 					return;
 					}
 				catch (Exception exception) when (exception is IOException or InvalidOperationException)
 					{
+					lastRejection = exception;
 					await Task.Delay (TimeSpan.FromMilliseconds (250), timeout.Token).ConfigureAwait (false);
 					}
 				}
 			}
-		catch (OperationCanceledException) when (!token.IsCancellationRequested)
+		catch (OperationCanceledException cancellation) when (!token.IsCancellationRequested)
 			{
-			throw new TimeoutException ("The expected Android page did not become ready; no input was retried.");
+			var failure = new TimeoutException ("The expected Android page did not become ready; no input was retried.", lastRejection ?? cancellation);
+            if (lastPage is not null)
+                {
+                try
+                    {
+                    string path = Path.Combine (_session.Context.EvidenceDirectory, "navigation-timeout-" + Guid.NewGuid ().ToString ("N") + ".xml");
+                    await File.WriteAllTextAsync (path, lastPage.MaskedXml, CancellationToken.None).ConfigureAwait (false);
+                    failure.Data["LastObservedPage"] = path;
+                    }
+                catch (Exception evidenceError) when (evidenceError is IOException or UnauthorizedAccessException)
+                    { failure.Data["EvidenceWriteFailure"] = evidenceError.GetType ().Name; }
+                }
+            try
+                {
+                string diagnostic = Path.Combine (_session.Context.EvidenceDirectory, "navigation-timeout-" + Guid.NewGuid ().ToString ("N") + ".json");
+                await File.WriteAllTextAsync (diagnostic, System.Text.Json.JsonSerializer.Serialize (new
+                    {
+                    SchemaVersion = 1,
+                    ElapsedMilliseconds = elapsed.ElapsedMilliseconds,
+                    ReadinessBudgetMilliseconds = _readinessTimeout.TotalMilliseconds,
+                    CapturesStarted = capturesStarted,
+                    CapturesCompleted = capturesCompleted,
+                    LastGuardRejection = lastRejection?.GetType ().Name,
+                    CaptureAttemptsJson = cancellation.Data[AndroidDevice.CAPTURE_ATTEMPTS_KEY] as string,
+                    LastObservedPage = failure.Data["LastObservedPage"] as string
+                    }), CancellationToken.None).ConfigureAwait (false);
+                failure.Data["NavigationDiagnostic"] = diagnostic;
+                }
+            catch (Exception evidenceError) when (evidenceError is IOException or UnauthorizedAccessException)
+                { failure.Data["EvidenceWriteFailure"] = evidenceError.GetType ().Name; }
+            throw failure;
 			}
+		}
+
+	private void RetainNavigationInput (string operation, AndroidHierarchy hierarchy, AndroidElement target)
+		{
+		_session.VerifyActive ();
+		string directory = Path.Combine (_session.Context.EvidenceDirectory, "navigation-inputs");
+		Directory.CreateDirectory (directory);
+		string stem = Path.Combine (directory, Guid.NewGuid ().ToString ("N"));
+		File.WriteAllText (stem + ".xml", hierarchy.MaskedXml);
+		using var receipt = new FileStream (stem + ".json", FileMode.CreateNew, FileAccess.Write, FileShare.Read);
+		System.Text.Json.JsonSerializer.Serialize (receipt, new { Operation = operation, Target = target, Utc = DateTimeOffset.UtcNow, State = "BeforeInput", RunId = _session.Context.RunId });
+		receipt.Flush (flushToDisk: true);
 		}
 
 	private async Task TapAsync (AndroidSelector selector, Action<AndroidHierarchy> guard, CancellationToken token)
@@ -108,7 +175,9 @@ public sealed class CrestronHomeNavigation
 		await ConfirmDepartureAsync (token).ConfigureAwait (false);
 		_session.VerifyActive ();
 		HomeRestored = false;
-		await _session.Device.TapAsync (selector, guard, () => _pendingInputPage = guard, token).ConfigureAwait (false);
+		AndroidHierarchy? observed = null;
+		await _session.Device.TapAsync (selector, hierarchy => { guard (hierarchy); observed = hierarchy; },
+            () => { RetainNavigationInput ("tap", observed!, observed!.RequireUnique (selector)); _pendingInputPage = guard; }, token).ConfigureAwait (false);
 		}
 
 	private async Task ConfirmDepartureAsync (CancellationToken token)
@@ -169,6 +238,7 @@ public sealed class CrestronHomeNavigation
 			throw new ArgumentOutOfRangeException (nameof (localPort));
 		await WaitAsync (Home, token).ConfigureAwait (false);
 		HomeRestored = true;
+		Exception? primaryFailure = null;
 		try
 			{
 			await _session.CaptureAsync (checkId + ".home-before", Home, token).ConfigureAwait (false);
@@ -202,18 +272,41 @@ public sealed class CrestronHomeNavigation
 				await _session.CaptureAsync (checkId + ".local-address", h => CrestronHomePages.RequireSavedLocalAddress
 					(h, _session.Context.Profile.ExpectedHomeText, _session.Context.ProcessorAddress), token).ConfigureAwait (false);
 				await ConfirmDepartureAsync (token).ConfigureAwait (false);
-				for (int gesture = 0; gesture < 8 && !HasPort (current); gesture++)
-					{
-					string previous = current.MaskedXml;
-					_session.VerifyActive ();
-					await _session.Device.ScrollDownAsync (Id ("mobileclaimhome_scrollView"), h => { _session.VerifyActive (); Details (h); },
-						() => _scrolledDetails = true, token).ConfigureAwait (false);
-					await _session.CaptureAsync (checkId + ".local-scroll-" + gesture, h => { Details (h); current = h; }, token).ConfigureAwait (false);
-					if (HasPort (current))
-						CrestronHomePages.RequireSavedLocalPort (current, localPort);
-					else if (current.MaskedXml == previous)
-						throw new InvalidOperationException ("The saved endpoint editor did not advance toward its local port; no gesture was retried.");
-					}
+                int stationaryGestures = 0;
+                for (int gesture = 0; gesture < 8 && !HasPort (current); gesture++)
+                    {
+                    AndroidHierarchy? inputPage = null;
+                    AndroidElement? lane = null;
+                    _session.VerifyActive ();
+                    await _session.Device.ScrollDownAsync (h => lane = CrestronHomePages.SavedEndpointScrollLane (h),
+                        h => { _session.VerifyActive (); Details (h); inputPage = h; },
+                        () => { RetainNavigationInput ("saved-endpoint-scroll-down", inputPage!, lane!); _scrolledDetails = true; }, token).ConfigureAwait (false);
+                    string previous = inputPage!.MaskedXml;
+                    await _session.CaptureAsync (checkId + ".local-scroll-" + gesture, h => { Details (h); current = h; }, token).ConfigureAwait (false);
+                    if (!HasPort (current) && current.MaskedXml == previous)
+                        {
+                        // A successful transport can still deliver an ignored scroll.
+                        // Settle using two fresh observations before another bounded,
+                        // navigation-only swipe in the revalidated inert form gutter.
+                        // Transport uncertainty, cancellation or a changed page aborts;
+                        // editable fields, device controls and failed taps are never replayed.
+                        for (int read = 0; read < 2 && !HasPort (current) && current.MaskedXml == previous; read++)
+                            {
+                            await Task.Delay (250, token).ConfigureAwait (false);
+                            current = await _session.Device.CaptureAsync (token).ConfigureAwait (false);
+                            _session.VerifyActive (); Details (current);
+                            }
+                        if (HasPort (current) || current.MaskedXml != previous)
+                            await _session.CaptureAsync (checkId + ".local-settled-" + gesture, h => { Details (h); current = h; }, token).ConfigureAwait (false);
+                        }
+                    if (HasPort (current)) CrestronHomePages.RequireSavedLocalPort (current, localPort);
+                    else if (current.MaskedXml == previous)
+                        {
+                        if (++stationaryGestures >= 3)
+                            throw new InvalidOperationException ("The saved endpoint editor remained unchanged after three verified navigation-only scrolls.");
+                        }
+                    else stationaryGestures = 0;
+                    }
 				if (!HasPort (current)) throw new InvalidOperationException ("The saved local port was not observed within the bounded scroll limit.");
 				}
 
@@ -225,12 +318,16 @@ public sealed class CrestronHomeNavigation
 					CrestronHomePages.RequireSavedLocalPort (hierarchy, localPort);
 				}, token).ConfigureAwait (false);
 			}
+		catch (Exception error) { primaryFailure = error; throw; }
 		finally
 			{
 			// A canceled test still gets bounded navigation-only cleanup while its coordinator/leases remain valid.
-			using var cleanup = new CancellationTokenSource (TimeSpan.FromMinutes (2));
-			await RestoreHomeAsync (cleanup.Token).ConfigureAwait (false);
-			await _session.CaptureAsync (checkId + ".home-restored", Home, cleanup.Token).ConfigureAwait (false);
+			try
+                {
+                await RestoreAndCaptureHomeAsync (checkId).ConfigureAwait (false);
+                }
+            catch (Exception cleanupFailure) when (primaryFailure is not null)
+                { throw new AggregateException ("Saved endpoint verification failed and Home restoration also failed.", primaryFailure, cleanupFailure); }
 			}
 		}
 
@@ -258,9 +355,7 @@ public sealed class CrestronHomeNavigation
 			}
 		finally
 			{
-			using var cleanup = new CancellationTokenSource (TimeSpan.FromMinutes (2));
-			await RestoreHomeAsync (cleanup.Token).ConfigureAwait (false);
-			await _session.CaptureAsync (checkId + ".home-restored", Home, cleanup.Token).ConfigureAwait (false);
+			await RestoreAndCaptureHomeAsync (checkId).ConfigureAwait (false);
 			}
 		}
 
@@ -274,8 +369,17 @@ public sealed class CrestronHomeNavigation
 
 	/// <summary>Visit explicitly configured nested navigation pages, then restore the root page and Home.</summary>
 	public Task InspectRoomExtensionPagesAsync (string checkId, string roomName, string tileName, string pageTitle,
-		Func<CrestronHomeExtensionNavigation, CancellationToken, Task> inspect, CancellationToken token = default)
-		{
+        Func<CrestronHomeExtensionNavigation, CancellationToken, Task> inspect, CancellationToken token = default)
+        => InspectRoomPagesCoreAsync(checkId, roomName, tileName, pageTitle, inspect, token, false);
+
+    /// <summary>Visit native details and explicitly configured nested pages through the named details button.</summary>
+    public Task InspectRoomDetailsPagesAsync (string checkId, string roomName, string tileName, string pageTitle,
+        Func<CrestronHomeExtensionNavigation, CancellationToken, Task> inspect, CancellationToken token = default)
+        => InspectRoomPagesCoreAsync(checkId, roomName, tileName, pageTitle, inspect, token, true);
+
+    private Task InspectRoomPagesCoreAsync (string checkId, string roomName, string tileName, string pageTitle,
+        Func<CrestronHomeExtensionNavigation, CancellationToken, Task> inspect, CancellationToken token, bool detailsButton)
+        {
 		ArgumentNullException.ThrowIfNull (inspect);
 		return InspectRoomCoreAsync (checkId, roomName, tileName, pageTitle, async () =>
 			{
@@ -298,18 +402,26 @@ public sealed class CrestronHomeNavigation
 						throw new AggregateException ("Extension inspection and restoration both failed.", failure, cleanupError);
 						}
 					}
-			}, token);
+			}, token, detailsButton);
 		}
 
-	private async Task InspectRoomCoreAsync (string checkId, string roomName, string tileName, string pageTitle, Func<Task> inspect, CancellationToken token)
+	/// <summary>Inspect native room details through the named tile's details button, never its power-control surface.</summary>
+	public Task InspectRoomDetailsAsync (string checkId, string roomName, string tileName, string pageTitle,
+		Action<AndroidHierarchy> verify, CancellationToken token = default)
+		{
+		ArgumentNullException.ThrowIfNull (verify);
+		return InspectRoomCoreAsync (checkId, roomName, tileName, pageTitle,
+			() => _session.CaptureAsync (checkId + ".controls", hierarchy => { Extension (hierarchy); verify (hierarchy); }, token), token, true);
+		}
+
+	/// <summary>Open the named room from the verified Home using the shared observed navigation path.
+	/// The caller must close any native controls and call RestoreHomeAndCaptureAsync in its cleanup.</summary>
+	public async Task OpenRoomAsync (string roomName, CancellationToken token = default)
 		{
 		ArgumentException.ThrowIfNullOrWhiteSpace (roomName);
-		ArgumentException.ThrowIfNullOrWhiteSpace (tileName);
-		ArgumentException.ThrowIfNullOrWhiteSpace (pageTitle);
 		await WaitAsync (Home, token).ConfigureAwait (false);
 		HomeRestored = true;
 		_roomName = roomName;
-		_extensionTitle = pageTitle;
 		var room = new AndroidSelector (AndroidSelectorKind.Text, roomName);
 		void RoomChoice (AndroidHierarchy hierarchy)
 			{
@@ -317,21 +429,42 @@ public sealed class CrestronHomeNavigation
 			if (!CrestronHomePages.RoomChoiceVisible (hierarchy, hierarchy.RequireUnique (room)))
 				throw new InvalidOperationException ("The room title is outside the unobstructed room list; no input was sent.");
 			}
-		Exception? failure = null;
-		try
-			{
 			await TapBottomTabAsync (true, Home, token).ConfigureAwait (false);
 			await WaitAsync (Rooms, token).ConfigureAwait (false);
 			await RevealRoomChoiceAsync (room, token).ConfigureAwait (false);
 			await TapAsync (room, RoomChoice, token).ConfigureAwait (false);
 			await WaitAsync (Room, token).ConfigureAwait (false);
+		await ConfirmDepartureAsync (token).ConfigureAwait (false);
+		}
+
+	/// <summary>Restore the observed navigation path and retain independent Home proof.</summary>
+	public Task RestoreHomeAndCaptureAsync (string checkId, CancellationToken token = default) => RestoreAndCaptureHomeAsync (checkId, cancellationToken: token);
+
+	private async Task InspectRoomCoreAsync (string checkId, string roomName, string tileName, string pageTitle, Func<Task> inspect, CancellationToken token, bool detailsButton = false)
+		{
+		ArgumentException.ThrowIfNullOrWhiteSpace (roomName);
+		ArgumentException.ThrowIfNullOrWhiteSpace (tileName);
+		ArgumentException.ThrowIfNullOrWhiteSpace (pageTitle);
+		_extensionTitle = pageTitle;
+		Exception? failure = null;
+		try
+			{
+			await OpenRoomAsync (roomName, token).ConfigureAwait (false);
 			var tile = new AndroidSelector (AndroidSelectorKind.ContentDescription, "room_service_" + tileName);
 			await RevealRoomTileAsync (tile, token).ConfigureAwait (false);
-			await TapAsync (tile, hierarchy =>
+			var details = Id ("serviceDots") with { SiblingText = tileName };
+			await TapAsync (detailsButton ? details : tile, hierarchy =>
 				{
 					Room (hierarchy);
 					if (!CrestronHomePages.RoomTileVisible (hierarchy, hierarchy.RequireUnique (tile)))
 						throw new InvalidOperationException ("The room tile moved outside the visible area; no input was sent.");
+					if (detailsButton)
+						{
+						if (!CrestronHomePages.RoomTileVisible (hierarchy, hierarchy.RequireUnique (details)))
+							throw new InvalidOperationException ("The details button is not visible; no input was sent.");
+						}
+					else
+						hierarchy.RequireAbsent (details); // Native tile surfaces can switch equipment; callers must select details explicitly.
 				}, token).ConfigureAwait (false);
 			await WaitAsync (Extension, token).ConfigureAwait (false);
 			await ConfirmDepartureAsync (token).ConfigureAwait (false);
@@ -340,11 +473,9 @@ public sealed class CrestronHomeNavigation
 		catch (Exception e) { failure = e; throw; }
 		finally
 			{
-			using var cleanup = new CancellationTokenSource (TimeSpan.FromMinutes (2));
 			try
 				{
-				await RestoreHomeAsync (cleanup.Token).ConfigureAwait (false);
-				await _session.CaptureAsync (checkId + ".home-restored", Home, cleanup.Token).ConfigureAwait (false);
+				await RestoreAndCaptureHomeAsync (checkId).ConfigureAwait (false);
 				}
 			catch (Exception cleanupError) when (failure != null)
 				{
@@ -375,16 +506,18 @@ public sealed class CrestronHomeNavigation
 				string signature = CrestronHomePages.RoomsViewportSignature (hierarchy);
 				if (viewport == 12 || !seen.Add (signature))
 					break;
+				AndroidHierarchy? observed = null;
 				void Guard (AndroidHierarchy current)
 					{
 					Rooms (current);
+					observed = current;
 					if (CrestronHomePages.RoomsViewportSignature (current) != signature)
 						throw new InvalidOperationException ("The room list changed before scrolling; no input was sent.");
 					}
 				if (down)
-					await _session.Device.ScrollDownAsync (CrestronHomePages.RoomsViewport, Guard, static () => { }, token).ConfigureAwait (false);
+					await _session.Device.ScrollDownAsync (CrestronHomePages.RoomsViewport, Guard, () => RetainNavigationInput (down ? "rooms-scroll-down" : "rooms-scroll-up", observed!, CrestronHomePages.RoomsViewport (observed!)), token).ConfigureAwait (false);
 				else
-					await _session.Device.ScrollUpAsync (CrestronHomePages.RoomsViewport, Guard, static () => { }, token).ConfigureAwait (false);
+					await _session.Device.ScrollUpAsync (CrestronHomePages.RoomsViewport, Guard, () => RetainNavigationInput (down ? "rooms-scroll-down" : "rooms-scroll-up", observed!, CrestronHomePages.RoomsViewport (observed!)), token).ConfigureAwait (false);
 				for (int read = 0; read < 3; read++)
 					{
 					_session.VerifyActive ();
@@ -444,16 +577,24 @@ public sealed class CrestronHomeNavigation
 		await ConfirmDepartureAsync (token).ConfigureAwait (false);
 		_session.VerifyActive ();
 		HomeRestored = false;
-		await _session.Device.TapAsync (hierarchy => CrestronHomePages.BottomTab (hierarchy, rooms), guard, () => _pendingInputPage = guard, token).ConfigureAwait (false);
+		AndroidHierarchy? observed = null;
+		await _session.Device.TapAsync (hierarchy => CrestronHomePages.BottomTab (hierarchy, rooms),
+            hierarchy => { guard (hierarchy); observed = hierarchy; },
+            () => { RetainNavigationInput (rooms ? "rooms-tab" : "home-tab", observed!, CrestronHomePages.BottomTab (observed!, rooms)); _pendingInputPage = guard; }, token).ConfigureAwait (false);
 		}
 
 	/// <summary>Restore only recognized navigation pages of the expected Home; never dismiss an unknown screen.</summary>
-	public async Task RestoreHomeAsync (CancellationToken token = default)
+	public Task RestoreHomeAsync (CancellationToken token = default) => RestoreHomeAsync (null, token);
+
+    private async Task RestoreHomeAsync (TimeSpan? stepBudget, CancellationToken cancellationToken)
 		{
 		HomeRestored = false;
-		await ConfirmDepartureAsync (token).ConfigureAwait (false);
 		for (int step = 0; step < 4; step++)
 			{
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource (cancellationToken);
+            if (stepBudget is { } budget) deadline.CancelAfter (budget);
+            var token = deadline.Token;
+            await ConfirmDepartureAsync (token).ConfigureAwait (false);
 			int page = -1;
 			var guards = new Action<AndroidHierarchy>[] { Home, Details, Options, Systems, Menu, Extension, Room, Rooms };
 			await WaitAsync (hierarchy =>

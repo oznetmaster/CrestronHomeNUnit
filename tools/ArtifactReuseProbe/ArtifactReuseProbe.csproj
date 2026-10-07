@@ -1,0 +1,5 @@
+<!-- Copyright (c) 2026 Neil Colvin. Licensed under the MIT License. -->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings></PropertyGroup>
+  <ItemGroup><ProjectReference Include="../../CrestronHomeNUnit.Workflow/CrestronHomeNUnit.Workflow.csproj" /></ItemGroup>
+</Project>

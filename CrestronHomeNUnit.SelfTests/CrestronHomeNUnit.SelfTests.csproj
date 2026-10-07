@@ -18,7 +18,7 @@ Licensed under the MIT License. See LICENSE in the repository root.
   <ItemGroup>
     <EmbeddedResource Include="..\vendor\nunit\framework-tests\TestText1.txt" LogicalName="NUnit.Framework.Tests.TestText1.txt" />
     <!-- Compiler fixtures need the public reference surface, not internalized driver metadata. -->
-    <EmbeddedResource Include="$(NuGetPackageRoot)nunit/$(NUnitVersion)/lib/net462/nunit.framework.dll" LogicalName="NUnit.CompilerReference.dll" />
+    <EmbeddedResource Include="$([System.IO.Path]::Combine('$(NuGetPackageRoot)', 'nunit/$(NUnitVersion)/lib/net462/nunit.framework.dll'))" LogicalName="NUnit.CompilerReference.dll" />
     <Compile Include="..\vendor\nunit\framework-tests\Properties\AssemblyInfo.cs" Link="Properties\UpstreamAssemblyInfo.cs" />
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.IO.Compression.FileSystem" />

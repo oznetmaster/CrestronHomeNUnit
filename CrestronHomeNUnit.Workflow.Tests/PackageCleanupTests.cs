@@ -13,6 +13,22 @@ namespace CrestronHomeNUnit.Workflow.Tests;
 
 public sealed class PackageCleanupTests
 	{
+	private const string Owner = "0123456789abcdef0123456789abcdef";
+	[TestCase("control:")]
+	[TestCase("cleanup:")]
+	public void ExactOwnedGuardIsAccepted(string prefix) =>
+		WorkflowPackageCleanup.RequireGuard(System.Text.Encoding.UTF8.GetBytes(prefix + Owner), prefix, Owner);
+	[TestCase("")]
+	[TestCase("control:ffffffffffffffffffffffffffffffff")]
+	[TestCase("cleanup:" + Owner)]
+	[TestCase("release:" + Owner)]
+	[TestCase("control:" + Owner + "\n")]
+	public void AnotherOrMalformedControlGuardIsRejected(string marker) =>
+		Assert.Throws<IOException>(() => WorkflowPackageCleanup.RequireGuard(System.Text.Encoding.UTF8.GetBytes(marker), "control:", Owner));
+	[Test] public void ArbitraryGuardKindCannotBeBorrowed() =>
+		Assert.Throws<IOException>(() => WorkflowPackageCleanup.RequireGuard(System.Text.Encoding.UTF8.GetBytes("test:" + Owner), "test:", Owner));
+	[Test] public void GuardRequiresValidOwnerIdentity() =>
+		Assert.Throws<IOException>(() => WorkflowPackageCleanup.RequireGuard(System.Text.Encoding.UTF8.GetBytes("control:bad"), "control:", "bad"));
 	private static readonly DriverPackageInfo Package = new ("d695856e-fb11-491f-8e3c-684f2b62b6dd", "Test package", "Example", "1.2.3.4");
 	private static byte[] Manifest (string path, string? id = null, string version = "1.002.003.0004", string[]? aliases = null, int copies = 1)
 		=> JsonSerializer.SerializeToUtf8Bytes (Enumerable.Range (0, copies).Select (_ => new

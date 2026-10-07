@@ -124,13 +124,33 @@ public sealed class CrestronHomeNavigationTests
 		}
 
 	[Test]
-	public async Task ConnectionEditorThatDoesNotMoveIsNotScrolledAgain ()
+	public async Task ConnectionEditorThatDoesNotMoveStopsAfterThreeVerifiedScrolls ()
 		{
 		_transport.PortBelowFold = true;
 		_transport.NoScrollProgress = true;
 		await Assert.ThrowsAsync<InvalidOperationException> (() => _navigation.VerifySavedEndpointAsync ("stationary", 50001));
+		Assert.That (_transport.Swipes, Is.EqualTo (3));
+		Assert.That (_navigation.HomeRestored, Is.True);
+		}
+
+	[Test]
+	public async Task DelayedScrollObservationWaitsWithoutRepeatingInput ()
+		{
+		_transport.PortBelowFold = true;
+		_transport.StaleReadsAfterSwipe = 1;
+		await _navigation.VerifySavedEndpointAsync ("delayed-scroll", 50001);
 		Assert.That (_transport.Swipes, Is.EqualTo (1));
 		Assert.That (_navigation.HomeRestored, Is.True);
+		Assert.That (File.Exists (Path.Combine (_directory, "delayed-scroll.local-settled-0", "observation.json")), Is.True);
+		}
+
+	[Test]
+	public async Task ReadOnlySessionOpeningDoesNotClaimEndpointInspection ()
+		{
+		var session = await AndroidWorkflowSession.OpenAsync (_context, new (_transport, _context.Profile.Application), CancellationToken.None);
+		Assert.That (session.SavedEndpointVerifiedOnOpen, Is.False);
+		Assert.That (_transport.Inputs, Is.Empty);
+		session.Complete (true);
 		}
 
 	[Test]
@@ -167,7 +187,9 @@ public sealed class CrestronHomeNavigationTests
 	public async Task UnknownDialogIsNotDismissedAndRestorationRemainsUnconfirmed ()
 		{
 		_transport.UnknownAfterInput = 4;
-		await Assert.ThrowsAsync<TimeoutException> (() => _navigation.VerifySavedEndpointAsync ("unknown", 50001));
+		var error = await Assert.ThrowsAsync<AggregateException> (() => _navigation.VerifySavedEndpointAsync ("unknown", 50001));
+		Assert.That(error!.InnerExceptions, Has.Count.EqualTo(2));
+		Assert.That(error.InnerExceptions.All(e => e is TimeoutException), Is.True);
 		Assert.That (_transport.Inputs, Has.Count.EqualTo (4));
 		Assert.That (_navigation.HomeRestored, Is.False);
 		}
@@ -198,7 +220,9 @@ public sealed class CrestronHomeNavigationTests
 	public async Task UncertainInputThatHasNotChangedPageCannotClaimRestoration ()
 		{
 		_transport.ThrowBeforeInput = 1;
-		await Assert.ThrowsAsync<TimeoutException> (() => _navigation.VerifySavedEndpointAsync ("still-pending", 50001));
+		var error = await Assert.ThrowsAsync<AggregateException> (() => _navigation.VerifySavedEndpointAsync ("still-pending", 50001));
+		Assert.That(error!.InnerExceptions[0], Is.TypeOf<IOException>());
+		Assert.That(error.InnerExceptions[1], Is.TypeOf<TimeoutException>());
 		Assert.That (_transport.Inputs, Has.Count.EqualTo (1));
 		Assert.That (_transport.Page, Is.EqualTo ("home"));
 		Assert.That (_navigation.HomeRestored, Is.False, "The old Home can still be visible while an input is pending.");
@@ -248,6 +272,7 @@ public sealed class CrestronHomeNavigationTests
 		Assert.That (_transport.CurrentHome, Is.EqualTo ("Example Home"));
 		Assert.That (_transport.Page, Is.EqualTo ("home"));
 		Assert.That (_transport.Inputs, Has.Count.EqualTo (9));
+		Assert.That (session.SavedEndpointVerifiedOnOpen, Is.True);
 		Assert.That (File.Exists (Path.Combine (_directory, "session-selection.endpoint.local-endpoint", "observation.json")), Is.True);
 		session.Complete (true);
 		}
@@ -281,7 +306,8 @@ public sealed class CrestronHomeNavigationTests
 		await Assert.ThrowsAsync<InvalidOperationException> (() => AndroidWorkflowSession.OpenAsync (context, new (_transport, context.Profile.Application), CancellationToken.None));
 		Assert.That (_transport.Page, Is.EqualTo ("home"));
 		Assert.That (File.Exists (Path.Combine (_directory, "session-selection.endpoint.local-endpoint", "observation.json")), Is.False);
-		Assert.That (AndroidWorkflowSession.Read<AndroidRunCompletion> (Path.Combine (_directory, "completion.json")).RestorationConfirmed, Is.False);
+		Assert.That (File.Exists (Path.Combine (_directory, "session-selection.endpoint.home-restored", "observation.json")), Is.True);
+		Assert.That (AndroidWorkflowSession.Read<AndroidRunCompletion> (Path.Combine (_directory, "completion.json")).RestorationConfirmed, Is.True);
 		}
 
 	[TestCase (1)]
@@ -303,6 +329,7 @@ public sealed class CrestronHomeNavigationTests
 		var context = _context with { Profile = _context.Profile with { AllowedStartingHomes = ["Other Home"] } };
 		var session = await AndroidWorkflowSession.OpenAsync (context, new (_transport, context.Profile.Application), CancellationToken.None);
 		Assert.That (_transport.Inputs, Has.Count.EqualTo (6));
+		Assert.That (session.SavedEndpointVerifiedOnOpen, Is.True);
 		session.Complete (true);
 		}
 
@@ -319,6 +346,100 @@ public sealed class CrestronHomeNavigationTests
 		Assert.That (_transport.Page, Is.EqualTo ("systems"));
 		Assert.That (_transport.Inputs, Is.EqualTo (new[] { "home", "menu" }));
 		}
+
+
+    [Test]
+    public async Task EndpointMismatchAndRestorationFailureAreBothPreserved ()
+        {
+        _transport.LocalAddress = "192.0.2.99";
+        _transport.UnknownAfterInput = 5;
+        var error = await Assert.ThrowsAsync<AggregateException> (() => _navigation.VerifySavedEndpointAsync ("wrong-and-cleanup", 50001));
+        Assert.That (error!.InnerExceptions, Has.Count.EqualTo (2));
+        Assert.That (error.InnerExceptions[0], Is.TypeOf<InvalidOperationException> ());
+        Assert.That (error.InnerExceptions[1], Is.TypeOf<TimeoutException> ());
+        Assert.That (_transport.Inputs, Has.Count.EqualTo (5));
+        Assert.That (_navigation.HomeRestored, Is.False);
+        }
+
+    [Test]
+    public async Task FailedDepartureRetainsObservedPageAndGuardRejectionWithoutReplay ()
+        {
+        _transport.Page = "menu";
+        _transport.IgnoreBack = true;
+        var error = await Assert.ThrowsAsync<TimeoutException> (() => _navigation.RestoreHomeAsync ());
+        Assert.That (error!.InnerException, Is.TypeOf<InvalidOperationException> ());
+        Assert.That (error.InnerException!.Message, Does.Contain ("navigation command is still pending"));
+        string path = (string) error.Data["LastObservedPage"]!;
+        Assert.That (File.Exists (path), Is.True);
+        Assert.That (File.ReadAllText (path), Does.Contain ("home_wholeHouse_popoverButtonMySystemsLabel"));
+        Assert.That (_transport.BackInputs, Is.EqualTo (1));
+        }
+
+
+    [TestCase(1)][TestCase(2)]
+    public async Task CompletedButIgnoredScrollCanAdvanceAfterFreshPageVerification(int ignored)
+    {
+        _transport.PortBelowFold=true;_transport.IgnoredScrolls=ignored;
+        await _navigation.VerifySavedEndpointAsync("ignored",50001);
+        Assert.That(_transport.Swipes,Is.EqualTo(ignored+1));
+        Assert.That(_navigation.HomeRestored,Is.True);
+        Assert.That(File.Exists(Path.Combine(_directory,"ignored.local-endpoint","observation.json")),Is.True);
+        var intents=Directory.GetFiles(Path.Combine(_directory,"navigation-inputs"),"*.json")
+            .Select(File.ReadAllText).Count(x=>x.Contains("saved-endpoint-scroll-down",StringComparison.Ordinal));
+        Assert.That(intents,Is.EqualTo(ignored+1));
+    }
+    [Test] public async Task CancellationAfterAnIgnoredScrollDoesNotSendAnotherGesture()
+    {
+        using var cancel=new CancellationTokenSource();
+        _transport.PortBelowFold=true;_transport.NoScrollProgress=true;_transport.AfterSwipe=cancel.Cancel;
+        await Assert.ThrowsAsync<OperationCanceledException>(()=>_navigation.VerifySavedEndpointAsync("cancel-scroll",50001,cancel.Token));
+        Assert.That(_transport.Swipes,Is.EqualTo(1));Assert.That(_navigation.HomeRestored,Is.True);
+    }
+    [Test] public async Task ChangedPageAfterAnIgnoredScrollDoesNotSendAnotherGesture()
+    {
+        _transport.PortBelowFold=true;_transport.NoScrollProgress=true;_transport.UnknownAfterInput=5;
+        await Assert.ThrowsAsync<AggregateException>(()=>_navigation.VerifySavedEndpointAsync("changed-scroll",50001));
+        Assert.That(_transport.Swipes,Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task MultipleRestorationPagesReceiveIndependentBudgets()
+    {
+        _transport.Page="details";
+        var slow=new DelayedNavigationTransport(_transport);
+        var navigation=new CrestronHomeNavigation(new(_context,new(slow,_context.Profile.Application)));
+        var elapsed=Stopwatch.StartNew();
+        await navigation.RestoreAndCaptureHomeAsync("multi-page",TimeSpan.FromMilliseconds(650));
+        Assert.That(elapsed.Elapsed,Is.GreaterThan(TimeSpan.FromMilliseconds(650)));
+        Assert.That(_transport.Inputs,Is.EqualTo(new[]{"details","systems"}));
+        Assert.That(navigation.HomeRestored,Is.True);
+        Assert.That(File.Exists(Path.Combine(_directory,"multi-page.home-restored","observation.json")),Is.True);
+    }
+
+    [Test]
+    public async Task CallerCancellationAcrossRestorationPagesStopsFurtherInput()
+    {
+        _transport.Page="details";
+        using var cancellation=new CancellationTokenSource();
+        var slow=new DelayedNavigationTransport(_transport){AfterInput=cancellation.Cancel};
+        var navigation=new CrestronHomeNavigation(new(_context,new(slow,_context.Profile.Application)));
+        await Assert.CatchAsync<OperationCanceledException>(()=>navigation.RestoreAndCaptureHomeAsync("cancel-pages",TimeSpan.FromMilliseconds(650),cancellation.Token));
+        Assert.That(_transport.Inputs,Is.EqualTo(new[]{"details"}));
+        Assert.That(navigation.HomeRestored,Is.False);
+        Assert.That(Directory.Exists(Path.Combine(_directory,"cancel-pages.home-restored")),Is.False);
+    }
+
+    private sealed class DelayedNavigationTransport(NavigationTransport inner):IAndroidCommandTransport
+    {
+        public Action? AfterInput;
+        public async Task<byte[]> ExecuteAsync(IReadOnlyList<string> arguments,CancellationToken token)
+        {
+            if(arguments.Contains("uiautomator"))await Task.Delay(175,token);
+            var result=await inner.ExecuteAsync(arguments,token);
+            if(arguments.Contains("input"))AfterInput?.Invoke();
+            return result;
+        }
+    }
 
 	private sealed class NavigationTransport : IAndroidCommandTransport
 		{
@@ -337,7 +458,10 @@ public sealed class CrestronHomeNavigationTests
 		public bool PortBelowFold;
 		public int PortAppearsAfter = 1;
 		public bool NoScrollProgress;
+        public int IgnoredScrolls;
+        public Action? AfterSwipe;
 		public int Swipes;
+		public int StaleReadsAfterSwipe;
 		public List<string> Inputs { get; } = [];
 		private static XElement Node (string id, string text = "", string description = "", int left = 0) => new ("node",
 			new XAttribute ("package", "com.crestron.phoenix.app"), new XAttribute ("resource-id", CrestronHomePages.ResourcePrefix + id),
@@ -357,10 +481,9 @@ public sealed class CrestronHomeNavigationTests
 		public Task<byte[]> ExecuteAsync (IReadOnlyList<string> arguments, CancellationToken cancellationToken)
 			{
 			cancellationToken.ThrowIfCancellationRequested ();
-			if (arguments[0] == "exec-out") return Task.FromResult (new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 });
-			if (arguments[1] == "uiautomator") return Task.FromResult (Encoding.UTF8.GetBytes ("UI hierarchy dumped to: " + arguments[3]));
+			if (arguments[0] == "exec-out" && arguments[1] == "screencap") return Task.FromResult (new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 });
 			if (arguments[1] == "rm") return Task.FromResult (Array.Empty<byte> ());
-			if (arguments[1] == "cat")
+			if (arguments[1] == "uiautomator")
 				{
 				IEnumerable<XElement> nodes = Page switch
 					{
@@ -377,13 +500,19 @@ public sealed class CrestronHomeNavigationTests
 				if (Page == "systems" && DuplicateHomeCard) nodes = nodes.Append (Node ("card", description: "Example Home", left: 350));
 				if (Page == "details" && PortBelowFold)
 					{
-					int position = NoScrollProgress ? 0 : Swipes;
+					bool stale = Swipes > 0 && StaleReadsAfterSwipe-- > 0;
+					int position = NoScrollProgress || stale ? 0 : Math.Max(0, Swipes-IgnoredScrolls);
 					if (position < PortAppearsAfter) nodes = nodes.Where (node => (string?)node.Attribute ("resource-id") != CrestronHomePages.ResourcePrefix + "mobileclaimhome_localPort");
 					if (position > 0) nodes = nodes.Where (node => (string?)node.Attribute ("resource-id") != CrestronHomePages.ResourcePrefix + "mobileclaimhome_friendlyNameOrLocation");
 					nodes = nodes.Append (Node ("observed-viewport", position.ToString ()));
-					nodes = nodes.Append (Node ("mobileclaimhome_scrollView")).Append (Node ("mobileclaimhome_content"));
+					var content = Node ("mobileclaimhome_content");
+					content.SetAttributeValue ("bounds", "[20,0][80,100]");
+					foreach (var field in nodes.SelectMany (n => n.DescendantsAndSelf ()).Where (n => (string?)n.Attribute ("resource-id") == CrestronHomePages.ResourcePrefix + "commonui_animatedEditText_editText"))
+                        field.SetAttributeValue ("bounds", "[40,0][60,100]");
+                    content.Add (nodes);
+                    nodes = new[] { Node ("mobileclaimhome_scrollView"), content };
 					}
-				return Task.FromResult (Encoding.UTF8.GetBytes (new XElement ("hierarchy", nodes).ToString (SaveOptions.DisableFormatting)));
+				return Task.FromResult (Encoding.UTF8.GetBytes (new XElement ("hierarchy", nodes).ToString (SaveOptions.DisableFormatting) + "UI hierchary dumped to: /proc/self/fd/1"));
 				}
 			if (arguments[1] != "input") throw new InvalidOperationException ("Unexpected test transport command.");
 			Inputs.Add (Page);
@@ -400,7 +529,9 @@ public sealed class CrestronHomeNavigationTests
 			else if (arguments[2] == "swipe")
 				{
 				if (Page != "details") throw new InvalidOperationException ("Unexpected scroll outside editor.");
+				Assert.That (arguments[3], Is.EqualTo ("30"), "The swipe must stay inside the form padding and outside editable fields.");
 				Swipes++;
+                AfterSwipe?.Invoke();
 				}
 			else
 				{

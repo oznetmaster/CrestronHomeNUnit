@@ -253,11 +253,104 @@ public sealed class CrestronHomeRoomNavigationTests
 			new (document.ToString (), RoomTransport.Application), "Example Room"));
 		}
 
+    [Test]
+    public async Task NativeRoomOpeningUsesSharedNavigationWithoutOpeningAnExtension()
+    {
+        await _navigation.OpenRoomAsync("Example Room");
+        Assert.That(_transport.Page, Is.EqualTo("room"));
+        Assert.That(_transport.ExtensionOpens, Is.Zero);
+        Assert.That(_navigation.HomeRestored, Is.False);
+        await _navigation.RestoreHomeAndCaptureAsync("native-room");
+        Assert.That(_transport.Page, Is.EqualTo("home"));
+        Assert.That(File.Exists(Path.Combine(_directory,"native-room.home-restored","observation.json")), Is.True);
+    }
+
+    [Test]
+    public async Task MissingNavigationReceiptStopsBeforeInput()
+    {
+        File.WriteAllText(Path.Combine(_directory,"navigation-inputs"),"directory blocked");
+        await Assert.ThrowsAsync<IOException>(()=>_navigation.OpenRoomAsync("Example Room"));
+        Assert.That(_transport.Inputs, Is.Empty);
+        Assert.That(_transport.Page, Is.EqualTo("home"));
+        await _navigation.RestoreHomeAndCaptureAsync("no-input");
+    }
+
+    [Test]
+    public async Task UncertainNativeRoomSelectionIsNotRepeatedDuringRestoration()
+    {
+        _transport.ThrowAfterInput=2;
+        await Assert.ThrowsAsync<IOException>(()=>_navigation.OpenRoomAsync("Example Room"));
+        await _navigation.RestoreHomeAndCaptureAsync("uncertain-native-room");
+        Assert.That(_transport.Inputs, Is.EqualTo(new[]{"home","rooms","room","rooms"}));
+        Assert.That(_transport.Page, Is.EqualTo("home"));
+    }
+
+    [Test]
+    public async Task EveryRoomNavigationInputHasPriorRetainedPageAndIntent()
+    {
+        _transport.DesiredRoomViewport=1;
+        _transport.BeforeInput=()=> {
+            string directory=Path.Combine(_directory,"navigation-inputs");
+            Assert.That(Directory.Exists(directory), Is.True);
+            var receipts=Directory.GetFiles(directory,"*.json");
+            Assert.That(receipts.Length, Is.EqualTo(_transport.Inputs.Count+_transport.RoomSwipes+1));
+            foreach(string receipt in receipts) {
+                Assert.That(File.Exists(Path.ChangeExtension(receipt,".xml")), Is.True);
+                using var json=System.Text.Json.JsonDocument.Parse(File.ReadAllText(receipt));
+                Assert.That(json.RootElement.GetProperty("State").GetString(),Is.EqualTo("BeforeInput"));
+            }
+        };
+        await _navigation.OpenRoomAsync("Example Room");
+        await _navigation.RestoreHomeAndCaptureAsync("recorded-room");
+    }
+
+
+    [Test]
+    public async Task NativeControlTileCannotBeUsedAsReadOnlyExtensionNavigation()
+    {
+        _transport.NativeDetails=true;
+        await Assert.ThrowsAsync<InvalidOperationException>(()=>Inspect());
+        Assert.That(_transport.ControlTaps,Is.Zero);
+        Assert.That(_transport.ExtensionOpens,Is.Zero);
+        Assert.That(_navigation.HomeRestored,Is.True);
+    }
+
+    [Test]
+    public async Task ExplicitDetailsEntryNeverTouchesNativeControlSurface()
+    {
+        _transport.NativeDetails=true;
+        await _navigation.InspectRoomDetailsAsync("details","Example Room","Example Thermostat","Room Controls",_=>{});
+        Assert.That(_transport.ControlTaps,Is.Zero);
+        Assert.That(_transport.ExtensionOpens,Is.EqualTo(1));
+        Assert.That(_navigation.HomeRestored,Is.True);
+    }
+
+    [Test]
+    public async Task MissingDetailsButtonDoesNotFallBackToControlTile()
+    {
+        await Assert.ThrowsAsync<InvalidOperationException>(()=>_navigation.InspectRoomDetailsAsync("details","Example Room","Example Thermostat","Room Controls",_=>{}));
+        Assert.That(_transport.ControlTaps,Is.Zero);
+        Assert.That(_transport.ExtensionOpens,Is.Zero);
+        Assert.That(_navigation.HomeRestored,Is.True);
+    }
+
+    [Test]
+    public async Task NativeDetailsCallbackFailureRestoresHomeWithoutControlInput()
+    {
+        _transport.NativeDetails=true;
+        await Assert.ThrowsAsync<InvalidDataException>(()=>_navigation.InspectRoomDetailsPagesAsync("details-failure","Example Room","Example Thermostat","Room Controls",(_,__)=>throw new InvalidDataException("Observation failed")));
+        Assert.That(_transport.ControlTaps,Is.Zero);
+        Assert.That(_navigation.HomeRestored,Is.True);
+    }
+
 	private sealed class RoomTransport : IAndroidCommandTransport
 		{
 		internal const string Application = "com.crestron.phoenix.app";
 		internal string Page = "home";
+        internal Action? BeforeInput;
 		internal bool DuplicateRoom;
+        internal bool NativeDetails;
+        internal int ControlTaps;
 		internal bool ExtraTab;
 		internal string? InvalidTab;
 		internal int TileCount = 1;
@@ -333,14 +426,15 @@ public sealed class CrestronHomeRoomNavigationTests
 						var tile = Node ("service", description: "room_service_Example Thermostat", bounds: bounds);
 						if (DisabledTile)
 							tile.SetAttributeValue ("enabled", "false");
+						if (NativeDetails) { tile.Add(Node("serviceName","Example Thermostat")); tile.Add(Node("serviceDots",bounds:"[480,210][500,230]")); }
 						scroll.Add (tile);
 						}
 					nodes.Add (scroll);
 					if (page == "extension")
 						{
-						nodes.Add (Node ("customdevices_toolbarTitle", "Room Controls"));
-						nodes.Add (Node ("customdevices_toolbarClose"));
-						nodes.Add (Node ("temperature", "21"));
+						var pulley = Node ("customdevice_pulley");
+                        pulley.Add(Node("customdevices_toolbarTitle","Room Controls"), Node("customdevices_toolbarClose"), Node("temperature","21"));
+                        var container = Node("main_container"); container.Add(pulley); nodes.Add(container);
 						}
 					}
 				}
@@ -350,14 +444,13 @@ public sealed class CrestronHomeRoomNavigationTests
 		public Task<byte[]> ExecuteAsync (IReadOnlyList<string> arguments, CancellationToken cancellationToken)
 			{
 			cancellationToken.ThrowIfCancellationRequested ();
-			if (arguments[0] == "exec-out")
+			if (arguments[0] == "exec-out" && arguments[1] == "screencap")
 				return Task.FromResult (new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 });
-			if (arguments[1] == "uiautomator")
-				return Task.FromResult (Encoding.UTF8.GetBytes ("UI hierarchy dumped to: " + arguments[3]));
 			if (arguments[1] == "rm")
 				return Task.FromResult (Array.Empty<byte> ());
-			if (arguments[1] == "cat")
-				return Task.FromResult (Encoding.UTF8.GetBytes (Xml (Page)));
+			if (arguments[1] == "uiautomator")
+				return Task.FromResult (Encoding.UTF8.GetBytes (Xml (Page) + "UI hierchary dumped to: /proc/self/fd/1"));
+			if (arguments[1] == "input") BeforeInput?.Invoke();
 			if (arguments[1] == "input" && arguments[2] == "swipe")
 				{
 				if (Page == "rooms")
@@ -384,11 +477,13 @@ public sealed class CrestronHomeRoomNavigationTests
 			if (arguments[1] != "input" || arguments[2] != "tap")
 				throw new InvalidOperationException ("Unexpected command: only observed navigation taps are permitted.");
 			Inputs.Add (Page);
+            if(Page=="room" && arguments[3]=="450" && arguments[4]=="250" && NativeDetails){ControlTaps++;return Task.FromResult(Array.Empty<byte>());}
 			Page = (Page, arguments[3], arguments[4]) switch
 				{
 					("home", "150", "950") => "rooms",
 					("rooms", "50", "200") => "room",
 					("room", "450", "250") => "extension",
+                    ("room", "490", "220") when NativeDetails => "extension",
 					("extension", "50", "50") => "room",
 					("room", "250", "50") => "rooms",
 					("rooms", "50", "950") => "home",

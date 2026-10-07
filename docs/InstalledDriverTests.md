@@ -74,3 +74,10 @@ These checks establish selected live identity and matching extracted files, **no
 A test assertion may fail while restoration and cleanup succeed: that run stays failed but can release its reservations. Interrupted control, missing completion, uncertain restoration or uncertain child cleanup retain reservations for inspection. Cancellation does not authorize replaying physical commands. Check the receipts, actual state and existing reservations before retrying; use a new results directory. Exit zero requires every result condition, including release, to pass. Exit 1 is a completed failure, 2 a preparation/configuration error, 3 retained or unconfirmed reservations, and 130 user cancellation.
 
 The C# entry point is `InstalledDriverTests.RunAsync(InstalledDriverTestPlan, NetworkCredential, resultsDirectory, cancellationToken)`. Fixture authors use ordinary C# NUnit tests and the existing Android workflow session; no private coordinator program or Python code is required.
+
+Preparation and phase failures retain `Failure.Phase`, `Failure.ExceptionType`
+and a bounded message in `InstalledDriverTests.json`. Processor credentials are
+redacted. A failure before a fixture starts is not replaced by a missing operator
+readiness acknowledgement. Successful prepared fixtures still require that
+acknowledgement. Failure detail does not authorize retrying physical operations;
+inspect the phase journal and reservation state first.

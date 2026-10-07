@@ -97,4 +97,14 @@ public sealed class CrestronHomePageTests
 	[TestCase ("featureMoreActionRoot")]
 	public void BackgroundHomeUnderAnOverlayIsNotReady (string overlay)
 		=> Assert.Throws<InvalidOperationException> (() => CrestronHomePages.RequireHome (Tree (Node ("home_wholeHouse_name", "Example Home"), Node (overlay)), "Example Home"));
-	}
+
+    [TestCase("Connecting to home...")]
+    [TestCase("Connecting to home…")]
+    public void ReconnectingBannerRejectsOtherwiseValidControlPages (string banner)
+        {
+        var status = Node("connection-banner", banner);
+        Assert.Throws<InvalidOperationException>(() => CrestronHomePages.RequireExtensionPage(Tree(Node("customdevices_toolbarTitle", "Options"), Node("customdevices_toolbarClose"), status), "Options"));
+        Assert.Throws<InvalidOperationException>(() => CrestronHomePages.RequireHome(Tree(Node("home_wholeHouse_name", "Example Home"), status), "Example Home"));
+        Assert.Throws<InvalidOperationException>(() => CrestronHomePages.RequireRoom(Tree(Node("room_name", "Office"), Node("room_back"), status), "Office"));
+        }
+}

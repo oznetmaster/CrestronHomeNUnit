@@ -75,11 +75,11 @@ public sealed class AndroidNavigationTests
 		await new AndroidDevice (transport, Application).TapAsync (Selector, _ => { });
 		Assert.That (transport.Commands.Count (c => c.Contains ("uiautomator")), Is.EqualTo (2));
 		Assert.That (transport.Commands.Count (c => c.Contains ("input")), Is.EqualTo (1));
-		Assert.That (transport.Commands.Where (c => c.Contains ("rm")).All (c => c.Contains ("-f")), Is.True);
+		Assert.That (transport.Commands.Any (c => c.Contains ("rm") || c.Contains ("cat")), Is.False);
 		}
 
 	[Test]
-	public async Task CaptureFailureSurvivesSecondaryCleanupFailure ()
+	public async Task CaptureFailureNeedsNoTemporaryFileCleanup ()
 		{
 		var transport = new FakeTransport (Document (Node)) { FailDump = true, FailCleanup = true };
 		var error = await Assert.ThrowsAsync<IOException> (() => new AndroidDevice (transport, Application).CaptureAsync ());
@@ -101,8 +101,8 @@ public sealed class AndroidNavigationTests
 			});
 		Assert.That (validated, Is.True);
 		Assert.That (transport.Commands.Last (), Is.EqualTo (new[] { "shell", "input", "tap", "60", "50" }));
-		var dumped = transport.Commands.Single (args => args.Contains ("uiautomator"))[^1];
-		Assert.That (transport.Commands.Single (args => args.Contains ("rm"))[^1], Is.EqualTo (dumped));
+		Assert.That (transport.Commands.Single (args => args.Contains ("uiautomator")), Is.EqualTo (new[] { "exec-out", "uiautomator", "dump", "/proc/self/fd/1" }));
+		Assert.That (transport.Commands.Any (args => args.Contains ("rm") || args.Contains ("cat")), Is.False);
 		}
 
 	[TestCase ("absent")]
@@ -154,8 +154,9 @@ public sealed class AndroidNavigationTests
 		await Assert.ThrowsAsync<IOException> (() => device.TapAsync (Selector, _ => { }));
 		Assert.That (transport.Commands.Any (args => args.Contains ("input")), Is.False);
 		var dumps = transport.Commands.Where (args => args.Contains ("uiautomator")).Select (args => args[^1]).ToArray ();
-		Assert.That (dumps, Has.Length.EqualTo (3).And.Unique);
-		Assert.That (transport.Commands.Where (args => args.Contains ("rm")).Select (args => args[^1]), Is.EquivalentTo (dumps));
+		Assert.That (dumps, Has.Length.EqualTo (3));
+		Assert.That (dumps, Is.All.EqualTo ("/proc/self/fd/1"));
+		Assert.That (transport.Commands.Any (args => args.Contains ("rm") || args.Contains ("cat")), Is.False);
 		}
 
 	[Test]
@@ -190,11 +191,55 @@ public sealed class AndroidNavigationTests
 	[Test]
 	public async Task InvalidScreenshotCannotBeRetainedAsPng () => await Assert.ThrowsAsync<InvalidDataException> (() => new AndroidDevice (new FakeTransport (Document (Node)), Application).CaptureScreenshotAsync ());
 
+
+    [Test]
+    public async Task SuccessfulCaptureHasNoTemporaryFileCleanupDependency ()
+        {
+        var transport = new FakeTransport (Document (Node)) { FailCleanup = true };
+        var page = await new AndroidDevice (transport, Application).CaptureAsync ();
+        Assert.That (page.RequireUnique (Selector).Text, Is.EqualTo ("Open"));
+        Assert.That (transport.Commands, Has.Count.EqualTo (1));
+        Assert.That (transport.Commands[0], Is.EqualTo (new[] { "exec-out", "uiautomator", "dump", "/proc/self/fd/1" }));
+        }
+
+    [TestCase ("missing-trailer")]
+    [TestCase ("extra-output")]
+    [TestCase ("duplicate-root")]
+    [TestCase ("malformed")]
+    [TestCase ("external-entity")]
+    public async Task InvalidStreamCannotBecomeAnInput (string defect)
+        {
+        const string trailer = "UI hierchary dumped to: /proc/self/fd/1";
+        string response = defect switch
+            {
+            "missing-trailer" => Document (Node),
+            "extra-output" => Document (Node) + trailer + "unexpected",
+            "duplicate-root" => Document (Node) + Document (Node) + trailer,
+            "malformed" => "<hierarchy><node>" + trailer,
+            _ => "<!DOCTYPE hierarchy [<!ENTITY x SYSTEM 'file:///private'>]><hierarchy>&x;</hierarchy>" + trailer
+            };
+        var transport = new FakeTransport (Document (Node)) { StreamOverride = response };
+        await Assert.ThrowsAsync<IOException> (() => new AndroidDevice (transport, Application).TapAsync (Selector, _ => { }));
+        Assert.That (transport.Commands.Count (c => c.Contains ("uiautomator")), Is.EqualTo (3));
+        Assert.That (transport.Commands.Any (c => c.Contains ("input") || c.Contains ("rm")), Is.False);
+        }
+
+    [Test]
+    public async Task CallerCancellationDoesNotRetryCaptureOrSendInput ()
+        {
+        var transport = new FakeTransport (Document (Node));
+        using var cancelled = new CancellationTokenSource ();
+        cancelled.Cancel ();
+        await Assert.CatchAsync<OperationCanceledException> (() => new AndroidDevice (transport, Application).TapAsync (Selector, _ => { }, cancelled.Token));
+        Assert.That (transport.Commands, Is.Empty);
+        }
+
 	private sealed class FakeTransport (string hierarchy) : IAndroidCommandTransport
 		{
 		public List<string[]> Commands { get; } = [];
 		public int FailedDumpsRemaining;
 		public bool FailCleanup;
+		public string? StreamOverride;
 		public bool FailInput
 			{
 			get; init;
@@ -212,7 +257,7 @@ public sealed class AndroidNavigationTests
 			if (arguments.Contains ("uiautomator") && FailedDumpsRemaining-- > 0) throw new IOException ("Transient capture failure");
 			if (arguments.Contains ("input") && FailInput)
 				throw new TimeoutException ("Unknown input outcome");
-			var response = arguments.Contains ("uiautomator") ? (FailDump ? "ERROR: null root node" : "UI hierarchy dumped to: " + arguments[^1]) : arguments.Contains ("cat") ? hierarchy : "";
+			var response = arguments.Contains ("uiautomator") ? (StreamOverride ?? (FailDump ? "ERROR: null root node" : hierarchy + "UI hierchary dumped to: /proc/self/fd/1")) : "";
 			return Task.FromResult (Encoding.UTF8.GetBytes (response));
 			}
 		}
