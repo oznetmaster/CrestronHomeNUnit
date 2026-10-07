@@ -97,7 +97,7 @@ public sealed class CrestronHomePageTests
 	[TestCase ("featureMoreActionRoot")]
 	public void BackgroundHomeUnderAnOverlayIsNotReady (string overlay)
 		=> Assert.Throws<InvalidOperationException> (() => CrestronHomePages.RequireHome (Tree (Node ("home_wholeHouse_name", "Example Home"), Node (overlay)), "Example Home"));
-	
+
     [TestCase("Connecting to home...")]
     [TestCase("Connecting to home…")]
     public void ReconnectingBannerRejectsOtherwiseValidControlPages (string banner)
