@@ -1,15 +1,15 @@
-# Crestron Home NUnit v2.2.0
+# Crestron Home NUnit v2.3.0
 
-Installed-driver UI tests can opt in to preparing the app before asking the operator to be ready. The new `OperatorReadiness` binding selects one exact fixture, private inbox, run and request. The fixture can finish compilation, discovery and navigation before displaying Ready, eliminating the subsequent preparation delay.
+Android workflow tests retain navigation observations and input intent before acting. Hierarchy capture streams validated XML directly, and bounded readiness diagnostics preserve the original preparation or restoration failure. Native-control fixtures can share guarded room navigation and Home restoration. Uncertain control input is never replayed automatically.
 
-The runner measures active-work time monotonically and excludes only that validated, pending readiness wait. An operator can return the next morning without exhausting the action budget. External cancellation still works; malformed or mismatched requests fail closed. The prepared test retains processor and emulator reservations while waiting. Tests must refresh their event baselines after Ready, and the runner requires the retained acknowledgement in addition to all existing evidence and restoration checks. No failed physical attempt is automatically replayed.
+Optional processor network-link observation records a bounded carrier-restoration interval independently of operator acknowledgement. It adds authenticated observation commands and preserves the enclosing workflow's reservation and control guard. It does not disconnect equipment or measure processor power recovery. See [network timing](https://github.com/oznetmaster/CrestronHomeNUnit/blob/main/docs/NetworkLinkTiming.md) for scope and evidence requirements.
 
-The metadata handoff is cleared during discovery and omitted for ordinary plans. Use a cooperating fixture with DevTools 1.24.0 or later for the prepared helper and clock-independent action protocol. Existing plans retain their current behavior. NUnit remains 5.0.0; processor execution and driver code are unchanged.
+Single-file workflow applications request a fresh build when exact assembly bytes are unavailable for optional artifact reuse. NUnit remains 5.0.0. Existing Android controller constructor signatures remain available; the new observation and navigation interfaces are additive.
 
-Validation: the offline workflow suite includes overnight readiness, long scheduler gaps, active-time expiry, cancellation, exact request binding and invalid-record checks. Full hardware rehearsal under this opt-in path remains pending; earlier failed attempts remain unchanged.
+Software validation covers Android navigation, retained failures, workflow ownership, package reuse and network timing. The dedicated timing suite runs on .NET Framework 4.7.2 and .NET 10 in CI and release validation. The release also preserves the package merge resolver and NUnit 5 audit fixes already on main. These checks do not establish a completed hardware submission rehearsal or Crestron certification.
 
 ## Updating
 
-Update CrestronHomeNUnit.TestAdapter or the Windows runner/CLI distribution to 2.2.0. Adopt prepared readiness only in a new frozen workflow plan. See https://github.com/oznetmaster/CrestronHomeNUnit/blob/main/docs/InstalledDriverTests.md for the contract. Visual Studio and VS Code continue to use the same adapter.
+Update CrestronHomeNUnit.TestAdapter and the Windows runner/CLI distribution to 2.3.0. Use CrestronHomeDevTools 1.25.0 for the corresponding submission workflow integration. Introduce changed tooling through a new frozen plan or an explicit retained recovery; keep existing evidence bound to its original producer.
 
 Copyright (c) 2026 Neil Colvin. Licensed under the MIT License; see LICENSE.

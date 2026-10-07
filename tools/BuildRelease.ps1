@@ -24,6 +24,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Test adapter regression tests failed.' }
     dotnet test CrestronHomeNUnit.Android.Tests/CrestronHomeNUnit.Android.Tests.csproj -c Release --no-build
     if ($LASTEXITCODE -ne 0) { throw 'Android toolkit regression tests failed.' }
+    dotnet test CrestronHomeNUnit.Transport.Tests/CrestronHomeNUnit.Transport.Tests.csproj -c Release --no-build
+    if ($LASTEXITCODE -ne 0) { throw 'Network timing regression tests failed.' }
     $package = Join-Path $root 'CrestronHomeNUnit.Driver/bin/Release/net472/CrestronHomeNUnit.Driver.pkg'
     # The NUnit 5 candidate has passed repeated execution; keep that regression gate
     # in the release workflow rather than relying only on a first-run result.
