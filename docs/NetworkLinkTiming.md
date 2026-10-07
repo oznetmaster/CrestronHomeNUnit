@@ -1,6 +1,6 @@
 # Physical network recovery timing
 
-This implementation is under validation. It has not yet passed a physical end-to-end workflow and is not a released capability.
+This optional observer has software validation. A complete physical end-to-end workflow remains separately required; installing this SDK does not establish that evidence.
 
 A network recovery deadline starts when network connectivity is restored. An operator can take time to reach the cable and can acknowledge an action late. Neither the reconnect prompt nor its acknowledgement is an exact restoration timestamp. A successful TCP or API request provides an upper bound, but cannot establish when restoration first occurred.
 
