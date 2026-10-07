@@ -13,8 +13,50 @@ public static class CrestronHomePages
 	public const string ResourcePrefix = "com.crestron.phoenix.app:id/";
 	public static AndroidSelector Resource (string id) => new (AndroidSelectorKind.ResourceId, ResourcePrefix + id);
 
+    // Scroll inside the form's observed padding, away from editable controls.
+    // The exterior screen-edge gutter can consume a gesture without scrolling.
+    internal static AndroidElement SavedEndpointScrollLane (AndroidHierarchy hierarchy)
+        {
+        var viewport = hierarchy.RequireUnique (Resource ("mobileclaimhome_scrollView"));
+        var content = hierarchy.RequireUnique (Resource ("mobileclaimhome_content"));
+        if (!viewport.Enabled || !content.Enabled || content.Left < viewport.Left || content.Right > viewport.Right ||
+            content.Top >= viewport.Bottom || content.Bottom <= viewport.Top)
+            throw new InvalidOperationException ("The saved endpoint form is outside its observed viewport.");
+        var document = XDocument.Parse (hierarchy.MaskedXml);
+        var form = document.Descendants ("node").Single (n =>
+            (string?)n.Attribute ("package") == "com.crestron.phoenix.app" &&
+            (string?)n.Attribute ("resource-id") == ResourcePrefix + "mobileclaimhome_content");
+        var controls = form.Descendants ("node").Where (n =>
+            (string?)n.Attribute ("clickable") == "true" || (string?)n.Attribute ("long-clickable") == "true" ||
+            (string?)n.Attribute ("class") == "android.widget.EditText" ||
+            (string?)n.Attribute ("resource-id") == ResourcePrefix + "commonui_animatedEditText_editText")
+            .Select (n =>
+                {
+                // Inspect bounds only, including password fields, without reading
+                // or selecting their text. They are obstacles, never input targets.
+                var boundsOnly = new XElement ("node", new XAttribute ("bounds", (string?)n.Attribute ("bounds") ?? ""));
+                return AndroidHierarchy.ReadElement (boundsOnly);
+                })
+            .Where (c => c.Bottom > viewport.Top && c.Top < viewport.Bottom).ToArray ();
+        if (controls.Length == 0 || controls.Any (c => c.Left < content.Left || c.Right > content.Right))
+            throw new InvalidOperationException ("Connection field bounds do not establish a safe interior scroll lane.");
+        var lane = viewport with { Top = Math.Max (viewport.Top, content.Top), Bottom = Math.Min (viewport.Bottom, content.Bottom) };
+        int left = controls.Min (c => c.Left), right = controls.Max (c => c.Right);
+        if (left - content.Left >= 16) return lane with { Left = content.Left, Right = left };
+        if (content.Right - right >= 16) return lane with { Left = right, Right = content.Right };
+        throw new InvalidOperationException ("No observed interior gutter is available outside the connection fields; no input was sent.");
+        }
+
+	private static void RequireNoConnectionBanner (AndroidHierarchy hierarchy)
+		{
+		// A cached page can remain visible while Home reconnects and disables controls.
+		foreach (string text in new[] { "Connecting to home...", "Connecting to home…" })
+			hierarchy.RequireAbsent (new AndroidSelector (AndroidSelectorKind.Text, text));
+		}
+
 	private static void RequireNoNavigationOverlay (AndroidHierarchy hierarchy)
 		{
+		RequireNoConnectionBanner (hierarchy);
 		foreach (var overlay in new[] { "customdevices_toolbarClose", "customdevice_selectionRecyclerView", "mobileclaimhome_content", "fragmentPulleyContainer", "bottomSheet_infoBar", "homeswitcher_title", "featureMoreActionRoot" })
 			hierarchy.RequireAbsent (Resource (overlay));
 		}
@@ -165,6 +207,7 @@ public static class CrestronHomePages
 
 	public static void RequireExtensionPage (AndroidHierarchy hierarchy, string title)
 		{
+		RequireNoConnectionBanner (hierarchy);
 		ArgumentException.ThrowIfNullOrWhiteSpace (title);
 		foreach (var overlay in new[] { "mobileclaimhome_content", "fragmentPulleyContainer", "bottomSheet_infoBar", "homeswitcher_title", "featureMoreActionRoot" })
 			hierarchy.RequireAbsent (Resource (overlay));
@@ -196,6 +239,7 @@ public static class CrestronHomePages
 
 	public static void RequireHome (AndroidHierarchy hierarchy, string expectedName)
 		{
+		RequireNoConnectionBanner (hierarchy);
 		ArgumentException.ThrowIfNullOrWhiteSpace (expectedName);
 		foreach (var overlay in new[] { "customdevices_toolbarClose", "mobileclaimhome_content", "fragmentPulleyContainer", "bottomSheet_infoBar", "homeswitcher_title", "featureMoreActionRoot" })
 			hierarchy.RequireAbsent (Resource (overlay));

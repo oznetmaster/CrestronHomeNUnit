@@ -78,6 +78,8 @@ public sealed record AndroidRunContext (int SchemaVersion, string RunId, string 
 /// <summary>The actual identity of a child created for this run. Consumers must still verify its current processor state.</summary>
 public sealed record AndroidManagedDeviceBinding (string Alias, int DeviceId, int ParentDriverId, string Model, string Name, int LocationId);
 public sealed record AndroidRunCompletion (int SchemaVersion, string RunId, string PackageSha256, bool RestorationConfirmed);
+/// <summary>Bounds of the successful hierarchy read, excluding later screenshot and evidence storage.</summary>
+public sealed record AndroidHierarchyObservation (DateTimeOffset StartedUtc, DateTimeOffset ObservedUtc);
 
 /// <summary>A workflow-owned session; ordinary desktop tests have no implicit Android connection.</summary>
 public sealed class AndroidWorkflowSession
@@ -93,6 +95,9 @@ public sealed class AndroidWorkflowSession
 	private bool _completed;
 	public AndroidRunContext Context { get; }
 	public AndroidDevice Device { get; }
+	/// <summary>True only when opening this session verified its configured saved address and port,
+	/// retained the evidence, and restored Home. This is startup evidence, not a current route guarantee.</summary>
+	public bool SavedEndpointVerifiedOnOpen { get; private set; }
 	internal AndroidWorkflowSession (AndroidRunContext context, AndroidDevice device)
 		{
 		Context = context;
@@ -107,8 +112,15 @@ public sealed class AndroidWorkflowSession
 		if (string.IsNullOrWhiteSpace (path) || !Path.IsPathFullyQualified (path))
 			throw new InvalidOperationException ("Android tests must be invoked by an opted-in processor workflow.");
 		var context = Read<AndroidRunContext> (path);
-		return OpenAsync (context, new (new AdbCommandTransport (context.Profile.AdbExecutable, context.Profile.DeviceSerial, TimeSpan.FromSeconds (25)), context.Profile.Application), token);
+		return OpenAsync (context, token);
 		}
+
+	/// <summary>Open an explicitly supplied workflow context under its existing Android reservation.</summary>
+	public static Task<AndroidWorkflowSession> OpenAsync (AndroidRunContext context, CancellationToken token = default)
+		=> OpenAsync (context, new (new AdbCommandTransport (context.Profile.AdbExecutable, context.Profile.DeviceSerial, TimeSpan.FromSeconds (25)), context.Profile.Application,
+            // Hierarchy generation on the evidence emulator can approach the input transport's 25-second deadline.
+            // This bounds observation work only; driver response timing starts after guarded preparation.
+            new AdbCommandTransport (context.Profile.AdbExecutable, context.Profile.DeviceSerial, TimeSpan.FromSeconds (55))), token);
 
 	internal static async Task<AndroidWorkflowSession> OpenAsync (AndroidRunContext context, AndroidDevice device, CancellationToken token)
 		{
@@ -117,11 +129,14 @@ public sealed class AndroidWorkflowSession
 			started.Flush (flushToDisk: true);
 		var session = new AndroidWorkflowSession (context, device);
 		bool navigationAttempted = false;
+		CrestronHomeNavigation? openingNavigation = null;
 		try
 			{
 			if (context.Profile.AllowedStartingHomes.Count > 0)
 				{
-				await new CrestronHomeNavigation (session).SelectExpectedHomeAsync (() => navigationAttempted = true, token).ConfigureAwait (false);
+				openingNavigation = new (session);
+				await openingNavigation.SelectExpectedHomeAsync (() => navigationAttempted = true, token).ConfigureAwait (false);
+				session.SavedEndpointVerifiedOnOpen = true;
 				return session;
 				}
 			var hierarchy = await session.Device.CaptureAsync (token).ConfigureAwait (false);
@@ -133,8 +148,9 @@ public sealed class AndroidWorkflowSession
 			}
 		catch
 			{
-			// Opted-in Home navigation may have failed after input; do not claim restoration then.
-			session.Complete (restorationConfirmed: !navigationAttempted);
+			// A failed endpoint assertion can still have completed verified Home restoration.
+			// Uncertain navigation without that proof must retain its reservation.
+			session.Complete (restorationConfirmed: !navigationAttempted || openingNavigation?.HomeRestored == true);
 			throw;
 			}
 		}
@@ -164,6 +180,19 @@ public sealed class AndroidWorkflowSession
 		}
 
 	public async Task CaptureAsync (string checkId, Action<AndroidHierarchy> verify, CancellationToken token = default)
+		=> await CaptureCoreAsync (checkId, verify, null, token).ConfigureAwait (false);
+
+	/// <summary>Wait for a matching UI state and retain that exact hierarchy plus a screenshot.
+	/// Polling performs reads only; callers must supply cancellation to bound the wait.
+	/// The returned time records the successful read, not completion of evidence storage.</summary>
+	public Task<AndroidHierarchyObservation> CaptureWhenAsync (string checkId, Func<AndroidHierarchy, bool> matches, CancellationToken token)
+		{
+		ArgumentNullException.ThrowIfNull (matches);
+		return CaptureCoreAsync (checkId, _ => { }, matches, token);
+		}
+
+	private async Task<AndroidHierarchyObservation> CaptureCoreAsync (string checkId, Action<AndroidHierarchy> verify,
+		Func<AndroidHierarchy, bool>? matches, CancellationToken token)
 		{
 		if (_completed || string.IsNullOrWhiteSpace (checkId) || checkId.Length > 100 || checkId.Any (c => !char.IsAsciiLetterOrDigit (c) && c is not ('-' or '_' or '.')))
 			throw new InvalidOperationException ("Use a unique check ID within an active Android workflow session.");
@@ -172,8 +201,19 @@ public sealed class AndroidWorkflowSession
 		if (Directory.Exists (directory))
 			throw new IOException ("Android evidence already exists for this check; it cannot be replaced.");
 		Directory.CreateDirectory (directory);
-		var started = DateTimeOffset.UtcNow;
-		var hierarchy = await Device.CaptureAsync (token).ConfigureAwait (false);
+		DateTimeOffset started, observed;
+		AndroidHierarchy hierarchy;
+		while (true)
+			{
+			VerifyActive ();
+			token.ThrowIfCancellationRequested ();
+			started = DateTimeOffset.UtcNow;
+			hierarchy = await Device.CaptureAsync (token).ConfigureAwait (false);
+			observed = DateTimeOffset.UtcNow;
+			if (matches == null || matches (hierarchy)) break;
+			await Task.Delay (TimeSpan.FromMilliseconds (500), token).ConfigureAwait (false);
+			}
+		VerifyActive ();
 		await File.WriteAllTextAsync (Path.Combine (directory, "hierarchy.xml"), hierarchy.MaskedXml, token).ConfigureAwait (false);
 		var screenshot = await Device.CaptureScreenshotAsync (token).ConfigureAwait (false);
 		await File.WriteAllBytesAsync (Path.Combine (directory, "screen.png"), screenshot, token).ConfigureAwait (false);
@@ -182,11 +222,12 @@ public sealed class AndroidWorkflowSession
 		var record = new
 			{
 			SchemaVersion = 1, Context.RunId, Context.PackageSha256, Context.SourceSha256, Context.ReleaseSourceCommit, Context.InstalledDriverId,
-			Context.DriverGuid, Context.DriverVersion, CheckId = checkId, StartedUtc = started, FinishedUtc = DateTimeOffset.UtcNow,
+			Context.DriverGuid, Context.DriverVersion, CheckId = checkId, StartedUtc = started, HierarchyObservedUtc = observed, FinishedUtc = DateTimeOffset.UtcNow,
 			HierarchySha256 = Convert.ToHexString (SHA256.HashData (await File.ReadAllBytesAsync (Path.Combine (directory, "hierarchy.xml"), token).ConfigureAwait (false))),
 			ScreenshotSha256 = Convert.ToHexString (SHA256.HashData (screenshot)), Outcome = "Passed"
 			};
 		await File.WriteAllTextAsync (Path.Combine (directory, "observation.json"), JsonSerializer.Serialize (record), token).ConfigureAwait (false);
+		return new (started, observed);
 		}
 
 	/// <summary>Call after all inputs have completed and physical starting state has been restored, including on a failed assertion.</summary>

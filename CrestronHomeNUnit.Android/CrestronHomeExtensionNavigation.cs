@@ -16,7 +16,7 @@ public sealed class CrestronHomeExtensionNavigation
 		{
 		_session = session;
 		_pages = [(title, null)];
-		_timeout = timeout ?? TimeSpan.FromSeconds (25);
+		_timeout = timeout ?? TimeSpan.FromSeconds (90); // Observation budget, independent of driver response criteria.
 		}
 
 	private string[] Titles => _pages.Select (page => page.Title).ToArray ();

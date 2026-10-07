@@ -2,6 +2,7 @@
 // Licensed under the MIT License. See LICENSE in the repository root.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
@@ -102,8 +103,14 @@ internal static class WorkflowArtifacts
 		return await DigestInputsAsync (project, externalFiles, (await output.ConfigureAwait (false)).Trim (), token, sourceRoots).ConfigureAwait (false);
 		}
 
+	[UnconditionalSuppressMessage ("SingleFile", "IL3000", Justification = "An empty bundled assembly location explicitly disables optional artifact reuse.")]
 	internal static async Task<string?> DigestInputsAsync (string project, IEnumerable<string> externalFiles, string sdk, CancellationToken token, IEnumerable<string>? sourceRoots = null)
 		{
+		// Reuse requires the exact backend bytes. A bundled assembly has no separate file;
+		// build normally rather than accepting an incomplete input identity.
+		var backend = typeof (WorkflowArtifacts).Assembly.Location;
+		if (string.IsNullOrEmpty (backend))
+			return null;
 		var files = new SortedSet<string> (StringComparer.OrdinalIgnoreCase);
 		var projects = new HashSet<string> (StringComparer.OrdinalIgnoreCase);
 		var pending = new Queue<string> ();
@@ -133,7 +140,7 @@ internal static class WorkflowArtifacts
 		foreach (var path in externalFiles)
 			files.Add (Path.GetFullPath (path));
 		// A backend update invalidates earlier receipts, including changes to its build arguments.
-		files.Add (typeof (WorkflowArtifacts).Assembly.Location);
+		files.Add (backend);
 		using var hash = IncrementalHash.CreateHash (HashAlgorithmName.SHA256);
 		hash.AppendData (Encoding.UTF8.GetBytes ("artifact-v1\0Debug\0" + sdk + "\0" + RuntimeInformation.FrameworkDescription + "\0" + RuntimeInformation.OSDescription + "\0" + RuntimeInformation.ProcessArchitecture));
 		foreach (var file in files)

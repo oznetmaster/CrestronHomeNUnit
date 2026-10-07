@@ -196,14 +196,12 @@ public sealed partial class CrestronHomeExtensionNavigationTests
 		public Task<byte[]> ExecuteAsync (IReadOnlyList<string> arguments, CancellationToken cancellationToken)
 			{
 			cancellationToken.ThrowIfCancellationRequested ();
-			if (arguments[0] == "exec-out")
+			if (arguments[0] == "exec-out" && arguments[1] == "screencap")
 				return Task.FromResult (new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 });
-			if (arguments[1] == "uiautomator")
-				return Task.FromResult (Encoding.UTF8.GetBytes ("UI hierarchy dumped to: " + arguments[3]));
 			if (arguments[1] == "rm")
 				return Task.FromResult (Array.Empty<byte> ());
-			if (arguments[1] == "cat")
-				return Task.FromResult (Encoding.UTF8.GetBytes (Xml ()));
+			if (arguments[1] == "uiautomator")
+				return Task.FromResult (Encoding.UTF8.GetBytes (Xml () + "UI hierchary dumped to: /proc/self/fd/1"));
 			if (arguments[1] != "input")
 				throw new InvalidOperationException ("Unexpected command.");
 			if (arguments[2] == "swipe")

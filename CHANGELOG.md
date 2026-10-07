@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+Network-link timing regressions now have a dedicated NUnit test project, registered in the solution and CI for both .NET Framework 4.7.2 and .NET 10. All 17 cases are discoverable by the standard test runner; they are separate from the compatibility runner’s fixed legacy test list.
+
+Native control fixtures can use `OpenRoomAsync` and `RestoreHomeAndCaptureAsync` to share the guarded room navigation used by extension checks. Navigation taps and room-list swipes retain their observed masked page and intent before input; failure to retain evidence prevents input. Home proof has independent bounded observation time and respects caller cancellation. Software regressions cover native navigation, uncertain input, and prior receipt requirements; live verification remains separate.
+
+Saved-endpoint scrolling uses observed padding inside the form and outside editable or clickable child controls. It no longer chooses the outer screen-edge gutter that produced an unchanged page in retained live evidence. Missing or invalid safe bounds still fail before input; a successfully completed scroll can be attempted again only after two fresh unchanged page observations and another page/ownership/geometry check. Three consecutive stationary scrolls or eight total gestures stop the operation. Each intent is retained before input; transport uncertainty, cancellation and changed pages still stop without replay. This exception applies only to navigation in the inert form gutter, never to device controls or failed taps.
+
+Page-readiness diagnostics now record captures started/completed, bounded per-read timing and allowlisted failure categories even when no hierarchy was captured. Caller cancellation retains its identity; diagnostic JSON does not contain raw device output or exception messages. The default navigation observation budget is 90 seconds so the existing three bounded 25-second capture attempts can finish. Caller and cleanup deadlines still take precedence. This is a tooling timeout; no driver performance or recovery criterion changed. A regression reproduces a 17-second null-root read followed by a 10-second successful read without any input command. Home restoration and its subsequent evidence capture each receive a separate bounded two-minute budget; exhausted navigation time no longer cancels proof collection after a successful return. Failed restoration still cannot produce a passing receipt.
+
+Optional build-artifact reuse now requests a fresh build when the workflow backend is embedded in a single-file application and its exact assembly file is unavailable. File-backed reuse retains the same byte hashes. A packaging regression publishes and executes a real single-file probe.
+
+Android screen capture now streams the hierarchy directly from UIAutomator, removing temporary-file reads and the independent cleanup timeout that could invalidate a successful capture. Capture still validates the complete XML and only retries reads; uncertain inputs are not replayed.
+
+Saved-endpoint navigation preserves both the original failure and any restoration failure. Page-readiness timeouts retain the last successfully observed, password-masked hierarchy and guard rejection when available. This improves diagnosis and does not change driver recovery requirements or establish a completed live rehearsal.
+
 Installed-driver preparation failures retain the original phase, exception type and bounded credential-redacted message. A failure before a fixture can ask Ready no longer gets overwritten by a missing readiness response. Successful prepared fixtures still require the recorded acknowledgement. No change to physical retry authority or processor test execution.
 
 ## 2.2.0 - 2026-09-29
