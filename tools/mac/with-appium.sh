@@ -24,9 +24,11 @@ if /usr/sbin/lsof -nP -iTCP:4727 -iTCP:10100 -sTCP:LISTEN >/dev/null 2>&1; then 
 guard="${plist}.job-lock"
 mkdir "$guard" || { echo 'Existing job lock requires reconciliation.' >&2; exit 2; }
 owned=0
+awake_pid=''
 cleanup() {
   result=$?
   trap - EXIT
+  if [ -n "$awake_pid" ]; then kill "$awake_pid" 2>/dev/null || true; wait "$awake_pid" 2>/dev/null || true; fi
   if [ "$owned" = 1 ]; then
     /bin/launchctl bootout "$domain/$label" >/dev/null 2>&1 || result=1
     for attempt in 1 2 3 4 5; do
@@ -42,6 +44,10 @@ cleanup() {
 }
 trap cleanup EXIT
 trap 'exit 130' INT TERM
+# Keep this job awake without changing system settings. Assertions also expire if
+# this shell exits unexpectedly. This cannot unlock an already locked desktop.
+/usr/bin/caffeinate -di -w "$$" &
+awake_pid=$!
 /bin/launchctl bootstrap "$domain" "$plist"
 owned=1
 ready=0

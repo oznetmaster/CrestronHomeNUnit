@@ -16,7 +16,7 @@ public sealed record MacSelector(string ElementType, string Identifier, string? 
         {
             if (!ElementType.StartsWith("XCUIElementType", StringComparison.Ordinal) || !ElementType.All(char.IsAsciiLetter))
                 throw new ArgumentException("Use an XCTest element type.");
-            if (string.IsNullOrEmpty(Identifier) && string.IsNullOrEmpty(Label)) throw new ArgumentException("An accessibility identifier or literal label is required.");
+            if (Identifier == null || (Identifier.Length == 0 && Label == null)) throw new ArgumentException("An accessibility identifier or explicit literal label is required.");
             return $"//XCUIElementTypeWindow[@identifier='SceneWindow']//{ElementType}[@identifier={Literal(Identifier)}" +
                 (Label == null ? "]" : $" and @label={Literal(Label)}]");
         }

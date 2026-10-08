@@ -40,6 +40,15 @@ public sealed class MacTests
     }
     [Test] public void TypeInjectionIsRejected() => Assert.Throws<ArgumentException>(() => _ = (Control with { ElementType = "XCUIElementTypeButton//*" }).XPath);
 
+    [Test] public void AnonymousControlRequiresExplicitEmptyLabel()
+    {
+        Assert.Throws<ArgumentException>(() => _ = new MacSelector("XCUIElementTypeSwitch", "").XPath);
+        const string control = "<XCUIElementTypeSwitch identifier='' label='' value='1' enabled='true' width='41' height='25'/>";
+        var selector = new MacSelector("XCUIElementTypeSwitch", "", "");
+        Assert.That(new MacHierarchy(Window(control)).Require(selector).Value, Is.EqualTo("1"));
+        Assert.Throws<InvalidOperationException>(() => new MacHierarchy(Window(control + control)).Require(selector));
+    }
+
     [Test] public void BinaryControlRejectsUnknownState()
     {
         var mapping = new MacBinaryControl(Control, "On", "Off", false, Control, Control);
@@ -186,11 +195,30 @@ public sealed class MacTests
     }
     private Task<MacTestSession> Open(Fake fake) => MacTestSession.OpenAsync(fake, root, Identity, _ => Task.CompletedTask);
 
+    [TestCase(true, 1)]
+    [TestCase(false, 3)]
+    public async Task RoomsTabCanRestorePreviousDetailPage(bool requestedRoom, int clicks)
+    {
+        static string Node(string type, string id, string label = "", bool selected = false) =>
+            $"<{type} identifier='{id}' label='{label}' selected='{selected.ToString().ToLowerInvariant()}' enabled='true' width='20' height='20'/>";
+        var fake = new Fake();
+        fake.Source = () => Window(fake.Clicks switch
+        {
+            0 => Node("XCUIElementTypeButton", "TabBar_tabBarItem_Home", selected:true) + Node("XCUIElementTypeButton", "TabBar_tabBarItem_Rooms"),
+            2 when !requestedRoom => Node("XCUIElementTypeStaticText", "rooms_roomCardView_title", "Office"),
+            _ => Node("XCUIElementTypeButton", "rooms_roomDetails_backButton") + Node("XCUIElementTypeStaticText", "rooms_roomDetails_roomNameLabel", requestedRoom || fake.Clicks == 3 ? "Office" : "Kitchen")
+        });
+        await using var session = await Open(fake);
+        await new MacHomeNavigation(session).OpenRoomAsync("Office");
+        Assert.That(fake.Clicks, Is.EqualTo(clicks));
+    }
+
     internal sealed class Fake : IMacTransport
     {
         public int Clicks, Deletes, ElementCount = 1;
         public bool FailClick, FailActivate, FailDelete, ChangeAfterScreenshot, InvalidScreenshot;
         public Action? BeforeClick;
+        public Func<string>? Source;
         private bool screenshot;
         public Task<JsonElement> SendAsync(HttpMethod method, string path, object? body, CancellationToken cancellationToken)
         {
@@ -199,7 +227,7 @@ public sealed class MacTests
             if (path == "session") value = new { sessionId = "test-session" };
             else if (method == HttpMethod.Delete) { Deletes++; if (FailDelete) throw new IOException("delete"); }
             else if (path.EndsWith("execute/sync") && FailActivate) throw new IOException("activate");
-            else if (path.EndsWith("/source")) value = Window(screenshot && ChangeAfterScreenshot ? "" : Button);
+            else if (path.EndsWith("/source")) value = Source?.Invoke() ?? Window(screenshot && ChangeAfterScreenshot ? "" : Button);
             else if (path.EndsWith("/screenshot")) { screenshot = true; value = Convert.ToBase64String(InvalidScreenshot ? new byte[] {0} : new byte[] {137,80,78,71,13,10,26,10,0}); }
             else if (path.EndsWith("/elements")) value = Enumerable.Range(0, ElementCount).Select(i => new Dictionary<string,string> { ["element-6066-11e4-a52e-4f735466cecf"] = i.ToString() }).ToArray();
             else if (path.EndsWith("/click")) { BeforeClick?.Invoke(); Clicks++; if (FailClick) throw new IOException("click"); }

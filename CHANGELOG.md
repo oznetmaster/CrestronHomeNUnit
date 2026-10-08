@@ -6,7 +6,8 @@ Adds a .NET 10 Mac2 transport and Crestron Home UI helpers to the existing adapt
 package, with literal accessibility selection, retained evidence, guarded inputs,
 Home/room navigation and independent-state restoration hooks. Includes NUnit 5
 regressions, a discoverable explicit sample, package-consumer validation and setup
-documentation. Full live Demo-device validation is pending; no release is claimed.
+documentation. Live Demo-outlet control, independent feedback, restoration and
+Home navigation passed on 8 October. No release is claimed.
 
 ## 2.3.0 - 2026-10-07
 

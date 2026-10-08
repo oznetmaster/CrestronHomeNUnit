@@ -3,9 +3,9 @@
 ## Publication status
 
 **Unreleased candidate. Do not use TestAdapter 2.3.0 for these APIs.** The local
-package version is `2.4.0-mac-preview.2`; this is a development artifact, not an
-announced release. Publication waits for a complete live device-control and
-restoration test. See [validation](MacUiValidation.md).
+package version is `2.4.0-mac-preview.4`; this is a development artifact, not an
+announced release. Live device-control and restoration results are recorded in
+[validation](MacUiValidation.md); publication requires owner approval.
 
 `CrestronHomeNUnit.Mac` is included in the existing TestAdapter package, alongside
 the Android helpers. It targets .NET 10, uses the W3C WebDriver interface supplied
@@ -67,7 +67,10 @@ writing a token does not acquire a processor reservation.
 
 The sample [with-appium.sh](../tools/mac/with-appium.sh) wraps a **preconfigured,
 job-owned** GUI LaunchAgent and a local test command on the Mac. It refuses an
-existing service, a locked desktop or a busy automation port. It shuts down only
+existing service, a locked desktop or a busy automation port. It holds a job-scoped
+`caffeinate -di` assertion against idle system/display sleep, and releases it on
+exit. This does not unlock the console or change screen-saver/password policies.
+It shuts down only
 that service and checks that its ports have closed, even if tests fail. A remote
 Windows job needs the same ownership and shutdown arrangement on its Mac host;
 deleting the WebDriver session alone may leave XCTest running and block desktop
@@ -142,6 +145,18 @@ not read the same Mac UI or return the requested state. The fixture must first
 check initial UI/device agreement. Use a dedicated on/off outlet for this sample;
 lights with brightness or colour require restoration of **all** changed properties.
 The helper does not claim physical feedback from a UI label alone.
+
+For an observed unlabeled native switch, explicitly use
+`new MacSelector("XCUIElementTypeSwitch", "", "")`. The empty literal label is
+intentional; omitting it is rejected. Exactly one matching actionable switch must
+exist. Before every setting operation, require the device's observed page title
+and verified binding. For example, a fixture can map the switch values `1` and
+`0` to on/off using `new MacBinaryControl(toggle, "1", "0", true, toggle, toggle)`.
+These values are observations from Home 4.12.11, not assumptions for every app.
+
+Dispose `MacTestSession` **before** its `MacHttpTransport`; declare the transport
+first and the `await using` session second. Keep any independent device client
+alive until restoration finishes. The sample follows this lifetime ordering.
 
 Unknown state stops the test. Input failures are not retried. Restoration gets a
 separate bounded cancellation scope; its setter must observe current state and
