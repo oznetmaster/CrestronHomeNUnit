@@ -1,14 +1,5 @@
 # Changelog
 
-## Mac UI candidate - unpublished
-
-Adds a .NET 10 Mac2 transport and Crestron Home UI helpers to the existing adapter
-package, with literal accessibility selection, retained evidence, guarded inputs,
-Home/room navigation and independent-state restoration hooks. Includes NUnit 5
-regressions, a discoverable explicit sample, package-consumer validation and setup
-documentation. Live Demo-outlet control, independent feedback, restoration and
-Home navigation passed on 8 October. No release is claimed.
-
 ## 2.3.0 - 2026-10-07
 
 Android workflow tests retain navigation observations and input intent before acting. Hierarchy capture streams validated XML directly, and bounded readiness diagnostics preserve the original preparation or restoration failure. Native-control fixtures can share guarded room navigation and Home restoration. Uncertain control input is never replayed automatically.

@@ -1,15 +1,13 @@
-# Crestron Home NUnit v2.3.0
+# Crestron Home NUnit v2.4.0
 
-Android workflow tests retain navigation observations and input intent before acting. Hierarchy capture streams validated XML directly, and bounded readiness diagnostics preserve the original preparation or restoration failure. Native-control fixtures can share guarded room navigation and Home restoration. Uncertain control input is never replayed automatically.
+Adds Mac UI testing helpers to the existing CrestronHomeNUnit.TestAdapter package. The new CrestronHomeNUnit.Mac assembly provides Appium Mac2 transport, exact accessibility selectors, Home/room navigation, retained screenshot and hierarchy evidence, and binary-control testing with independent device-state verification and restoration.
 
-Optional processor network-link observation records a bounded carrier-restoration interval independently of operator acknowledgement. It adds authenticated observation commands and preserves the enclosing workflow's reservation and control guard. It does not disconnect equipment or measure processor power recovery. See [network timing](https://github.com/oznetmaster/CrestronHomeNUnit/blob/main/docs/NetworkLinkTiming.md) for scope and evidence requirements.
+Includes an explicit NUnit 5 sample for Visual Studio, VS Code and CI, a job-owned Mac host wrapper, and setup, permissions, ownership, cleanup and troubleshooting documentation. Mac tests are ordinary phase-two NUnit fixtures; document preparation and submission remain separate. Existing Android, processor and workflow APIs are unchanged.
 
-Single-file workflow applications request a fresh build when exact assembly bytes are unavailable for optional artifact reuse. NUnit remains 5.0.0. Existing Android controller constructor signatures remain available; the new observation and navigation interfaces are additive.
-
-Software validation covers Android navigation, retained failures, workflow ownership, package reuse and network timing. The dedicated timing suite runs on .NET Framework 4.7.2 and .NET 10 in CI and release validation. The release also preserves the package merge resolver and NUnit 5 audit fixes already on main. These checks do not establish a completed hardware submission rehearsal or Crestron certification.
+Validation includes 42 offline Mac regressions and a fresh-package consumer, plus live Demo-outlet control and restoration and the public room sample on an Apple Silicon Mac running Crestron Home 4.12.11. The live tests ran from HPNEIL against the development MC4-R, with independent physical-state checks, retained evidence and verified automation shutdown. See the [validation record](https://github.com/oznetmaster/CrestronHomeNUnit/blob/main/docs/MacUiValidation.md) and [Mac testing guide](https://github.com/oznetmaster/CrestronHomeNUnit/blob/main/docs/MacUiTesting.md).
 
 ## Updating
 
-Update CrestronHomeNUnit.TestAdapter and the Windows runner/CLI distribution to 2.3.0. Use CrestronHomeDevTools 1.25.0 for the corresponding submission workflow integration. Introduce changed tooling through a new frozen plan or an explicit retained recovery; keep existing evidence bound to its original producer.
+Update CrestronHomeNUnit.TestAdapter to 2.4.0 to use the additional Mac APIs. Existing consumers need no API migration. Mac tests require the separately installed Crestron Home app, Appium Mac2 and an unlocked Apple Silicon Mac desktop. Driver-specific bindings and independent state checks remain in the driver's test project. No new driver/client release is needed for these additive test helpers.
 
 Copyright (c) 2026 Neil Colvin. Licensed under the MIT License; see LICENSE.

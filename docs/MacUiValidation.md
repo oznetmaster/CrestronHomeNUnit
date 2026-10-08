@@ -1,7 +1,6 @@
-# Mac UI helper publication readiness
+# Mac UI helper validation for 2.4.0
 
-Status: **ready for publication approval**.
-No package or release has been uploaded.
+Status: **validated and approved for the 2.4.0 release**.
 
 ## Implemented
 
@@ -22,7 +21,7 @@ fresh-cache consumer of the actual preview package. All 11 existing adapter
 regressions passed. The explicit room sample discovered without contacting Appium
 or hardware. The new macOS offline CI job is prepared but has not run remotely.
 
-Local candidate: `CrestronHomeNUnit.TestAdapter.2.4.0-mac-preview.4.nupkg`.
+Pre-release validation candidate: `CrestronHomeNUnit.TestAdapter.2.4.0-mac-preview.4.nupkg`.
 SHA-256: `86230f1ab4f73de5be1e7ee3fbfafd7f489ff72962869e3fcb9e915d7bdbb70a`.
 It contains `CrestronHomeNUnit.Mac.dll` and its XML documentation.
 
@@ -72,8 +71,8 @@ The complete repaired control/navigation run then passed.
 
 ## Publication scope
 
-Proposed minor version: **2.4.0**, subject to owner approval and normal release
-checks. These helpers belong to phase two. Document preparation, signing and
+Minor release: **2.4.0**, approved by the owner on 8 October 2026. Normal release
+checks also validate the stable package before publication. These helpers belong to phase two. Document preparation, signing and
 submission remain in phase three. No driver/client release is required for this
 additive tooling change.
 

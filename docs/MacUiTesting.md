@@ -1,11 +1,9 @@
 # Crestron Home UI tests on an Apple Silicon Mac
 
-## Publication status
+## Package version
 
-**Unreleased candidate. Do not use TestAdapter 2.3.0 for these APIs.** The local
-package version is `2.4.0-mac-preview.4`; this is a development artifact, not an
-announced release. Live device-control and restoration results are recorded in
-[validation](MacUiValidation.md); publication requires owner approval.
+These APIs are included starting with **TestAdapter 2.4.0**. They are not present
+in 2.3.0. See the [validation record](MacUiValidation.md) for the tested scope.
 
 `CrestronHomeNUnit.Mac` is included in the existing TestAdapter package, alongside
 the Android helpers. It targets .NET 10, uses the W3C WebDriver interface supplied
@@ -83,7 +81,7 @@ interrupted job requires reconciliation; do not automatically repeat its clicks.
 
 ## Discover and run the sample
 
-Until publication, use the source project:
+To develop against the source project:
 
 ```powershell
 dotnet test samples/MacUiTests/MacUiTests.csproj -c Release -p:UseSourceMac=true --list-tests
@@ -105,9 +103,8 @@ dotnet test samples/MacUiTests/MacUiTests.csproj -c Release -p:UseSourceMac=true
 ```
 
 In Visual Studio or VS Code, provide the same environment to the test process and
-explicitly run that test. After publication use the published TestAdapter version
-through `MacAdapterVersion` and omit `UseSourceMac`. Do not specify the unpublished
-preview version against public NuGet.
+explicitly run that test. To consume the release use TestAdapter 2.4.0
+through `MacAdapterVersion` and omit `UseSourceMac`.
 
 The room sample inspects a visible room and restores Home. It does not operate a
 device or prove submission compliance. It intentionally stops on an unknown,

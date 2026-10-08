@@ -1,6 +1,6 @@
 # Crestron Home workflow test adapter
 
-The unreleased Mac preview also bundles `CrestronHomeNUnit.Mac` and its XML API
+Version 2.4.0 also bundles `CrestronHomeNUnit.Mac` and its XML API
 documentation. Use it from a separate .NET 10 NUnit 5 project against an explicitly
 owned Appium Mac2 session. It is not available in 2.3.0. Read the
 [Mac setup and testing guide](https://github.com/oznetmaster/CrestronHomeNUnit/blob/main/docs/MacUiTesting.md)
