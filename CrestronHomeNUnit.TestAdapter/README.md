@@ -1,5 +1,12 @@
 # Crestron Home workflow test adapter
 
+The unreleased Mac preview also bundles `CrestronHomeNUnit.Mac` and its XML API
+documentation. Use it from a separate .NET 10 NUnit 5 project against an explicitly
+owned Appium Mac2 session. It is not available in 2.3.0. Read the
+[Mac setup and testing guide](https://github.com/oznetmaster/CrestronHomeNUnit/blob/main/docs/MacUiTesting.md)
+for ownership, restoration and validation limits. No `Workflows.xml` is needed for
+ordinary Mac NUnit fixtures, and the Android workflow stage does not run them.
+
 Run a complete gated processor workflow from Visual Studio Test Explorer or VSTest-based `dotnet test`: local tests, processor test package deployment and activation, remote tests, optional live tests, optional production driver update and health checks, and configured cleanup.
 
 Use a **separate .NET 10 test project** with `Microsoft.NET.Test.Sdk` and this package, both marked `PrivateAssets="all"`. Driver and processor test projects can continue to target net472. This adapter does not replace the NUnit adapter used by ordinary local unit tests.

@@ -1,0 +1,5 @@
+<!-- Copyright (c) 2026 Neil Colvin. MIT licensed. -->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><GenerateDocumentationFile>true</GenerateDocumentationFile><NoWarn>$(NoWarn);CS1591</NoWarn></PropertyGroup>
+  <ItemGroup><InternalsVisibleTo Include="CrestronHomeNUnit.Mac.Tests" /></ItemGroup>
+</Project>

@@ -19,7 +19,7 @@ if ($LocalDevToolsVersion) {
 }
 $archive = [IO.Compression.ZipFile]::OpenRead($packagePath)
 try {
-    foreach ($assembly in @('TestAdapter', 'Workflow', 'Client', 'Transport', 'Android')) {
+    foreach ($assembly in @('TestAdapter', 'Workflow', 'Client', 'Transport', 'Android', 'Mac')) {
         if ($null -eq $archive.GetEntry("lib/net10.0/CrestronHomeNUnit.$assembly.dll")) {
             throw "Adapter package is missing its $assembly implementation assembly."
         }

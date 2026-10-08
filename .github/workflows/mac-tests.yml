@@ -1,0 +1,29 @@
+# Copyright (c) 2026 Neil Colvin. MIT licensed.
+name: Mac UI helper tests
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  offline:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.401
+      - name: Test helpers without app or hardware
+        run: dotnet test CrestronHomeNUnit.Mac.Tests/CrestronHomeNUnit.Mac.Tests.csproj -c Release --logger trx --results-directory artifacts/mac
+      - name: Discover sample without opening a UI session
+        run: dotnet test samples/MacUiTests/MacUiTests.csproj -c Release -p:UseSourceMac=true --list-tests
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mac-offline-${{ matrix.os }}
+          path: artifacts/mac/**/*.trx
+          if-no-files-found: error

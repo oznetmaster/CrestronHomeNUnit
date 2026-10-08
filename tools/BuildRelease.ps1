@@ -24,6 +24,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Test adapter regression tests failed.' }
     dotnet test CrestronHomeNUnit.Android.Tests/CrestronHomeNUnit.Android.Tests.csproj -c Release --no-build
     if ($LASTEXITCODE -ne 0) { throw 'Android toolkit regression tests failed.' }
+    dotnet test CrestronHomeNUnit.Mac.Tests/CrestronHomeNUnit.Mac.Tests.csproj -c Release --no-build
+    if ($LASTEXITCODE -ne 0) { throw 'Mac toolkit regression tests failed.' }
     dotnet test CrestronHomeNUnit.Transport.Tests/CrestronHomeNUnit.Transport.Tests.csproj -c Release --no-build
     if ($LASTEXITCODE -ne 0) { throw 'Network timing regression tests failed.' }
     $package = Join-Path $root 'CrestronHomeNUnit.Driver/bin/Release/net472/CrestronHomeNUnit.Driver.pkg'
@@ -42,6 +44,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Test adapter package build failed.' }
     ./tools/Test-NuGetDocumentation.ps1 -PackagePath (Join-Path $release "CrestronHomeNUnit.TestAdapter.$Version.nupkg")
     ./tools/Test-AdapterPackage.ps1 -PackageDirectory $release -Version $Version
+    ./tools/Test-MacPackage.ps1 -PackageDirectory $release -Version $Version
     Copy-Item -LiteralPath $package -Destination $release
     Copy-Item -LiteralPath (Join-Path $root 'artifacts/runner/CrestronHomeNUnit.Runner-win-x64.zip') -Destination $release
     Copy-Item -LiteralPath (Join-Path $root 'artifacts/cli/CrestronHomeNUnit.Cli-win-x64.zip') -Destination $release
@@ -51,7 +54,7 @@ try {
     Copy-Item -LiteralPath (Join-Path $root 'licenses') -Destination $notices -Recurse
     Copy-Item -LiteralPath (Join-Path $root 'docs') -Destination $notices -Recurse
     # Preserve the source attributions and small reproductions linked from the guides.
-    $linkedSources = @(git ls-files samples examples/android-session.example.json vendor/nunit/LICENSE.txt vendor/nunit/PROVENANCE.md tools/ILRepackIndexerRepro tools/NUnitRepeatRunReports)
+    $linkedSources = @(git ls-files samples examples/android-session.example.json vendor/nunit/LICENSE.txt vendor/nunit/PROVENANCE.md tools/ILRepackIndexerRepro tools/NUnitRepeatRunReports tools/mac)
     foreach ($file in $linkedSources) {
         $destination = Join-Path $notices $file
         [IO.Directory]::CreateDirectory((Split-Path $destination -Parent)) | Out-Null

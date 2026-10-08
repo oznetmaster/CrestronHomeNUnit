@@ -21,6 +21,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.TestPlatform.ObjectModel" Version="18.9.0" PrivateAssets="all" />
     <ProjectReference Include="../CrestronHomeNUnit.Workflow/CrestronHomeNUnit.Workflow.csproj" PrivateAssets="all" />
+    <ProjectReference Include="../CrestronHomeNUnit.Mac/CrestronHomeNUnit.Mac.csproj" PrivateAssets="all" />
     <!-- Public runtime dependencies stay NuGet dependencies; only this repository's
          implementation assemblies are included in the adapter package. -->
     <PackageReference Include="CrestronHomeDevTools" Version="$(DevToolsVersion)" Condition="'$(DevToolsProject)' == ''" />
@@ -36,6 +37,8 @@
     <ItemGroup>
       <BuildOutputInPackage Include="$(OutputPath)CrestronHomeNUnit.Workflow.dll" />
       <BuildOutputInPackage Include="$(OutputPath)CrestronHomeNUnit.Android.dll" />
+      <BuildOutputInPackage Include="$(OutputPath)CrestronHomeNUnit.Mac.dll" />
+      <BuildOutputInPackage Include="$(OutputPath)CrestronHomeNUnit.Mac.xml" />
       <BuildOutputInPackage Include="$(OutputPath)CrestronHomeNUnit.Client.dll" />
       <BuildOutputInPackage Include="$(OutputPath)CrestronHomeNUnit.Transport.dll" />
     </ItemGroup>

@@ -1,5 +1,9 @@
 # Crestron Home NUnit
 
+Unreleased: [Mac UI testing helpers and NUnit 5 sample](docs/MacUiTesting.md) are
+being prepared for the existing adapter package. See the [publication readiness
+record](docs/MacUiValidation.md); live control validation is still pending.
+
 Version 2.0.0 upgrades test tooling to released NUnit 5.0.0. See the [migration guide](docs/NUnit5Migration.md) and the separate [unchanged upstream diagnostic suite](NUnit5/README.md).
 
 For the complete local-to-processor development cycle, see the [continuous integration guide](docs/ContinuousIntegration.md), including private settings, gated actual-driver deployment, evidence and optional test-instance removal.

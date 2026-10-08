@@ -1,0 +1,14 @@
+{
+  "Endpoint": "http://127.0.0.1:4727/",
+  "EvidenceRoot": "C:/private/mac-evidence",
+  "OwnershipFile": "C:/private/mac-and-processor-owner.txt",
+  "Owner": "REPLACE_WITH_JOB_OWNER_GUID_N",
+  "Room": "Demo Room",
+  "Identity": {
+    "ProcessorAddress": "192.0.2.10",
+    "DriverIdentity": "REPLACE_WITH_VERIFIED_INSTALLED_DRIVER_ID",
+    "CandidateSha256": "REPLACE_WITH_VERIFIED_CANDIDATE_SHA256",
+    "AppVersion": "REPLACE_WITH_OBSERVED_APP_VERSION",
+    "MacOsVersion": "REPLACE_WITH_OBSERVED_OS_VERSION"
+  }
+}
