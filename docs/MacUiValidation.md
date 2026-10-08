@@ -19,7 +19,7 @@ Status: **validated and approved for the 2.4.0 release**.
 42 offline NUnit 5 regressions passed on Windows, and the same 42 passed in a
 fresh-cache consumer of the actual preview package. All 11 existing adapter
 regressions passed. The explicit room sample discovered without contacting Appium
-or hardware. The new macOS offline CI job is prepared but has not run remotely.
+or hardware. The Windows and macOS offline CI jobs both passed before publication.
 
 Pre-release validation candidate: `CrestronHomeNUnit.TestAdapter.2.4.0-mac-preview.4.nupkg`.
 SHA-256: `86230f1ab4f73de5be1e7ee3fbfafd7f489ff72962869e3fcb9e915d7bdbb70a`.
@@ -27,9 +27,9 @@ It contains `CrestronHomeNUnit.Mac.dll` and its XML documentation.
 
 ### Live control
 
-At 20:16 BST / 19:16 UTC, the NUnit fixture running on HPNEIL passed against the
+At 20:16 BST / 19:16 UTC, the NUnit fixture running on a Windows test runner passed against the
 preview package and the Crestron Home app on the Apple Silicon Mac. It used the
-existing Kasa/Tapo 2.1.2 installation on the development MC4-R (.244), bound the
+existing Kasa/Tapo 2.1.2 installation on a Crestron MC4-R, bound the
 Demo KP115 child to its independently queried physical device identity, changed
 ON to OFF, and restored ON. Direct plug readings and Mac UI values agreed. The
 app returned Home. Processor reservations were released and the owned Mac
@@ -37,8 +37,7 @@ Appium/XCTest service shut down with its listeners closed. No processor restart,
 network interruption or driver deployment was required.
 
 Private evidence retains the NUnit/TRX result, initial state, input intents,
-XML/PNG hashes, changed/restored state and session-close records. The live run
-identity is `424e82b3c75d401b9b22eaf27eb9fa3a`. This validates these UI helpers; it
+XML/PNG hashes, changed/restored state and session-close records. This validates these UI helpers; it
 is not a new complete driver submission suite or byte-for-byte installed-driver
 certification. Installed version and child identity were queried; the recorded
 candidate hash refers to the existing release artifact.
@@ -49,10 +48,9 @@ Mac2 4.3.5 and Node 24.21.0. Tests ran with a logged-in, unlocked Mac console.
 ### Public sample
 
 At 20:18 BST / 19:18 UTC, the unchanged public `RoomTests.cs` sample also passed
-as an explicitly selected NUnit 5 test against the actual package on HPNEIL,
-with the Mac UI and .244 processor reserved. It inspected Office and returned
+as an explicitly selected NUnit 5 test against the actual package on Windows,
+with the Mac UI and test processor reserved. It inspected Office and returned
 Home; session disposal, reservation release and owned-service shutdown passed.
-Its run identity is `d500c52060e2481e9c5c771caa621025`.
 
 Both successful NUnit/TRX results and all 38 retained capture inventories
 (including result attachments) were checked against their XML/PNG SHA-256 values.

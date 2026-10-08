@@ -6,7 +6,7 @@ Adds Mac UI testing helpers to the existing CrestronHomeNUnit.TestAdapter packag
 
 Includes an explicit NUnit 5 sample for Visual Studio, VS Code and CI, a job-owned Mac host wrapper, and setup, permissions, ownership, cleanup and troubleshooting documentation. Mac tests are ordinary phase-two NUnit fixtures; document preparation and submission remain separate. Existing Android, processor and workflow APIs are unchanged.
 
-Validation includes 42 offline Mac regressions and a fresh-package consumer, plus live Demo-outlet control and restoration and the public room sample on an Apple Silicon Mac running Crestron Home 4.12.11. The live tests ran from HPNEIL against the development MC4-R, with independent physical-state checks, retained evidence and verified automation shutdown. See the [validation record](https://github.com/oznetmaster/CrestronHomeNUnit/blob/main/docs/MacUiValidation.md) and [Mac testing guide](https://github.com/oznetmaster/CrestronHomeNUnit/blob/main/docs/MacUiTesting.md).
+Validation includes 42 offline Mac regressions and a fresh-package consumer, plus live Demo-outlet control and restoration and the public room sample on an Apple Silicon Mac running Crestron Home 4.12.11. The live tests used a Windows test runner and an Apple Silicon Mac, with the driver installed on a Crestron MC4-R. They verified independent physical state, retained evidence and automation shutdown. See the [validation record](https://github.com/oznetmaster/CrestronHomeNUnit/blob/main/docs/MacUiValidation.md) and [Mac testing guide](https://github.com/oznetmaster/CrestronHomeNUnit/blob/main/docs/MacUiTesting.md).
 
 ## 2.3.0 - 2026-10-07
 
