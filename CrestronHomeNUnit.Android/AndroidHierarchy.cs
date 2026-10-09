@@ -23,6 +23,11 @@ public sealed record AndroidSelector (AndroidSelectorKind Kind, string Value)
 		{
 		get; init;
 		}
+	/// <summary>Require exactly one literal label beneath an immediate sibling. The label and its containing nodes must belong to this application and must not be password fields. Does not match immediate sibling text.</summary>
+	public string? SiblingDescendantText
+		{
+		get; init;
+		}
 	}
 public sealed record AndroidElement (string ResourceId, string Text, string Description, bool Enabled, int Left, int Top, int Right, int Bottom);
 
@@ -86,13 +91,28 @@ public sealed class AndroidHierarchy
 			ArgumentException.ThrowIfNullOrWhiteSpace (selector.AncestorResourceId);
 		if (selector.SiblingText != null)
 			ArgumentException.ThrowIfNullOrWhiteSpace (selector.SiblingText);
+		if (selector.SiblingDescendantText != null)
+			ArgumentException.ThrowIfNullOrWhiteSpace (selector.SiblingDescendantText);
 		return _document.Descendants ("node").Where (node =>
 			(string?)node.Attribute ("package") == _application && (string?)node.Attribute (attribute) == selector.Value &&
 			(selector.SiblingText == null || node.Parent?.Name == "node" && (string?)node.Parent.Attribute ("package") == _application &&
 				node.Parent.Elements ("node").Count (sibling => sibling != node && (string?)sibling.Attribute ("package") == _application &&
 					(string?)sibling.Attribute ("password") != "true" && (string?)sibling.Attribute ("text") == selector.SiblingText) == 1) &&
+			(selector.SiblingDescendantText == null || HasSiblingDescendantText (node, selector.SiblingDescendantText)) &&
 			(selector.AncestorResourceId == null || node.Ancestors ("node").Any (ancestor =>
 				(string?)ancestor.Attribute ("package") == _application && (string?)ancestor.Attribute ("resource-id") == selector.AncestorResourceId))).ToArray ();
+		}
+
+	private bool HasSiblingDescendantText (XElement node, string text)
+		{
+		var parent = node.Parent;
+		if (parent?.Name != "node" || (string?)parent.Attribute ("package") != _application || (string?)parent.Attribute ("password") == "true")
+			return false;
+		return parent.Elements ("node").Where (sibling => sibling != node)
+			.SelectMany (sibling => sibling.Descendants ("node"))
+			.Count (label => (string?)label.Attribute ("text") == text &&
+				label.AncestorsAndSelf ("node").TakeWhile (ancestor => ancestor != parent).All (ancestor =>
+					(string?)ancestor.Attribute ("package") == _application && (string?)ancestor.Attribute ("password") != "true")) == 1;
 		}
 
 	internal static AndroidElement ReadElement (XElement selected)

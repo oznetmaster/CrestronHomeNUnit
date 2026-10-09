@@ -83,6 +83,9 @@ await device.TapAsync(increase, verifyExpectedPage, cancellationToken);
 
 The button and label must belong to the configured application. Exactly one non-password sibling must have that text; labels in another row or a nested container do not qualify. Multiple matching rows still fail as ambiguous. `SiblingText` can be combined with `AncestorResourceId`. The caller must continue to verify the front page and expected current value before input. The helper uses fresh observed bounds and never repeats an uncertain tap.
 
+For repeated navigation arrows beside nested row labels, set `AndroidSelector.SiblingDescendantText` to the exact label (available in the current source build). For example, `CrestronHomePages.Resource("customdevice_statusAndNavigationMore") with { SiblingDescendantText = "Energy" }` selects the arrow beside that row's nested label rather than tapping the non-clickable label. Exactly one matching label must occur beneath the target's immediate siblings, and every node along its path must belong to the configured application and be non-password. Missing or duplicate labels/targets fail without input. Existing `SiblingText` continues to match immediate sibling text only. Use the selector with the existing guarded navigation methods and expected complete page stack; observe the destination separately, and never automatically replay an uncertain tap.
+
+
 This addition is not present in adapter 1.8.2 or earlier. The shared library supplies selection rules; each consuming fixture owns its labels, allowed operations, independent state checks and restoration.
 
 ### Configure the workflow
