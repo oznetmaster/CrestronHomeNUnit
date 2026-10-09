@@ -10,29 +10,31 @@ Validation includes 42 offline Mac regressions and a fresh-package consumer, plu
 
 ## 2.3.0 - 2026-10-07
 
-Android workflow tests retain navigation observations and input intent before acting. Hierarchy capture streams validated XML directly, and bounded readiness diagnostics preserve the original preparation or restoration failure. Native-control fixtures can share guarded room navigation and Home restoration. Uncertain control input is never replayed automatically.
+### Android UI testing
 
-Optional processor network-link observation records a bounded carrier-restoration interval independently of operator acknowledgement. It adds authenticated observation commands and preserves the enclosing workflow's reservation and control guard. It does not disconnect equipment or measure processor power recovery. See [network timing](https://github.com/oznetmaster/CrestronHomeNUnit/blob/main/docs/NetworkLinkTiming.md) for scope and evidence requirements.
+- Added shared room navigation and Home restoration through `OpenRoomAsync` and `RestoreHomeAndCaptureAsync`. Navigation retains the password-masked page and input intent before acting; missing evidence prevents input.
+- Streamed validated UI hierarchy XML directly from UIAutomator, removing temporary-file handling that could invalidate a successful capture.
+- Fixed saved-endpoint scrolling to use observed padding inside the form. Retries are bounded and require fresh observations and ownership checks. Uncertain input and device-control commands are never replayed automatically.
 
-Single-file workflow applications request a fresh build when exact assembly bytes are unavailable for optional artifact reuse. NUnit remains 5.0.0. Existing Android controller constructor signatures remain available; the new observation and navigation interfaces are additive.
+### Recovery and diagnostics
 
-Software validation covers Android navigation, retained failures, workflow ownership, package reuse and network timing. The dedicated timing suite runs on .NET Framework 4.7.2 and .NET 10 in CI and release validation. The release also preserves the package merge resolver and NUnit 5 audit fixes already on main. These checks do not establish a completed hardware submission rehearsal or Crestron certification.
+- Preserved original preparation and navigation errors alongside restoration failures. Failures before the Ready prompt are no longer reported as missing operator acknowledgements.
+- Added capture progress, per-read timing and credential-redacted failure details, including the last available masked hierarchy when readiness times out.
+- Set the navigation observation budget to 90 seconds and gave Home restoration and its evidence capture separate two-minute budgets. Caller cancellation still takes precedence; these tooling budgets do not change driver performance requirements. Failed restoration remains a failure.
 
-Network-link timing regressions now have a dedicated NUnit test project, registered in the solution and CI for both .NET Framework 4.7.2 and .NET 10. All 17 cases are discoverable by the standard test runner; they are separate from the compatibility runner’s fixed legacy test list.
+### Network-link timing
 
-Native control fixtures can use `OpenRoomAsync` and `RestoreHomeAndCaptureAsync` to share the guarded room navigation used by extension checks. Navigation taps and room-list swipes retain their observed masked page and intent before input; failure to retain evidence prevents input. Home proof has independent bounded observation time and respects caller cancellation. Software regressions cover native navigation, uncertain input, and prior receipt requirements; live verification remains separate.
+Added optional authenticated observation of the processor's network link, preserving workflow reservations and control guards. It measures carrier restoration independently of operator acknowledgement; it neither disconnects equipment nor measures processor power recovery. See [network timing](https://github.com/oznetmaster/CrestronHomeNUnit/blob/main/docs/NetworkLinkTiming.md).
 
-Saved-endpoint scrolling uses observed padding inside the form and outside editable or clickable child controls. It no longer chooses the outer screen-edge gutter that produced an unchanged page in retained live evidence. Missing or invalid safe bounds still fail before input; a successfully completed scroll can be attempted again only after two fresh unchanged page observations and another page/ownership/geometry check. Three consecutive stationary scrolls or eight total gestures stop the operation. Each intent is retained before input; transport uncertainty, cancellation and changed pages still stop without replay. This exception applies only to navigation in the inert form gutter, never to device controls or failed taps.
+### Build and packaging
 
-Page-readiness diagnostics now record captures started/completed, bounded per-read timing and allowlisted failure categories even when no hierarchy was captured. Caller cancellation retains its identity; diagnostic JSON does not contain raw device output or exception messages. The default navigation observation budget is 90 seconds so the existing three bounded 25-second capture attempts can finish. Caller and cleanup deadlines still take precedence. This is a tooling timeout; no driver performance or recovery criterion changed. A regression reproduces a 17-second null-root read followed by a 10-second successful read without any input command. Home restoration and its subsequent evidence capture each receive a separate bounded two-minute budget; exhausted navigation time no longer cancels proof collection after a successful return. Failed restoration still cannot produce a passing receipt.
+Single-file workflow applications now request a fresh build when exact backend assembly bytes are unavailable for optional artifact reuse. File-backed reuse keeps its existing hash checks. The release also includes the package merge resolver and NUnit 5 audit fixes.
 
-Optional build-artifact reuse now requests a fresh build when the workflow backend is embedded in a single-file application and its exact assembly file is unavailable. File-backed reuse retains the same byte hashes. A packaging regression publishes and executes a real single-file probe.
+NUnit remains 5.0.0. Existing Android controller constructor signatures remain available; the new observation and navigation interfaces are additive.
 
-Android screen capture now streams the hierarchy directly from UIAutomator, removing temporary-file reads and the independent cleanup timeout that could invalidate a successful capture. Capture still validates the complete XML and only retries reads; uncertain inputs are not replayed.
+### Validation
 
-Saved-endpoint navigation preserves both the original failure and any restoration failure. Page-readiness timeouts retain the last successfully observed, password-masked hierarchy and guard rejection when available. This improves diagnosis and does not change driver recovery requirements or establish a completed live rehearsal.
-
-Installed-driver preparation failures retain the original phase, exception type and bounded credential-redacted message. A failure before a fixture can ask Ready no longer gets overwritten by a missing readiness response. Successful prepared fixtures still require the recorded acknowledgement. No change to physical retry authority or processor test execution.
+Regression coverage includes navigation, uncertain input, retained failures, workflow ownership, package reuse and a real single-file packaging probe. All 17 network-link timing cases are discoverable in a dedicated NUnit project and run on .NET Framework 4.7.2 and .NET 10 in CI and release validation. These software checks do not establish a completed hardware submission rehearsal or Crestron certification.
 
 ## 2.2.0 - 2026-09-29
 
