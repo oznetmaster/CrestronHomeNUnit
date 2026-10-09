@@ -63,6 +63,8 @@ jobs:
           if (-not $body) { throw 'Release notes need a change summary.' }
           $changelog = Join-Path $env:GITHUB_WORKSPACE 'CHANGELOG.md'
           $existing = [IO.File]::ReadAllText($changelog)
+          # A published changelog must assign every entry to a released version.
+          if ($existing -match '(?im)^##\s+\[?Unreleased\]?(?:\s|$)') { throw 'Resolve the Unreleased changelog section before publishing: move pending changes into the release notes or their released version.' }
           if ($existing -match ('(?m)^## \[?' + [regex]::Escape($env:RELEASE_VERSION) + '(?:\]|\s|$)')) { throw 'Changelog already contains this version.' }
           $firstBreak = $existing.IndexOf("`n")
           if ($firstBreak -lt 0) { throw 'Invalid changelog header.' }
