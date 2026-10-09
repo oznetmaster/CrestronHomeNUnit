@@ -18,8 +18,6 @@ Single-file workflow applications request a fresh build when exact assembly byte
 
 Software validation covers Android navigation, retained failures, workflow ownership, package reuse and network timing. The dedicated timing suite runs on .NET Framework 4.7.2 and .NET 10 in CI and release validation. The release also preserves the package merge resolver and NUnit 5 audit fixes already on main. These checks do not establish a completed hardware submission rehearsal or Crestron certification.
 
-### Additional 2.3.0 changes
-
 Network-link timing regressions now have a dedicated NUnit test project, registered in the solution and CI for both .NET Framework 4.7.2 and .NET 10. All 17 cases are discoverable by the standard test runner; they are separate from the compatibility runner’s fixed legacy test list.
 
 Native control fixtures can use `OpenRoomAsync` and `RestoreHomeAndCaptureAsync` to share the guarded room navigation used by extension checks. Navigation taps and room-list swipes retain their observed masked page and intent before input; failure to retain evidence prevents input. Home proof has independent bounded observation time and respects caller cancellation. Software regressions cover native navigation, uncertain input, and prior receipt requirements; live verification remains separate.
