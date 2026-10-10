@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.4.0 - 2026-10-08
+## 2.4.0 — 2026-10-08
 
 Adds Mac UI testing helpers to the existing CrestronHomeNUnit.TestAdapter package. The new CrestronHomeNUnit.Mac assembly provides Appium Mac2 transport, exact accessibility selectors, Home/room navigation, retained screenshot and hierarchy evidence, and binary-control testing with independent device-state verification and restoration.
 
@@ -8,7 +8,7 @@ Includes an explicit NUnit 5 sample for Visual Studio, VS Code and CI, a job-own
 
 Validation includes 42 offline Mac regressions and a fresh-package consumer, plus live Demo-outlet control and restoration and the public room sample on an Apple Silicon Mac running Crestron Home 4.12.11. The live tests used a Windows test runner and an Apple Silicon Mac, with the driver installed on a Crestron MC4-R. They verified independent physical state, retained evidence and automation shutdown. See the [validation record](https://github.com/oznetmaster/CrestronHomeNUnit/blob/main/docs/MacUiValidation.md) and [Mac testing guide](https://github.com/oznetmaster/CrestronHomeNUnit/blob/main/docs/MacUiTesting.md).
 
-## 2.3.0 - 2026-10-07
+## 2.3.0 — 2026-10-07
 
 ### Android UI testing
 
@@ -36,7 +36,7 @@ NUnit remains 5.0.0. Existing Android controller constructor signatures remain a
 
 Regression coverage includes navigation, uncertain input, retained failures, workflow ownership, package reuse and a real single-file packaging probe. All 17 network-link timing cases are discoverable in a dedicated NUnit project and run on .NET Framework 4.7.2 and .NET 10 in CI and release validation. These software checks do not establish a completed hardware submission rehearsal or Crestron certification.
 
-## 2.2.0 - 2026-09-29
+## 2.2.0 — 2026-09-29
 
 Installed-driver UI tests can opt in to preparing the app before asking the operator to be ready. The new `OperatorReadiness` binding selects one exact fixture, private inbox, run and request. The fixture can finish compilation, discovery and navigation before displaying Ready, eliminating the subsequent preparation delay.
 
@@ -46,7 +46,7 @@ The metadata handoff is cleared during discovery and omitted for ordinary plans.
 
 Validation: the offline workflow suite includes overnight readiness, long scheduler gaps, active-time expiry, cancellation, exact request binding and invalid-record checks. Full hardware rehearsal under this opt-in path remains pending; earlier failed attempts remain unchanged.
 
-## 2.1.2 - 2026-09-29
+## 2.1.2 — 2026-09-29
 
 Exact Android test selections can now run a mixture of ordinary and Explicit cases. Previously, NUnit adapter 6.3.0's Current execution path omitted the selected Explicit cases when ordinary cases were included. The workflow coverage check rejected the incomplete results, but manual-event tests never reached their operator prompts.
 
@@ -54,7 +54,7 @@ Selected execution now uses the adapter's documented Legacy discovery mode and R
 
 Validation: all 349 offline workflow tests passed. A real-adapter regression reproduced the omission before the fix and passed afterwards for ordinary, all-explicit and mixed selections, including duplicate names, filter-like characters in names, and deliberately failing unselected ordinary and Explicit cases. No physical devices were used by these regression tests. Live manual-event execution and a complete submission rehearsal remain to be verified. Earlier incomplete runs remain failed; this release does not rewrite their evidence. NUnit remains 5.0.0 and the processor runner implementation is unchanged.
 
-## 2.1.1 - 2026-09-29
+## 2.1.1 — 2026-09-29
 
 Release workflows can opt in to reusing a stored, uninstalled release package with `releaseCandidate.reuseVerifiedStoredPackage`. The runner verifies its SHA-256 against the pinned candidate, its local manifest identity, and one exact local catalogue entry before installing a new instance. It rejects newer or ambiguous entries, different bytes, changing catalogue state, and any installed package model or alias. Verification runs under the existing processor lease using pinned SSH; it does not upload, delete, renumber or rebuild the release, or reboot the processor.
 
@@ -62,7 +62,7 @@ The retained `actual-reuse.json` records how the package was verified. The exist
 
 Validation: all 348 offline workflow tests passed, including 20 stored-release checks covering exact bytes, mismatched identity, ambiguous catalogue entries, unsafe paths, concurrent changes and existing instances. Live activation through the new reuse path is pending; these results do not establish a completed submission rehearsal. NUnit remains 5.0.0, and processor runner binaries are unchanged by this workflow fix.
 
-## 2.1.0 - 2026-09-29
+## 2.1.0 — 2026-09-29
 
 Android workflows can now switch between explicitly permitted saved Homes before running a test phase. Set `AllowedStartingHomes` in each Android profile when sequential phases share one emulator. The workflow selects the expected Home, checks its saved local processor address and port, and returns to Home before exposing the session to tests.
 
@@ -72,7 +72,7 @@ Android profile equality now compares permitted Home names by value, so independ
 
 Validation: 159 Android tests passed. Live navigation switched between two saved processor Homes, verified both saved addresses and ports, and returned to the original Home. The downstream DevTools regression suite passed all 1,680 tests. These checks establish navigation and integration behavior, not a completed driver submission rehearsal. Processor execution remains on NUnit 5.0.0; this release does not change the processor runner.
 
-## 2.0.0 - 2026-09-28
+## 2.0.0 — 2026-09-28
 
 Processor test packages now default to released NUnit 5.0.0 while continuing to target .NET Framework 4.7.2. This is a major tooling update because NUnit 5 changes assertion APIs: await ThrowsAsync, CatchAsync and DoesNotThrowAsync, including before reading returned exception properties. Existing NUnit 4 projects can explicitly set ProcessorNUnitVersion=4.6.1; keep the test project's framework version aligned with its package host.
 
@@ -82,7 +82,7 @@ Framework self-tests use the final NUnit 5 source, retaining documented writable
 
 Validation: all 523 tooling tests passed. Packaged Windows self-tests passed twice (2,480 passed and 58 skipped each round). Processor rounds had no failed tests: 2,477 passed/8 timing warnings/53 skipped, then 2,482 passed/3 warnings/53 skipped. All 34 compatibility tests passed twice; processor cancellation and recovery passed. Generated consumer packages passed twice with NUnit 5 (five tests) and explicitly selected NUnit 4 (two tests). These results are specific to the tested processor/runtime; warnings and skips are not passing tests.
 
-## 1.12.4 - 2026-09-28
+## 1.12.4 — 2026-09-28
 
 Android workflow discovery now accepts NUnit Explicit cases when the plan supplies exact `androidTests.requiredTests` names. Previously, discovery rejected these cases before the explicitly selected tests could execute. Runs without an exact selection continue to reject Explicit cases; ignored and invalid discovery entries remain errors.
 
@@ -92,17 +92,17 @@ Validation: all 328 offline workflow tests passed, including selected Explicit e
 
 This release also retains the corrected NuGet README links and package release-note metadata published in the 1.12.3 documentation-only adapter patch.
 
-## 1.12.3 - 2026-09-25
+## 1.12.3 — 2026-09-25
 
 NuGet-only documentation patch: repair adapter README links and include release notes in package metadata. Runtime binaries are unchanged from 1.12.2; the existing GitHub release is unchanged.
 
-## 1.12.2 - 2026-09-25
+## 1.12.2 — 2026-09-25
 
 Saved-endpoint inspection now selects the configured Home's menu in either the grid or list view of My Systems. Previously, list view had no matching menu selector, and multiple grid cards made the global selector ambiguous. The navigator continues to reject duplicate Home names, missing menus and disabled controls.
 
 Validation: 145 Android toolkit tests passed, including grid/list selection and rejection of another Home's menu. A focused hardware check with two saved Homes in list view verified the intended local endpoint and restored Home. This validates endpoint navigation, not physical device controls.
 
-## 1.12.1 - 2026-09-19
+## 1.12.1 — 2026-09-19
 
 Fix installed-driver test phases that stopped at candidate verification despite a matching installed package. The workflow, CLI and Visual Studio adapter now consume CrestronHomeDevTools 1.13.1, which resolves full processor catalogue IDs to the correct extracted-payload directory and checks their version against the candidate.
 
@@ -110,7 +110,7 @@ Validation includes the workflow and adapter regression suites, a build against 
 
 NUnit remains 4.6.1. No processor host behavior or driver under test is changed by this patch. See [installed-driver testing](docs/InstalledDriverTests.md) for the supported scope.
 
-## 1.12.0 - 2026-09-18
+## 1.12.0 — 2026-09-18
 
 Run selected Android NUnit fixtures against an already-installed driver without rebuilding or redeploying it. The new `installed-tests` CLI command and `InstalledDriverTests.RunAsync` C# entry point verify the selected driver and its extracted package files before and after the test phase.
 
@@ -122,7 +122,7 @@ Run selected Android NUnit fixtures against an already-installed driver without 
 
 Validation: the offline workflow suite and isolated NuGet/CLI acceptance passed, covering selection integrity, installed-phase handling, plan validation and rejection before hardware access. Package checks compared executed assemblies with their archives and used no source-project dependency override. Complete hardware validation of the new dedicated phase remains pending. File and identity checks do not attest running process memory or an uninterrupted driver lifetime.
 
-## 1.11.1 - 2026-09-18
+## 1.11.1 — 2026-09-18
 
 The Android workflow now preserves and verifies the complete test program used for a run. Previously, evidence consumers could identify the main fixture assembly without detecting a changed dependency or runtime setting.
 
@@ -135,7 +135,7 @@ Validation: the offline workflow and evidence-integrity tests passed. Isolated p
 
 These are retained-file integrity checks, not worker authentication or proof that arbitrary fixture code executed honestly. Consumers must retain trusted pre-execution pins to verify the original test program. Old evidence cannot gain a pre-execution inventory retroactively.
 
-## 1.11.0 - 2026-09-17
+## 1.11.0 — 2026-09-17
 
 Android UI fixtures can now inspect extension pages whose controls do not fit on one screen. The shared navigation session exposes guarded scrolling in both directions, and saved-processor endpoint verification can reveal the local port on smaller screens.
 
@@ -146,7 +146,7 @@ Android UI fixtures can now inspect extension pages whose controls do not fit on
 
 Validation: 139 Android regressions passed from source and through an isolated private adapter package. Package acceptance also checked ordinary NUnit API use, workflow discovery, execution guards and the identity of executed assembly bytes. A focused development run on a headless Google Android emulator used a reduced viewport, verified the saved endpoint through two observed scrolls, and inspected all expected labelled controls across two editor views. Independent device state, Home, emulator size, original inventory, temporary-child removal and reservation release were verified. The hardware results cover the exercised development workflow and viewport.
 
-## 1.10.0 - 2026-09-17
+## 1.10.0 — 2026-09-17
 
 The combined CLI/Test Explorer workflow can now create temporary managed children for an Android test project, pass their actual IDs to fixtures by alias, and remove the children after independently confirmed restoration. Setup and cleanup use the published CrestronHomeDevTools 1.6.0 library under the workflow's existing processor and Android reservations.
 
@@ -158,7 +158,7 @@ The combined CLI/Test Explorer workflow can now create temporary managed childre
 
 Validation: full workflow and Android regression suites passed. A private adapter candidate passed isolated installation, ordinary NUnit API use, workflow discovery and execution guards. A normal combined CLI workflow passed on a CP4-R with local tests, processor tests, read-only hub tests, an actual Debug driver update, temporary-child commissioning, one selected Android editor Cancel test, independently checked restoration and cleanup. Fresh inventory confirmed the original device identities and rooms were preserved, the owned child/test instance were absent, uploaded test-package storage was removed and reservations were released. Home retained cached catalogue metadata until a later planned reboot. The selected UI test sent no heating-control or schedule-save command. These results cover the selected test and workflow; complete visual coverage remains the consuming fixture's responsibility.
 
-## 1.9.0 - 2026-09-17
+## 1.9.0 — 2026-09-17
 
 Identify repeated Android controls by the label beside them. `AndroidSelector.SiblingText` selects a button or value only when exactly one non-password sibling under the same immediate parent has the requested text and belongs to the configured application. It can be combined with an ancestor resource ID.
 
@@ -166,7 +166,7 @@ Missing, duplicate, nested or foreign-application labels cannot select a differe
 
 Validation: the complete Android regression suite passed, including labelled-row selection, invalid or ambiguous targets and uncertain-input handling. An isolated consumer restored the private adapter candidate, used the new API in an ordinary NUnit fixture, discovered the workflow and verified its execution guards. These checks cover the shared helpers; each consuming fixture must verify its own physical behavior.
 
-## 1.8.2 - 2026-09-17
+## 1.8.2 — 2026-09-17
 
 Fix final verification and cleanup after long Android UI test stages. The workflow opens a fresh processor configuration connection after confirmed UI restoration and before removing its temporary test instance, instead of depending on a configuration session that may have become idle during the tests.
 
@@ -174,7 +174,7 @@ Processor reservation ownership is checked before and after connecting. A failed
 
 Validation: all 245 workflow regression tests passed. A complete development workflow passed desktop tests, processor tests, live reads, the driver update, three Android inspection cases, final driver verification and temporary-instance cleanup. Both reservations were released. Hardware validation covers the exercised development workflow.
 
-## 1.8.1 - 2026-09-16
+## 1.8.1 — 2026-09-16
 
 Fix room extension inspection when a named tile is below the initial viewport. The UI automation helper searches the observed service area with bounded scrolling and recognizes the compact room title that replaces the large heading after scrolling. Tile taps remain inside the visible area, clear of the toolbar and bottom navigation.
 
@@ -182,7 +182,7 @@ The search stops on an unchanged or repeated viewport, an ambiguous or disabled 
 
 Validation: the complete Android regression suite passed against both source and an isolated adapter package. Package restore, workflow discovery and execution guards also passed. In the minimized Google emulator, a visible room extension was inspected successfully; a missing tile stopped the search and restored Home under both large and compact heading layouts. The checked device state and inventory were preserved and reservations released. Physical control tests were not part of this read-only validation.
 
-## 1.8.0 - 2026-09-16
+## 1.8.0 — 2026-09-16
 
 Add room and nested-page inspection to the Crestron Home NUnit UI automation library included in the test adapter. Tests can open a named room extension, inspect nested extension pages and verify complete selection lists without choosing an option. Page names, navigation controls and expected values are supplied by each driver's test fixture. Controls are scoped to the front page even when the app retains background pages with identical resource IDs.
 
@@ -190,7 +190,7 @@ The navigation helpers restore the original Home screen after successful checks 
 
 Validation: all 91 Android regression tests passed, including against a private packaged adapter. Read-only checks in the minimized Google emulator verified complete selection lists and their selected values for the exercised fixture. Editing was cancelled, Home and checked device settings were preserved, both reservations were released, and all 13 accepted capture pairs matched their retained hashes. Earlier controlled failures also restored Home and preserved checked state. This validates the helpers against an already-installed Debug driver.
 
-## 1.7.1 - 2026-09-16
+## 1.7.1 — 2026-09-16
 
 Fix saved-connection inspection on portrait Android screens where the local-port field is below the visible area. The navigator first verifies and records the Home name and local address, makes one guarded scroll, then verifies the port. It closes the editor and verifies return to Home even when inspection fails. An uncertain scroll is never repeated.
 
@@ -198,7 +198,7 @@ The setup guide now covers Visual Studio's Android SDK Manager, Windows accelera
 
 Validation: all 67 local Android tests passed. Both read-only sample driver gateway cases passed through a private packaged adapter candidate with Google's Pixel 7 Android emulator minimized. Eight screenshot/hierarchy pairs were verified; gateway state was unchanged, Home was restored and both reservations were released. These results cover a logged-in Windows session and an already-installed Debug driver, not service-session operation.
 
-## 1.7.0 - 2026-09-16
+## 1.7.0 — 2026-09-16
 
 This is the **first release of Android UI testing support**. A development workflow can now run NUnit tests against the real Crestron Home Android app after its desktop tests, processor tests and gated driver update.
 
@@ -212,7 +212,7 @@ Validation: the complete sample driver development workflow passed with the pack
 
 Hardware validation for this release covered read-only gateway checks with minimized BlueStacks in a logged-in Windows session. Physical UI controls, service-session operation and exact Release-candidate hardware validation were not established by those checks.
 
-## 1.6.0 - 2026-09-16
+## 1.6.0 — 2026-09-16
 
 Add explicit shared-driver reboot scope for removing temporary V1 instances. Existing plans retain their previous behavior.
 
@@ -223,7 +223,7 @@ Add explicit shared-driver reboot scope for removing temporary V1 instances. Exi
 
 Validation: plan validation, serialization and preservation guards have automated coverage. V1 driver initial installation and removal were verified on the development MC4-R with two configuration-aware reboots and existing instances preserved. Initial startup verification was resumed read-only after a timeout; no install or reboot command was repeated. This is hardware evidence with assisted verification, not a claim that that complete cycle ran unattended.
 
-## 1.5.0 - 2026-09-15
+## 1.5.0 — 2026-09-15
 
 Add an opt-in, guarded code rollback policy for completed failed installed-driver checks. Current configuration is preserved; saved settings and refresh tokens are never replayed.
 
@@ -234,7 +234,7 @@ Add an opt-in, guarded code rollback policy for completed failed installed-drive
 
 Validation: workflow tests cover stage selection, durable-intent failures, cancellation, execution-marker retention, compatibility/identity changes, eligibility drift, lost responses and required swap completion. The real backend passed on a temporary MC4-R Entity V2 host: prior-package/configuration capture, upgrade, older-code restoration, configuration and health verification, host/archive removal and lease release. No production driver or token was rolled back. The complete deliberately failing production-driver workflow was not exercised; each production driver requires its own reviewed verifier.
 
-## 1.4.0 - 2026-09-15
+## 1.4.0 — 2026-09-15
 
 Add optional installed-device control testing with independent physical observation and restoration, and explicit reuse of retained workflow packages.
 
@@ -246,19 +246,19 @@ Add optional installed-device control testing with independent physical observat
 
 Validation: 151 workflow regressions passed, including a retained-artifact path that succeeds with a deliberately unbuildable project. The sample outlet driver hardware workflow passed 71 local tests, 71 processor tests, three processor live tests and four installed checks, including physical outlet control and restoration. The temporary instance and archive were removed and the reservation released. Cross-processor reuse has not yet been hardware-validated. Automatic rollback is not enabled by this release.
 
-## Offline release workflow support - 2026-09-15 (no binary release)
+## Offline release workflow support — 2026-09-15 (no binary release)
 
 - Add an explicit manual hardware-check override with a required reason and exact-source workflow evidence, covering an unavailable processor or local GitHub runner.
 - Independently require configured GitHub-hosted validation and preserve other release checks. No runner, host or NuGet version changes.
 
-## Discovery-based source tooling - 2026-09-15 (no binary release)
+## Discovery-based source tooling — 2026-09-15 (no binary release)
 
 - Generate package suites without duplicated expected-count fields by default, while preserving an explicitly requested positive count.
 - Add reusable source-to-execution and source-to-package coverage checks, including multiple test assemblies, custom suite names, distinct live/control categories and duplicate parameter display names.
 - These source tools preserve live-test exclusion and existing Windows/processor execution boundaries. No runner, host or NuGet version changes.
 - Correct hardware-CI template cleanup requirements and document release preflight gates without requiring new branch rules.
 
-## 1.3.0 - 2026-09-15
+## 1.3.0 — 2026-09-15
 
 Add optional automatic storage cleanup for successful CI test runs, while preserving manual deployments.
 
@@ -271,7 +271,7 @@ Add optional automatic storage cleanup for successful CI test runs, while preser
 
 Validation: 100 desktop workflow regressions passed. A complete MC4-R test-only run passed 47 local tests, 47 processor tests and three read-only live tests, then automatically removed its instance and hash-verified archive and released the reservation. All 14 pre-existing storage paths were protected. No actual driver was updated and no reboot was requested. An earlier activation timeout was reconciled separately and is not counted as a successful end-to-end run.
 
-## 1.2.2 - 2026-09-15
+## 1.2.2 — 2026-09-15
 
 Patch release fixing Debug version collisions in the CLI and Visual Studio Test Explorer workflow when a newer build has been deployed manually.
 
@@ -282,13 +282,13 @@ Patch release fixing Debug version collisions in the CLI and Visual Studio Test 
 
 Validation: 73 desktop workflow regressions passed. A complete MC4-R test-only run started with source revision zero, reconciled catalogue baseline 1.1.1.5, built 1.1.1.6 and passed 69 local plus 69 processor tests. Its temporary test instance was removed and the processor lease released. No actual-driver update was attempted in this validation.
 
-## Automatic hardware-check template - 2026-09-15 (no package release)
+## Automatic hardware-check template — 2026-09-15 (no package release)
 
 - Add a reusable private orchestration template with exact-source hosted-test gates, approved PR selection, GitHub App reporting and sequential processor execution.
 - Cover independent library changes and collection package definitions separately, with original dependency pins retained for collection checks.
 - Document one-time App provisioning, adding projects, required-check policy and release-generated source validation. Include offline policy tests and generic release-check scripts.
 
-## Hardware CI documentation - 2026-09-15 (no package release)
+## Hardware CI documentation — 2026-09-15 (no package release)
 
 - Record successful GitHub runner service executions through the published adapter, including temporary-instance cleanup and lease release.
 - Document service account provisioning, pinned helper sources, short packaging paths, Debug revision persistence and target-specific test filters.
