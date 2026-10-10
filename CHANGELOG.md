@@ -334,13 +334,17 @@ Validation: 73 desktop workflow regressions passed. A complete MC4-R test-only r
 
 - Add a .NET 10 processor-test CLI and shared authentication client, with CI result files, explicit manual-suite selection and incomplete-run exit codes.
 
-## [1.0.2] — 2026-09-12
+## 1.0.2 — 2026-09-12
+
+[Compare changes][1.0.2]
 
 ### Fixed
 
 - Share runner test inputs across suites in the same processor package, preserving the selection when switching between unit, read-only live and control tests. Keep other processors and packages isolated, migrate compatible saved selections, and preserve explicit clearing.
 
-## [1.0.1] — 2026-09-12
+## 1.0.1 — 2026-09-12
+
+[Compare changes][1.0.1]
 
 ### Fixed
 
@@ -354,7 +358,9 @@ Validation: 73 desktop workflow regressions passed. A complete MC4-R test-only r
 - Validate the merge corrections with 233 offline and six live a client library tests passing on a processor.
 - Update runner behavior and upgrade instructions; include this changelog and validation history in the documentation archive.
 
-## [1.0.0] — 2026-09-11
+## 1.0.0 — 2026-09-11
+
+[Compare changes][1.0.0]
 
 - Initial Windows runner with mDNS package discovery, processor authentication, suite/test selection, private inputs, results and saved preferences.
 - Self-contained .NET 10 Windows distribution and net472 NUnit Test Host with standalone Home tiles in the Utility category.
