@@ -28,8 +28,8 @@ public sealed class ConfigurationTests
 			SshFingerprint = "pin",
 			SourceRoots = ["source"],
 			LocalTests = [new (project, 1)],
-			TestPackage = new (project, Path.GetFullPath ("test.pkg"), "Tests", 1),
-			ActualDriver = new (project, Path.GetFullPath ("actual.pkg"), "Actual", 1),
+			TestPackage = new (project, Path.GetFullPath ("test.pkg"), "Tests", "Office"),
+			ActualDriver = new (project, Path.GetFullPath ("actual.pkg"), "Actual", "Office"),
 			ProcessorSuites = [new ("unit", 1, [])],
 			LiveSuites = [new ("live", 1, [])],
 			DeployedChecks = [new ("Ready", id, "Example", "ready", JsonSerializer.SerializeToElement (true)) { UseActualDriver = actual }]

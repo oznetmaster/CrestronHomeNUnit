@@ -66,4 +66,57 @@ public sealed class WorkflowActiveDeadlineTests
    Assert.That(planned.ReadStatus()!.Response!.Outcome,Is.EqualTo(SubmissionOperatorOutcome.Unable));
   } finally {Directory.Delete(root,true);}
  }
+ [Test] public async Task ReserveSamplesPreparationImmediatelyAndDoesNotResetBudget() {
+  var clock=new Clock();
+  await using var budget=new WorkflowActiveDeadline(TimeSpan.FromSeconds(30),default,null,clock);
+  clock.Advance(TimeSpan.FromSeconds(20));
+  Assert.That(budget.RequireRemaining(TimeSpan.FromSeconds(10)),Is.EqualTo(TimeSpan.FromSeconds(10)));
+  clock.Advance(TimeSpan.FromTicks(1));
+  Assert.Throws<InvalidDataException>(()=>budget.RequireRemaining(TimeSpan.FromSeconds(10)));
+  Assert.That(budget.Remaining,Is.LessThan(TimeSpan.FromSeconds(10)));
+ }
+ [Test] public async Task CanceledAndExpiredBudgetCannotAdmitExecution() {
+  var clock=new Clock();using var cancel=new CancellationTokenSource();
+  await using var canceled=new WorkflowActiveDeadline(TimeSpan.FromSeconds(30),cancel.Token,null,clock);
+  await cancel.CancelAsync();
+  Assert.That(canceled.Remaining,Is.EqualTo(TimeSpan.Zero));
+  Assert.Catch<OperationCanceledException>(()=>canceled.RequireRemaining(TimeSpan.FromSeconds(1)));
+  await using var expired=new WorkflowActiveDeadline(TimeSpan.FromSeconds(30),default,null,clock);
+  clock.Advance(TimeSpan.FromSeconds(31));
+  Assert.That(expired.Remaining,Is.EqualTo(TimeSpan.Zero));
+  Assert.Catch<OperationCanceledException>(()=>expired.RequireRemaining(TimeSpan.FromSeconds(1)));
+ }
+ [TestCase(0)] [TestCase(-1)] [TestCase(86401)]
+ public async Task InvalidReserveIsRejectedWithoutExtendingDeadline(int seconds) {
+  var clock=new Clock();await using var budget=new WorkflowActiveDeadline(TimeSpan.FromSeconds(30),default,null,clock);
+  Assert.Throws<ArgumentOutOfRangeException>(()=>budget.RequireRemaining(TimeSpan.FromSeconds(seconds)));
+  Assert.That(budget.Remaining,Is.EqualTo(TimeSpan.FromSeconds(30)));
+ }
+ [Test] public async Task ReserveKeepsValidatedHumanWaitAndFailureSemantics() {
+  var clock=new Clock();bool pending=true;
+  await using var budget=new WorkflowActiveDeadline(TimeSpan.FromSeconds(30),default,()=>pending,clock);
+  clock.Advance(TimeSpan.FromHours(48));
+  Assert.That(budget.RequireRemaining(TimeSpan.FromSeconds(30)),Is.EqualTo(TimeSpan.FromSeconds(30)));
+  pending=false;Assert.That(budget.Remaining,Is.EqualTo(TimeSpan.FromSeconds(30)));
+  clock.Advance(TimeSpan.FromSeconds(5));
+  Assert.That(budget.Remaining,Is.EqualTo(TimeSpan.FromSeconds(25)));
+  await using var broken=new WorkflowActiveDeadline(TimeSpan.FromSeconds(30),default,()=>throw new IOException("Synthetic validation failure"),clock);
+  Assert.Throws<InvalidDataException>(()=>broken.RequireRemaining(TimeSpan.FromSeconds(1)));
+ }
+ [Test] public async Task InvalidClockCannotIncreaseAllowance() {
+  var clock=new Clock();await using var budget=new WorkflowActiveDeadline(TimeSpan.FromSeconds(30),default,null,clock);
+  clock.Advance(TimeSpan.FromSeconds(-1));
+  Assert.Throws<InvalidDataException>(()=>budget.RequireRemaining(TimeSpan.FromSeconds(1)));
+  Assert.That(budget.Token.IsCancellationRequested,Is.True);
+ }
+
+ [Test] public async Task AttendedPhysicalHasNoMonitorEvenAfterArbitraryMonotonicAdvance(){
+  var clock=new Clock();using var cancel=new CancellationTokenSource();
+  await using var lifetime=WorkflowActiveDeadline.WithoutElapsedTimeout(cancel.Token,clock);
+  clock.Advance(TimeSpan.FromDays(10000));Assert.That(lifetime.HasElapsedTimeout,Is.False);
+  Assert.That(lifetime.Token.IsCancellationRequested,Is.False);
+  Assert.Throws<InvalidOperationException>(()=>{_ = lifetime.Remaining;});
+  Assert.Throws<InvalidOperationException>(()=>lifetime.RequireRemaining(TimeSpan.FromSeconds(1)));
+  await cancel.CancelAsync();Assert.That(lifetime.Token.IsCancellationRequested,Is.True);
+ }
 }

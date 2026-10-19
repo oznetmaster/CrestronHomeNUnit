@@ -156,9 +156,9 @@ public sealed class RollbackTests
 		{
 		DeviceInfo[] all = [new () { Id = 15, ParentDeviceId = 13, Model = "Grandchild", Name = "Nested", LocationId = 6 }, Root (),
 			new () { Id = 13, ParentDeviceId = 12, Model = "Child", Name = "Child", LocationId = 5 }, new () { Id = 16, ParentDeviceId = -6, Model = "Unrelated" }];
-		var scope = WorkflowRollback.Scope (all, 12, "Example", "1.2.3.4");
+		var scope = WorkflowRollback.Scope (all, 12, "Example", "1.2.3.4", new Dictionary<int,string> { [12] = "Office", [13] = "Office", [15] = "Lounge" });
 		Assert.That (scope.Select (n => n.Id), Is.EqualTo (new[] { 12, 13, 15 }));
-		Assert.That (scope[2], Is.EqualTo (new WorkflowRollback.Node (15, 13, "Grandchild", "Nested", 6)));
+		Assert.That (scope[2], Is.EqualTo (new WorkflowRollback.Node (15, 13, "Grandchild", "Nested", "Lounge")));
 		}
 	[TestCase ("cp.driverConfiguration:driverLoadingStatus", "Unloaded")]
 	[TestCase ("cp.driverConfiguration:driverLoadingStatus", "Loading")]
@@ -167,19 +167,19 @@ public sealed class RollbackTests
 		{
 		var root = Root ();
 		root.PropertyValues[property] = JsonSerializer.SerializeToElement (value);
-		Assert.Throws<InvalidOperationException> (() => WorkflowRollback.Scope ([root], 12, "Example", "1.2.3.4"));
+		Assert.Throws<InvalidOperationException> (() => WorkflowRollback.Scope ([root], 12, "Example", "1.2.3.4", new Dictionary<int,string> { [12] = "Office", [13] = "Office", [15] = "Lounge" }));
 		}
 	[Test]
 	public void RebootUnknownConfigurationAndDuplicateIdentityAreRejected ()
 		{
 		var root = Root ();
 		root.PropertyValues["cp.driverConfiguration:swapDriverRequiresReboot"] = JsonSerializer.SerializeToElement (true);
-		Assert.Throws<InvalidOperationException> (() => WorkflowRollback.Scope ([root], 12, "Example", "1.2.3.4"));
+		Assert.Throws<InvalidOperationException> (() => WorkflowRollback.Scope ([root], 12, "Example", "1.2.3.4", new Dictionary<int,string> { [12] = "Office", [13] = "Office", [15] = "Lounge" }));
 		root = Root ();
 		root.PropertyValues.Remove ("cp.driverConfiguration:isConfigured");
-		Assert.Throws<InvalidOperationException> (() => WorkflowRollback.Scope ([root], 12, "Example", "1.2.3.4"));
-		Assert.Throws<InvalidDataException> (() => WorkflowRollback.Scope ([Root (), Root ()], 12, "Example", "1.2.3.4"));
-		Assert.Throws<InvalidOperationException> (() => WorkflowRollback.Scope ([Root ()], 12, "Wrong", "1.2.3.4"));
+		Assert.Throws<InvalidOperationException> (() => WorkflowRollback.Scope ([root], 12, "Example", "1.2.3.4", new Dictionary<int,string> { [12] = "Office", [13] = "Office", [15] = "Lounge" }));
+		Assert.Throws<InvalidDataException> (() => WorkflowRollback.Scope ([Root (), Root ()], 12, "Example", "1.2.3.4", new Dictionary<int,string> { [12] = "Office", [13] = "Office", [15] = "Lounge" }));
+		Assert.Throws<InvalidOperationException> (() => WorkflowRollback.Scope ([Root ()], 12, "Wrong", "1.2.3.4", new Dictionary<int,string> { [12] = "Office", [13] = "Office", [15] = "Lounge" }));
 		}
 
 	[Test]

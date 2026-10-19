@@ -109,6 +109,10 @@ public sealed record WorkflowPlan
 		if (AndroidTests != null)
 			{
 			AndroidTests.ValidateManagedChildren ();
+			AndroidTests.ValidateExecutionReserve ();
+			if (AndroidTests.ExecutionReserveSeconds != 0)
+				throw new ArgumentException ("Explicit Android execution reserve currently requires InstalledDriverTests with its monotonic active deadline.");
+
 			AndroidTestSelection.Validate (AndroidTests.RequiredTests);
 			if (ActualDriver == null || !Path.IsPathFullyQualified (AndroidTests.Project) || !File.Exists (AndroidTests.Project) ||
 				!Path.IsPathFullyQualified (AndroidTests.ProfilePath) || !File.Exists (AndroidTests.ProfilePath) ||
@@ -139,7 +143,7 @@ public sealed record WorkflowPlan
 			throw new ArgumentException ("Test and actual driver targets must be distinct.");
 		foreach (var p in new[] { TestPackage, ActualDriver }.OfType<PackageBuildPlan> ())
 			{
-			if (p.LocationId <= 0 || p.ExpectedDeviceId is <= 0 || string.IsNullOrWhiteSpace (p.InstanceName) || p.InstanceName.Length > 32)
+			if (string.IsNullOrWhiteSpace (p.RoomName) || p.ExpectedDeviceId is <= 0 || string.IsNullOrWhiteSpace (p.InstanceName) || p.InstanceName.Length > 32)
 				throw new ArgumentException ("Package targets need a room and unique instance name of at most 32 characters.");
 			if (!File.Exists (p.Project) || !Path.IsPathFullyQualified (p.PackagePath))
 				throw new ArgumentException ("Invalid build project or package output path.");
@@ -154,6 +158,15 @@ public sealed record WorkflowPlan
 public sealed record LocalTestPlan (string Project, int MinimumPassed, string? Filter = null);
 public sealed record AndroidTestPlan (string Project, string ProfilePath)
 	{
+	/// <summary>Opt-in minimum remaining coordinator seconds for selected child work and independent cleanup.
+	/// Zero preserves legacy behavior. Supported by InstalledDriverTests.</summary>
+	public int ExecutionReserveSeconds { get; init; }
+	internal void ValidateExecutionReserve ()
+		{
+		if (ExecutionReserveSeconds is < 0 or > 86400)
+			throw new ArgumentException ("Android execution reserve must be zero or a positive allowance of at most one day.");
+		}
+
 	public IReadOnlyList<AndroidManagedChildPlan> ManagedChildren { get; init; } = [];
 	public IReadOnlyList<string>? RequiredTests { get; init; }
 
@@ -163,15 +176,15 @@ public sealed record AndroidTestPlan (string Project, string ProfilePath)
 			string.IsNullOrWhiteSpace (child.Alias) || child.Alias.Length > 64 ||
 			child.Alias.Any (c => !char.IsAsciiLetterOrDigit (c) && c is not ('_' or '-')) ||
 			string.IsNullOrWhiteSpace (child.ManagedDeviceId) || string.IsNullOrWhiteSpace (child.Model) ||
-			string.IsNullOrWhiteSpace (child.Name) || child.Name.Length > 32 || child.LocationId <= 0) ||
+			string.IsNullOrWhiteSpace (child.Name) || child.Name.Length > 32 || string.IsNullOrWhiteSpace (child.RoomName)) ||
 			ManagedChildren.Select (child => child.Alias).Distinct (StringComparer.OrdinalIgnoreCase).Count () != ManagedChildren.Count ||
 			ManagedChildren.Select (child => child.ManagedDeviceId).Distinct (StringComparer.Ordinal).Count () != ManagedChildren.Count ||
-			ManagedChildren.Select (child => (child.LocationId, child.Name)).Distinct ().Count () != ManagedChildren.Count)
+			ManagedChildren.Select (child => (child.RoomName.ToUpperInvariant (), child.Name)).Distinct ().Count () != ManagedChildren.Count)
 			throw new ArgumentException ("Managed-child tests require distinct aliases, advertised child identities and room/name pairs, with an explicit model and room.");
 		}
 	}
-public sealed record AndroidManagedChildPlan (string Alias, string ManagedDeviceId, string Name, string Model, int LocationId);
-public sealed record PackageBuildPlan (string Project, string PackagePath, string InstanceName, int LocationId, int? ExpectedDeviceId = null)
+public sealed record AndroidManagedChildPlan (string Alias, string ManagedDeviceId, string Name, string Model, string RoomName);
+public sealed record PackageBuildPlan (string Project, string PackagePath, string InstanceName, string RoomName, int? ExpectedDeviceId = null)
 	{
 	public string? ManifestPath { get; init; }
 	public int[] AdditionalRemovalRebootDeviceIds { get; init; } = [];

@@ -31,7 +31,7 @@ public sealed class CrestronHomeNavigationTests
 			"192.0.2.1", 7, Guid.NewGuid ().ToString (), "1.0.0.1", new ('A', 64), new ('B', 64),
 			new (Environment.ProcessPath!, "fake-serial", "com.crestron.phoenix.app", "Example Home", path), _directory);
 		_transport = new ();
-		_navigation = new (new (_context, new (_transport, _context.Profile.Application)), TimeSpan.FromMilliseconds (60));
+		_navigation = new (new (_context, new (_transport, _context.Profile.Application)), TimeSpan.FromSeconds (2));
 		}
 
 	[TearDown]
@@ -76,6 +76,141 @@ public sealed class CrestronHomeNavigationTests
 		await Assert.ThrowsAsync<IOException> (() => _navigation.InspectHomeExtensionAsync ("extension-uncertain", "Example Driver", "Example Options", _ => { }));
 		Assert.That (_navigation.HomeRestored, Is.True);
 		Assert.That (_transport.Inputs, Is.EqualTo (new[] { "home", "extension" }));
+		}
+
+	[Test]
+	public async Task HomeObservationAwaitsCallbackBeforeRestoringAndRetainsEntryEvidence ()
+		{
+		var entered = new TaskCompletionSource (TaskCreationOptions.RunContinuationsAsynchronously);
+		var finish = new TaskCompletionSource (TaskCreationOptions.RunContinuationsAsynchronously);
+		var run = _navigation.ObserveHomeExtensionAsync ("home-observe", "Example Driver", "Example Options", async (page, token) =>
+			{
+			CrestronHomePages.RequireExtensionPage (page, "Example Options");
+			Assert.That (File.Exists (Path.Combine (_directory, "home-observe.controls", "observation.json")), Is.True);
+			entered.SetResult ();
+			await finish.Task.WaitAsync (token);
+			Assert.That (_transport.Page, Is.EqualTo ("extension"));
+			});
+		try
+			{
+			await entered.Task.WaitAsync (TimeSpan.FromSeconds (5));
+			Assert.That (run.IsCompleted, Is.False);
+			Assert.That (_transport.Page, Is.EqualTo ("extension"));
+			Assert.That (_transport.Inputs, Is.EqualTo (new[] { "home" }));
+			Assert.That (_navigation.HomeRestored, Is.False);
+			Assert.That (Directory.Exists (Path.Combine (_directory, "home-observe.home-restored")), Is.False);
+			}
+		finally { finish.TrySetResult (); await run; }
+		Assert.That (_navigation.HomeRestored, Is.True);
+		Assert.That (_transport.Inputs, Is.EqualTo (new[] { "home", "extension" }));
+		Assert.That (File.Exists (Path.Combine (_directory, "home-observe.home-restored", "observation.json")), Is.True);
+		}
+
+	[Test]
+	public async Task HomeObservationFailurePreservesCallbackErrorAndRestoresHome ()
+		{
+		var primary = new InvalidDataException ("Observation failed after suspension");
+		var error = await Assert.ThrowsAsync<InvalidDataException> (() => _navigation.ObserveHomeExtensionAsync (
+			"home-observe-failure", "Example Driver", "Example Options", async (_, _) => { await Task.Yield (); throw primary; }));
+		Assert.That (error, Is.SameAs (primary));
+		Assert.That (_navigation.HomeRestored, Is.True);
+		Assert.That (_transport.Inputs, Is.EqualTo (new[] { "home", "extension" }));
+		Assert.That (File.Exists (Path.Combine (_directory, "home-observe-failure.controls", "observation.json")), Is.True,
+			"The entry-page capture is independent of the later observation outcome.");
+		Assert.That (File.Exists (Path.Combine (_directory, "home-observe-failure.home-restored", "observation.json")), Is.True);
+		}
+
+	[Test]
+	public async Task CancelledHomeObservationReceivesCallerTokenAndStillRestoresHome ()
+		{
+		using var cancellation = new CancellationTokenSource ();
+		var entered = new TaskCompletionSource (TaskCreationOptions.RunContinuationsAsynchronously);
+		var run = _navigation.ObserveHomeExtensionAsync ("home-observe-cancel", "Example Driver", "Example Options", async (_, token) =>
+			{
+			Assert.That (token, Is.EqualTo (cancellation.Token));
+			entered.SetResult ();
+			await Task.Delay (Timeout.InfiniteTimeSpan, token);
+			}, cancellation.Token);
+		try { await entered.Task.WaitAsync (TimeSpan.FromSeconds (5)); }
+		finally { cancellation.Cancel (); }
+		var error = await Assert.CatchAsync<OperationCanceledException> (() => run);
+		Assert.That (error!.CancellationToken, Is.EqualTo (cancellation.Token));
+		Assert.That (_navigation.HomeRestored, Is.True);
+		Assert.That (_transport.Inputs, Is.EqualTo (new[] { "home", "extension" }));
+		Assert.That (File.Exists (Path.Combine (_directory, "home-observe-cancel.home-restored", "observation.json")), Is.True);
+		}
+
+	[TestCase (false)]
+	[TestCase (true)]
+	public async Task HomeInspectionPreservesPrimaryAndCleanupErrors (bool asynchronous)
+		{
+		var primary = new InvalidDataException ("Original observation failure");
+		_transport.ThrowAfterInput = 2;
+		var error = await Assert.ThrowsAsync<AggregateException> (() => asynchronous
+			? _navigation.ObserveHomeExtensionAsync ("home-dual-failure", "Example Driver", "Example Options", async (_, _) => { await Task.Yield (); throw primary; })
+			: _navigation.InspectHomeExtensionAsync ("home-dual-failure", "Example Driver", "Example Options", _ => throw primary));
+		Assert.That (error!.InnerExceptions, Has.Count.EqualTo (2));
+		Assert.That (error.InnerExceptions[0], Is.SameAs (primary));
+		Assert.That (error.InnerExceptions[1], Is.TypeOf<IOException> ());
+		Assert.That (_transport.Inputs, Is.EqualTo (new[] { "home", "extension" }));
+		Assert.That (_navigation.HomeRestored, Is.False);
+		Assert.That (Directory.Exists (Path.Combine (_directory, "home-dual-failure.home-restored")), Is.False);
+		}
+
+	[Test]
+	public async Task HomeObservationDoesNotReplayAnUncertainOpenOrInvokeCallback ()
+		{
+		_transport.ThrowAfterInput = 1;
+		int callbacks = 0;
+		await Assert.ThrowsAsync<IOException> (() => _navigation.ObserveHomeExtensionAsync (
+			"home-observe-uncertain", "Example Driver", "Example Options", (_, _) => { callbacks++; return Task.CompletedTask; }));
+		Assert.That (callbacks, Is.Zero);
+		Assert.That (_navigation.HomeRestored, Is.True);
+		Assert.That (_transport.Inputs, Is.EqualTo (new[] { "home", "extension" }));
+		Assert.That (Directory.Exists (Path.Combine (_directory, "home-observe-uncertain.controls")), Is.False);
+		}
+
+	[Test]
+	public async Task HomeObservationDoesNotReplayAPendingUncertainInputDuringCleanup ()
+		{
+		_transport.ThrowBeforeInput = 1;
+		int callbacks = 0;
+		var error = await Assert.ThrowsAsync<AggregateException> (() => _navigation.ObserveHomeExtensionAsync (
+			"home-observe-pending", "Example Driver", "Example Options", (_, _) => { callbacks++; return Task.CompletedTask; }));
+		Assert.That (error!.InnerExceptions[0], Is.TypeOf<IOException> ());
+		Assert.That (error.InnerExceptions[1], Is.TypeOf<TimeoutException> ());
+		Assert.That (callbacks, Is.Zero);
+		Assert.That (_navigation.HomeRestored, Is.False);
+		await Assert.ThrowsAsync<TimeoutException> (() => _navigation.RestoreHomeAsync ());
+		Assert.That (_transport.Inputs, Is.EqualTo (new[] { "home" }));
+		}
+
+	[Test]
+	public async Task HomeObservationRejectsMatchingTextOutsideTileBeforeCallbackOrInput ()
+		{
+		_transport.NonTileText = true;
+		int callbacks = 0;
+		await Assert.ThrowsAsync<InvalidOperationException> (() => _navigation.ObserveHomeExtensionAsync (
+			"home-observe-not-tile", "Example Driver", "Example Options", (_, _) => { callbacks++; return Task.CompletedTask; }));
+		Assert.That (callbacks, Is.Zero);
+		Assert.That (_transport.Inputs, Is.Empty);
+		Assert.That (_navigation.HomeRestored, Is.True);
+		}
+
+	[Test]
+	public async Task SynchronousHomeInspectionKeepsVerificationBeforeObservationReceipt ()
+		{
+		await _navigation.InspectHomeExtensionAsync ("home-sync-evidence", "Example Driver", "Example Options", page =>
+			{
+			CrestronHomePages.RequireExtensionPage (page, "Example Options");
+			Assert.That (_transport.Page, Is.EqualTo ("extension"));
+			Assert.That (File.Exists (Path.Combine (_directory, "home-sync-evidence.controls", "hierarchy.xml")), Is.True);
+			Assert.That (File.Exists (Path.Combine (_directory, "home-sync-evidence.controls", "screen.png")), Is.True);
+			Assert.That (File.Exists (Path.Combine (_directory, "home-sync-evidence.controls", "observation.json")), Is.False);
+			});
+		Assert.That (File.Exists (Path.Combine (_directory, "home-sync-evidence.controls", "observation.json")), Is.True);
+		Assert.That (File.Exists (Path.Combine (_directory, "home-sync-evidence.home-restored", "observation.json")), Is.True);
+		Assert.That (Directory.Exists (Path.Combine (_directory, "home-sync-evidence")), Is.False);
 		}
 
 	[Test]
@@ -283,7 +418,7 @@ public sealed class CrestronHomeNavigationTests
 		_transport.CurrentHome = "Other Home";
 		await Assert.ThrowsAsync<InvalidOperationException> (() => AndroidWorkflowSession.OpenAsync (_context, new (_transport, _context.Profile.Application), CancellationToken.None));
 		Assert.That (_transport.Inputs, Is.Empty);
-		Assert.That (AndroidWorkflowSession.Read<AndroidRunCompletion> (Path.Combine (_directory, "completion.json")).RestorationConfirmed, Is.True);
+		Assert.That (AndroidWorkflowSession.Read<AndroidRunCompletion> (Path.Combine (_directory, "completion.json")).RestorationConfirmed, Is.False);
 		}
 
 	[TestCase ("Unapproved Home", "home")]
@@ -441,6 +576,80 @@ public sealed class CrestronHomeNavigationTests
         }
     }
 
+	[TestCase ("wrong-home")]
+	[TestCase ("absent-home")]
+	[TestCase ("capture-failure")]
+	[TestCase ("canceled")]
+	public async Task FailedStartupWithoutObservedHomeDoesNotAuthorizeRelease (string kind)
+		{
+		var inner = new NavigationTransport { CurrentHome = kind == "wrong-home" ? "Wrong Home" : "Example Home",
+			Page = kind == "absent-home" ? "unknown" : "home" };
+		var transport = new StartupFailureTransport (inner, kind == "capture-failure");
+		using var cancellation = new CancellationTokenSource ();
+		if (kind == "canceled") cancellation.Cancel ();
+		await Assert.CatchAsync<Exception> (() => AndroidWorkflowSession.OpenAsync (_context,
+			new (transport, _context.Profile.Application), cancellation.Token));
+		var completion = AndroidWorkflowSession.Read<AndroidRunCompletion> (Path.Combine (_directory, "completion.json"));
+		Assert.That (completion.RestorationConfirmed, Is.False);
+		Assert.That (inner.Inputs, Is.Empty);
+		using var diagnostic = System.Text.Json.JsonDocument.Parse (File.ReadAllText (Path.Combine (_directory, "startup-failure.json")));
+		Assert.That (diagnostic.RootElement.GetProperty ("NoNavigationAttempted").GetBoolean (), Is.True);
+		Assert.That (diagnostic.RootElement.GetProperty ("ConfiguredHomeRestorationObserved").GetBoolean (), Is.False);
+		}
+
+	[TestCase (false)]
+	[TestCase (true)]
+	public async Task NestedSelectedCompletionDoesNotCompleteOriginalRoot (bool endpointMismatch)
+		{
+		_transport.CurrentHome = "Other Home";
+		_transport.IncludeOriginalHomeCard = true;
+		var originalContext = _context with { Profile = _context.Profile with { ExpectedHomeText = "Other Home" } };
+		var original = await AndroidWorkflowSession.OpenAsync (originalContext, new (_transport, originalContext.Profile.Application), CancellationToken.None);
+		await original.CaptureAsync ("original-before", h => CrestronHomePages.RequireHome (h, "Other Home"));
+		string nestedDirectory = Path.Combine (_directory, "selected");
+		Directory.CreateDirectory (nestedDirectory);
+		var selectedContext = _context with { EvidenceDirectory = nestedDirectory,
+			Profile = _context.Profile with { AllowedStartingHomes = ["Other Home"] } };
+		if (endpointMismatch)
+			{
+			_transport.LocalAddress = "192.0.2.99";
+			await Assert.ThrowsAsync<InvalidOperationException> (() => AndroidWorkflowSession.OpenAsync (selectedContext,
+				new (_transport, selectedContext.Profile.Application), CancellationToken.None));
+			}
+		else
+			{
+			var selected = await AndroidWorkflowSession.OpenAsync (selectedContext,
+				new (_transport, selectedContext.Profile.Application), CancellationToken.None);
+			Assert.That (selected.SavedEndpointVerifiedOnOpen, Is.True);
+			selected.Complete (true);
+			}
+		Assert.That (_transport.CurrentHome, Is.EqualTo ("Example Home"));
+		Assert.That (AndroidWorkflowSession.Read<AndroidRunCompletion> (Path.Combine (nestedDirectory, "completion.json")).RestorationConfirmed, Is.True);
+		Assert.That (File.Exists (Path.Combine (_directory, "completion.json")), Is.False,
+			"Selected Home proof cannot authorise original-root release.");
+		await original.Device.TapAsync (CrestronHomePages.Resource ("home_wholeHouse_topbarMenuButton"),
+			h => CrestronHomePages.RequireHome (h, "Example Home"));
+		await original.Device.TapAsync (new (AndroidSelectorKind.ContentDescription, "home_wholeHouse_popoverButtonMySystemsLabel"),
+			h => { Assert.That (h.RequireUnique (CrestronHomePages.Resource ("home_wholeHouse_name")).Text, Is.EqualTo ("Example Home")); });
+		var navigation = new CrestronHomeNavigation (original);
+		await navigation.RestoreHomeAndCaptureAsync ("original-restoration");
+		Assert.That (_transport.CurrentHome, Is.EqualTo ("Other Home"));
+		Assert.That (navigation.HomeRestored, Is.True);
+		Assert.That (File.Exists (Path.Combine (_directory, "original-restoration.home-restored", "observation.json")), Is.True);
+		original.Complete (navigation.HomeRestored);
+		Assert.That (AndroidWorkflowSession.Read<AndroidRunCompletion> (Path.Combine (_directory, "completion.json")).RestorationConfirmed, Is.True);
+		}
+
+	private sealed class StartupFailureTransport (NavigationTransport inner, bool failCapture) : IAndroidCommandTransport
+		{
+		public Task<byte[]> ExecuteAsync (IReadOnlyList<string> arguments, CancellationToken token)
+			{
+			token.ThrowIfCancellationRequested ();
+			if (failCapture) throw new IOException ("Synthetic startup capture failure");
+			return inner.ExecuteAsync (arguments, token);
+			}
+		}
+
 	private sealed class NavigationTransport : IAndroidCommandTransport
 		{
 		public string Page = "home";
@@ -454,6 +663,7 @@ public sealed class CrestronHomeNavigationTests
 		public bool DuplicateMenu;
 		public bool MissingHomeCard;
 		public bool DuplicateHomeCard;
+        public bool IncludeOriginalHomeCard;
 		public bool NonTileText;
 		public bool PortBelowFold;
 		public int PortAppearsAfter = 1;
@@ -495,6 +705,7 @@ public sealed class CrestronHomeNavigationTests
 					"details" => [Node ("mobileclaimhome_title"), Field ("mobileclaimhome_friendlyNameOrLocation", "Example Home"), Field ("mobileclaimhome_localIpAddressOrHostName", LocalAddress), Field ("mobileclaimhome_localPort", "50001"), Field ("mobileclaimhome_remoteIpAddressOrHostName", "192.0.2.1"), Node ("mobileclaimhome_back")],
 					_ => [Node ("unknown")]
 					};
+				if (Page == "systems" && IncludeOriginalHomeCard) nodes = nodes.Append (Node ("other-card", description: "Other Home", left: 600));
 				if (Page == "systems" && DuplicateMenu) nodes = nodes.Append (Node ("homeview_more"));
 				if (Page == "systems" && MissingHomeCard) nodes = nodes.Where (node => (string?)node.Attribute ("content-desc") != "Example Home");
 				if (Page == "systems" && DuplicateHomeCard) nodes = nodes.Append (Node ("card", description: "Example Home", left: 350));
@@ -536,7 +747,8 @@ public sealed class CrestronHomeNavigationTests
 			else
 				{
 				if (Page == "systems" && arguments[3] == "250") CurrentHome = "Example Home";
-				Page = Page switch { "home" => arguments[3] == "450" ? "extension" : "menu", "extension" => "home", "menu" => "systems", "systems" => arguments[3] == "250" ? "home" : "options", "options" => "details", "details" => "systems", _ => throw new InvalidOperationException ("Unexpected tap") };
+                if (Page == "systems" && IncludeOriginalHomeCard && arguments[3] == "650") CurrentHome = "Other Home";
+				Page = Page switch { "home" => arguments[3] == "450" ? "extension" : "menu", "extension" => "home", "menu" => "systems", "systems" => arguments[3] == "250" || IncludeOriginalHomeCard && arguments[3] == "650" ? "home" : "options", "options" => "details", "details" => "systems", _ => throw new InvalidOperationException ("Unexpected tap") };
 				}
 			if (UnknownAfterInput == Inputs.Count) Page = "unknown";
 			if (ThrowAfterInput == Inputs.Count) throw new IOException ("Input outcome unknown.");

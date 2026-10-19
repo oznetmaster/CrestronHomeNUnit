@@ -9,7 +9,7 @@ using CrestronHomeNUnit.Transport;
 
 namespace CrestronHomeNUnit.Workflow;
 
-public sealed record NetworkLinkObservationPackage(string Path, string Sha256, string Model, int LocationId);
+public sealed record NetworkLinkObservationPackage(string Path, string Sha256, string Model, string RoomName);
 public sealed record NetworkLinkRestoration(DateTimeOffset EarliestUtc, DateTimeOffset LatestUtc,
     NetworkLinkTrace Trace, NetworkLinkClockAnchor Before, NetworkLinkClockAnchor After);
 
@@ -38,7 +38,7 @@ public sealed class NetworkLinkObservation
         _package=package; _evidence=evidenceDirectory;
         if (!Path.IsPathFullyQualified(package.Path) || !Path.IsPathFullyQualified(evidenceDirectory) ||
             package.Sha256.Length!=64 || package.Sha256.Any(c=>!char.IsAsciiHexDigit(c)) ||
-            string.IsNullOrWhiteSpace(package.Model) || !Guid.TryParseExact(owner,"N",out _))
+            string.IsNullOrWhiteSpace(package.RoomName) || string.IsNullOrWhiteSpace(package.Model) || !Guid.TryParseExact(owner,"N",out _))
             throw new ArgumentException("Bind the exact observer package, processor reservation and evidence directory.");
     }
     public async Task PrepareAsync(ConfigurationClient client,CancellationToken token)
@@ -55,13 +55,14 @@ public sealed class NetworkLinkObservation
         var info=DriverDeployment.Inspect(_retainedPackage);
         if(info.Model!=_package.Model || (await client.GetDevicesAsync(token)).Any(d=>d.Model==info.Model))
             throw new InvalidDataException("Observer model is incorrect or already installed.");
+        await ProcessorTestRooms.RequireAsync(client,[_package.RoomName],token);
         _cleanup=await WorkflowPackageCleanup.CaptureAsync(_host,_credential,_fingerprint,_owner,
             Path.Combine(_evidence,"package-cleanup"),token,allowOwnedControlGuard:true);
         Save("binding",new{Host=_host,Owner=_owner,TraceId=_id,Package=_package});
         var imported=await DriverDeployment.DeployAsync(client,_host,_credential,_fingerprint,_retainedPackage,TimeSpan.FromMinutes(2),token);
         Save("import",imported);
-        _instance=await DriverInstanceLifecycle.EnsureAsync(client,imported.CatalogueId,"Network link timing observer",
-            _package.LocationId,null,TimeSpan.FromMinutes(2),token);
+        _instance=await DriverInstanceLifecycle.EnsureInRoomAsync(client,imported.CatalogueId,"Network link timing observer",
+            _package.RoomName,null,TimeSpan.FromMinutes(2),token);
         Save("instance",_instance);
         var ready=await new PackageReadiness().WaitAsync(_host,_package.Model,async(selected,ct)=>{
             var identity=await ProcessorAuthentication.AuthenticateAsync(selected.Host,_credential.UserName,_credential.Password,

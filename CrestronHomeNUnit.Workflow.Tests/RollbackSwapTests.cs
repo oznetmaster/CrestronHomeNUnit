@@ -46,7 +46,7 @@ public sealed class RollbackSwapTests
 			var plan = new DriverRollbackPlan (path, new string ('A', 64), new (path, directory, []), []);
 			var type = typeof (WorkflowRollback.Prepared);
 			await using var prepared = (WorkflowRollback.Prepared)Activator.CreateInstance (type, BindingFlags.Instance | BindingFlags.NonPublic,
-				null, [client, plan, new PackageBuildPlan (path, path, "Tests", 5, 12), old, next, directory, path, "unused.invalid", new NetworkCredential (), "pin", TimeSpan.FromSeconds (1), new FileStream (path, FileMode.Open, FileAccess.Read, FileShare.Read)], null)!;
+				null, [client, plan, new PackageBuildPlan (path, path, "Tests", "Office", 12), old, next, directory, path, "unused.invalid", new NetworkCredential (), "pin", TimeSpan.FromSeconds (1), new FileStream (path, FileMode.Open, FileAccess.Read, FileShare.Read)], null)!;
 			type.GetField ("_imported", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue (prepared, new DriverDeploymentResult (old, plan.Sha256, "previous-id", "Complete", true));
 			if (succeeds)
 				await prepared.SwapOnceAsync (CancellationToken.None);

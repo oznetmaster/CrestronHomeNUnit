@@ -110,7 +110,7 @@ public sealed class CrestronHomeNavigation
 				try
 					{
 					capturesStarted++;
-					lastPage = await _session.Device.CaptureAsync (timeout.Token).ConfigureAwait (false);
+					lastPage = (await _session.ReadConnectedHierarchyAsync (timeout.Token).ConfigureAwait (false)).Hierarchy;
 					capturesCompleted++;
 					verify (lastPage);
 					return;
@@ -200,7 +200,7 @@ public sealed class CrestronHomeNavigation
 	internal async Task SelectExpectedHomeAsync (Action beforeNavigation, CancellationToken token)
 		{
 		_session.VerifyActive ();
-		var initial = await _session.Device.CaptureAsync (token).ConfigureAwait (false);
+		var initial = (await _session.ReadConnectedHierarchyAsync (token).ConfigureAwait (false)).Hierarchy;
 		string startingHome = initial.RequireUnique (Id ("home_wholeHouse_name")).Text;
 		CrestronHomePages.RequireHome (initial, startingHome);
 		if (startingHome != _session.Context.Profile.ExpectedHomeText &&
@@ -334,9 +334,33 @@ public sealed class CrestronHomeNavigation
 	/// <summary>Navigate to one uniquely named Home tile, inspect its page, then restore Home. Sends no device commands.</summary>
 	public async Task InspectHomeExtensionAsync (string checkId, string tileName, string pageTitle, Action<AndroidHierarchy> verify, CancellationToken token = default)
 		{
+		ArgumentNullException.ThrowIfNull (verify);
+		await InspectHomeCoreAsync (checkId, tileName, pageTitle,
+			() => _session.CaptureAsync (checkId + ".controls", hierarchy => { Extension (hierarchy); verify (hierarchy); }, token), token).ConfigureAwait (false);
+		}
+
+	/// <summary>Capture a guarded Home extension page and keep it open while awaiting a cancellable, read-only observation, then restore Home.</summary>
+	/// <remarks>The callback must honor its token. The controls capture proves the entry page; it does not certify the callback's outcome.</remarks>
+	public async Task ObserveHomeExtensionAsync (string checkId, string tileName, string pageTitle,
+		Func<AndroidHierarchy, CancellationToken, Task> observe, CancellationToken token = default)
+		{
+		ArgumentNullException.ThrowIfNull (observe);
+		await InspectHomeCoreAsync (checkId, tileName, pageTitle, async () =>
+			{
+			AndroidHierarchy? page = null;
+			await _session.CaptureAsync (checkId + ".controls", hierarchy => { Extension (hierarchy); page = hierarchy; }, token).ConfigureAwait (false);
+			_session.VerifyActive ();
+			token.ThrowIfCancellationRequested ();
+			await observe (page!, token).ConfigureAwait (false);
+			_session.VerifyActive ();
+			token.ThrowIfCancellationRequested ();
+			}, token).ConfigureAwait (false);
+		}
+
+	private async Task InspectHomeCoreAsync (string checkId, string tileName, string pageTitle, Func<Task> inspect, CancellationToken token)
+		{
 		ArgumentException.ThrowIfNullOrWhiteSpace (tileName);
 		ArgumentException.ThrowIfNullOrWhiteSpace (pageTitle);
-		ArgumentNullException.ThrowIfNull (verify);
 		await WaitAsync (Home, token).ConfigureAwait (false);
 		_extensionTitle = pageTitle;
 		var tile = new AndroidSelector (AndroidSelectorKind.Text, tileName) { AncestorResourceId = CrestronHomePages.ResourcePrefix + "fragmentHomeContainer" };
@@ -346,16 +370,25 @@ public sealed class CrestronHomeNavigation
 			if (hierarchy.RequireUnique (tile).ResourceId != CrestronHomePages.ResourcePrefix + "titleSubtitle_title")
 				throw new InvalidOperationException ("The matching Home text is not a tile title.");
 			}
+		Exception? primaryFailure = null;
 		try
 			{
 			await TapAsync (tile, HomeTile, token).ConfigureAwait (false);
 			await WaitAsync (Extension, token).ConfigureAwait (false);
 			await ConfirmDepartureAsync (token).ConfigureAwait (false);
-			await _session.CaptureAsync (checkId + ".controls", hierarchy => { Extension (hierarchy); verify (hierarchy); }, token).ConfigureAwait (false);
+			await inspect ().ConfigureAwait (false);
 			}
+		catch (Exception error) { primaryFailure = error; throw; }
 		finally
 			{
-			await RestoreAndCaptureHomeAsync (checkId).ConfigureAwait (false);
+			try
+				{
+				await RestoreAndCaptureHomeAsync (checkId).ConfigureAwait (false);
+				}
+			catch (Exception cleanupFailure) when (primaryFailure is not null)
+				{
+				throw new AggregateException ("Home extension inspection and Home restoration both failed.", primaryFailure, cleanupFailure);
+				}
 			}
 		}
 
@@ -531,6 +564,15 @@ public sealed class CrestronHomeNavigation
 				}
 			}
 		throw new InvalidOperationException ("The requested room was not visible within the bounded room-list search.");
+		}
+
+	/// <summary>Reveal one enabled named service in the already-open room without tapping it.
+	/// Uses the existing guarded, finite-gesture search. The caller retains ownership
+	/// and must restore Home after observation or failure.</summary>
+	public Task RevealRoomTileAsync (string tileName, CancellationToken token = default)
+		{
+		ArgumentException.ThrowIfNullOrWhiteSpace (tileName);
+		return RevealRoomTileAsync (new AndroidSelector (AndroidSelectorKind.ContentDescription, "room_service_" + tileName), token);
 		}
 
 	private async Task RevealRoomTileAsync (AndroidSelector tile, CancellationToken token)

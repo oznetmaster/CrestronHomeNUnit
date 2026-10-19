@@ -13,7 +13,7 @@ namespace CrestronHomeNUnit.Workflow;
 
 internal static class WorkflowRollback
 	{
-	internal sealed record Node (int Id, int? Parent, string? Model, string? Name, int? Room);
+	internal sealed record Node (int Id, int? Parent, string? Model, string? Name, string RoomName);
 	internal interface ISession
 		{
 		Task VerifyCurrentAsync (CancellationToken token);
@@ -53,7 +53,7 @@ internal static class WorkflowRollback
 		await end (token).ConfigureAwait (false);
 		}
 
-	internal static Node[] Scope (IReadOnlyList<DeviceInfo> devices, int id, string model, string version)
+	internal static Node[] Scope (IReadOnlyList<DeviceInfo> devices, int id, string model, string version, IReadOnlyDictionary<int, string> roomNames)
 		{
 		if (devices.Select (d => d.Id).Distinct ().Count () != devices.Count)
 			throw new InvalidDataException ("Device inventory contains duplicate identities.");
@@ -73,7 +73,7 @@ internal static class WorkflowRollback
 			if (selected.Count == count)
 				break;
 			}
-		return devices.Where (d => selected.Contains (d.Id)).OrderBy (d => d.Id).Select (d => new Node (d.Id, d.ParentDeviceId, d.Model, d.Name, d.LocationId)).ToArray ();
+		return devices.Where (d => selected.Contains (d.Id)).OrderBy (d => d.Id).Select (d => new Node (d.Id, d.ParentDeviceId, d.Model, d.Name, roomNames[d.Id])).ToArray ();
 		}
 
 	internal static void VerifyObservation (RollbackConfigurationObservation value, string nonce, int deviceId, string model,
@@ -144,9 +144,10 @@ internal static class WorkflowRollback
 					|| WorkflowDebugVersion.ParseVersion (old.Version) >= WorkflowDebugVersion.ParseVersion (next.Version))
 					throw new InvalidDataException ("Rollback must name an earlier package of this exact driver.");
 				var prepared = new Prepared (client, plan, target, old, next, directory, path, host, credential, fingerprint, timeout, locked);
-				prepared._scope = Scope (await client.GetDevicesAsync (token).ConfigureAwait (false), prepared.DeviceId, old.Model, old.Version);
+				var devices = await client.GetDevicesAsync (token).ConfigureAwait (false);
+				prepared._scope = Scope (devices, prepared.DeviceId, old.Model, old.Version, await ProcessorTestRooms.NamesForDevicesAsync (client, devices, prepared.DeviceId, token).ConfigureAwait (false));
 				var root = prepared._scope.Single (n => n.Id == prepared.DeviceId);
-				if (root.Name != target.InstanceName || root.Room != target.LocationId)
+				if (root.Name != target.InstanceName || !root.RoomName.Equals (target.RoomName, StringComparison.OrdinalIgnoreCase))
 					throw new InvalidOperationException ("Previous driver name or room differs from the plan.");
 				prepared._configuration = await prepared.ProbeAsync ("BeforeUpdate", old.Version, token).ConfigureAwait (false);
 				await prepared.RecordAsync ("Prepared").ConfigureAwait (false);
@@ -186,7 +187,8 @@ internal static class WorkflowRollback
 			}
 		private async Task VerifyAsync (string version, string phase, CancellationToken token)
 			{
-			var scope = Scope (await _client.GetDevicesAsync (token).ConfigureAwait (false), DeviceId, _old.Model, version);
+			var devices = await _client.GetDevicesAsync (token).ConfigureAwait (false);
+			var scope = Scope (devices, DeviceId, _old.Model, version, await ProcessorTestRooms.NamesForDevicesAsync (_client, devices, DeviceId, token).ConfigureAwait (false));
 			if (!_scope.SequenceEqual (scope))
 				throw new InvalidOperationException ("The driver or its child identities/rooms changed; automatic rollback is unsafe.");
 			await ProbeAsync (phase, version, token).ConfigureAwait (false);

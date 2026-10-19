@@ -9,7 +9,7 @@
     "project": "C:/CI/Source/ExampleDriver/ExampleDriver.ProcessorTests/ExampleDriver.ProcessorTests.csproj",
     "packagePath": "C:/CI/Source/ExampleDriver/ExampleDriver.ProcessorTests/bin/Debug/net472/ExampleDriver.ProcessorTests.pkg",
     "instanceName": "Example Driver Tests",
-    "locationId": 1,
+    "roomName": "Equipment Room",
     "expectedDeviceId": null
   },
   "processorSuites": [{ "id": "unit", "minimumPassed": 1, "inputs": [] }, { "id": "lifecycle", "minimumPassed": 1, "inputs": [] }],
@@ -18,7 +18,7 @@
     "project": "C:/CI/Source/ExampleDriver/ExampleDriver/ExampleDriver.csproj",
     "packagePath": "C:/CI/Source/ExampleDriver/ExampleDriver/bin/Debug/net472/ExampleDriver.pkg",
     "instanceName": "Example Driver",
-    "locationId": 1,
+    "roomName": "Equipment Room",
     "expectedDeviceId": 100
   },
   "deployedChecks": [{ "name": "Updated driver is online", "deviceId": 100, "model": "Example Driver Model", "property": "onlineIndicator:isOnline", "expected": true }],

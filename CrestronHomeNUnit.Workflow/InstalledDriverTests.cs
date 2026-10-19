@@ -51,8 +51,10 @@ public static class InstalledDriverTests
 		report.Flush (flushToDisk: true);
 		try
 			{
-			await using var deadline = new WorkflowActiveDeadline(TimeSpan.FromSeconds(plan.TimeoutSeconds), token,
-				plan.OperatorReadiness == null ? null : plan.OperatorReadiness.IsPending);
+			await using var deadline = plan.AttendedPhysicalObservation
+                ? WorkflowActiveDeadline.WithoutElapsedTimeout(token)
+                : new WorkflowActiveDeadline(TimeSpan.FromSeconds(plan.TimeoutSeconds), token,
+                    plan.OperatorReadiness == null ? null : plan.OperatorReadiness.IsPending);
 			// Snapshot once, holding both the source and the retained candidate against replacement.
 			var package = Path.Combine (results, Path.GetFileName (plan.PackagePath));
 			await using (var output = new FileStream (package, FileMode.CreateNew, FileAccess.Write, FileShare.None))
@@ -73,7 +75,7 @@ public static class InstalledDriverTests
 			profile.Validate ();
 			var profileHash = SHA256.HashData (await File.ReadAllBytesAsync (plan.AndroidTests.ProfilePath, deadline.Token).ConfigureAwait (false));
 			var source = await WorkflowEvidence.SourceDigestAsync (plan.SourceRoots, deadline.Token).ConfigureAwait (false);
-			using var operations = new Operations (plan, credential, results, package, identity, profile, profileHash, source);
+			using var operations = new Operations (plan, credential, results, package, identity, profile, profileHash, source, deadline);
 			var result = await RunCoreAsync (operations, deadline.Token).ConfigureAwait (false);
 			deadline.ThrowIfFaulted();
 			result = RedactFailure (result, credential);
@@ -183,7 +185,7 @@ public static class InstalledDriverTests
 		RequirePackage (target, package);
 		string? Property (string key) => device?.PropertyValues.TryGetValue (key, out var value) == true && value.ValueKind == JsonValueKind.String ? value.GetString () : null;
 		if (device == null || device.Id != target.DeviceId || device.ParentDeviceId != target.ParentDeviceId || device.Name != target.Name ||
-			device.Model != target.Model || device.LocationId != target.LocationId || !SameVersion (Property ("cp.driverInformation:version"), target.Version) ||
+			device.Model != target.Model || !SameVersion (Property ("cp.driverInformation:version"), target.Version) ||
 			Property ("cp.driverConfiguration:driverLoadingStatus") != "Loaded" || Property ("cp.driverInformation:developer") != target.Developer ||
 			Property ("cp.driverInformation:controlType") != target.ControlType || catalogue == null || catalogue.Id != target.CatalogueId ||
 			catalogue.Model != package.Model || catalogue.Manufacturer != package.Manufacturer || catalogue.Developer != target.Developer)
@@ -193,7 +195,7 @@ public static class InstalledDriverTests
 	private static bool SameVersion (string? first, string? second) => Version.TryParse (first, out var left) && Version.TryParse (second, out var right) && left == right;
 
 	private sealed class Operations (InstalledDriverTestPlan plan, NetworkCredential credential, string results, string package,
-		DriverPackageInfo identity, AndroidSessionProfile profile, byte[] profileHash, string source) : IInstalledDriverTestOperations, IDisposable
+		DriverPackageInfo identity, AndroidSessionProfile profile, byte[] profileHash, string source, WorkflowActiveDeadline deadline) : IInstalledDriverTestOperations, IDisposable
 		{
 		private readonly string _owner = Guid.NewGuid ().ToString ("N");
 		private ProcessorLease? _processor;
@@ -231,14 +233,20 @@ public static class InstalledDriverTests
 			Record (phase + " candidate verification", "Starting");
 			await VerifyOwnership (token).ConfigureAwait (false);
 			await using (var client = await ConfigurationClient.ConnectAsync (Connection, credential, token).ConfigureAwait (false))
+				{
+				await ProcessorTestRooms.VerifyDeviceAsync (client, plan.Target.DeviceId, plan.Target.RoomName, token).ConfigureAwait (false);
 				RequireInstance (plan.Target, identity, await client.GetDeviceAsync (plan.Target.DeviceId, token).ConfigureAwait (false),
 					await client.GetDriverAsync (plan.Target.CatalogueId, token).ConfigureAwait (false));
+				}
 			var payload = await DriverPayloadInspection.CompareAsync (plan.Host, credential, plan.SshFingerprint, package, plan.PackageSha256,
 				plan.Target.CatalogueId, TimeSpan.FromMinutes (2), token).ConfigureAwait (false);
 			// Use a fresh configuration session after file comparison; never substitute a saved LKG snapshot.
 			await using (var client = await ConfigurationClient.ConnectAsync (Connection, credential, token).ConfigureAwait (false))
+				{
+				await ProcessorTestRooms.VerifyDeviceAsync (client, plan.Target.DeviceId, plan.Target.RoomName, token).ConfigureAwait (false);
 				RequireInstance (plan.Target, identity, await client.GetDeviceAsync (plan.Target.DeviceId, token).ConfigureAwait (false),
 					await client.GetDriverAsync (plan.Target.CatalogueId, token).ConfigureAwait (false));
+				}
 			await VerifyOwnership (token).ConfigureAwait (false);
 			await File.WriteAllTextAsync (Path.Combine (results, phase + "Candidate.json"), JsonSerializer.Serialize
 				(new { RunId = _owner, Target = plan.Target, Payload = payload, FixtureSourceSha256 = source,
@@ -259,7 +267,7 @@ public static class InstalledDriverTests
 				TimeSpan.FromSeconds (120), ct => ConfigurationClient.ConnectAsync (Connection, credential, ct), VerifyOwnership,
 				(bindings, ct) => WorkflowAndroid.RunAsync (plan.AndroidTests, profile, _owner, plan.Host, actual.DeviceId, package, source,
 					Path.Combine (results, "AndroidUI"), ct, releaseSourceCommit: plan.PackageSourceCommit, managedDevices: bindings,
-					operatorReadiness: plan.OperatorReadiness), token).ConfigureAwait (false);
+					operatorReadiness: plan.OperatorReadiness, activeDeadline: deadline), token).ConfigureAwait (false);
 			Record ("Android tests", result.Passed ? "Passed" : "Failed");
 			return result;
 			}

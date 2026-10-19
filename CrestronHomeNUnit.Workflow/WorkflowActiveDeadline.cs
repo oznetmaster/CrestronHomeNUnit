@@ -70,40 +70,84 @@ public sealed record InstalledOperatorReadiness(string Directory, string RunKey,
 public sealed class WorkflowActiveDeadline : IAsyncDisposable
 {
  private readonly CancellationTokenSource _deadline;
+ private readonly bool _hasElapsedTimeout=true;
+ public bool HasElapsedTimeout=>_hasElapsedTimeout;
  private readonly CancellationTokenSource _stop = new();
  private readonly Task _monitor;
+ private readonly object _sync = new();
+ private readonly TimeSpan _limit;
+ private readonly TimeProvider _clock;
+ private readonly Func<bool>? _waiting;
+ private long _previous;
+ private TimeSpan _active;
+ private bool _wasWaiting;
  private Exception? _failure;
  public CancellationToken Token => _deadline.Token;
+ /// <summary>Current monotonic active allowance. Canceled or expired deadlines return zero;
+ /// validated readiness retains its existing pause semantics. Reading never resets the deadline.</summary>
+ public TimeSpan Remaining {
+  get {
+   if (!_hasElapsedTimeout) throw new InvalidOperationException("Attended physical sessions have no finite remaining allowance.");
+   if (_deadline.IsCancellationRequested) return TimeSpan.Zero;
+   try {
+    var remaining=Sample();
+    if (remaining==TimeSpan.Zero) _deadline.Cancel();
+    return _deadline.IsCancellationRequested ? TimeSpan.Zero : remaining;
+   } catch (Exception error) when (error is not OutOfMemoryException) {
+    Interlocked.CompareExchange(ref _failure,error,null); _deadline.Cancel(); return TimeSpan.Zero;
+   }
+  }
+ }
+ internal TimeSpan RequireRemaining(TimeSpan required) {
+  if (!_hasElapsedTimeout) throw new InvalidOperationException("A finite reserve cannot constrain attended physical observation.");
+  if (required<=TimeSpan.Zero || required>TimeSpan.FromDays(1)) throw new ArgumentOutOfRangeException(nameof(required));
+  ThrowIfFaulted(); Token.ThrowIfCancellationRequested();
+  var remaining=Remaining;
+  ThrowIfFaulted(); Token.ThrowIfCancellationRequested();
+  if(remaining<required)throw new InvalidDataException("Insufficient remaining active allowance for the declared Android execution and cleanup reserve; execution was not started.");
+  return remaining;
+ }
+ /// <summary>No elapsed timer or readiness pause monitor; the explicit caller cancellation remains live.</summary>
+ public static WorkflowActiveDeadline WithoutElapsedTimeout(CancellationToken token=default)=>WithoutElapsedTimeout(token,TimeProvider.System);
+ internal static WorkflowActiveDeadline WithoutElapsedTimeout(CancellationToken token,TimeProvider clock)=>new(token,clock);
+ private WorkflowActiveDeadline(CancellationToken token,TimeProvider clock){
+  _hasElapsedTimeout=false;_limit=Timeout.InfiniteTimeSpan;_clock=clock;_previous=clock.GetTimestamp();
+  _deadline=CancellationTokenSource.CreateLinkedTokenSource(token);_monitor=Task.CompletedTask;
+ }
  public WorkflowActiveDeadline(TimeSpan limit, CancellationToken token, Func<bool>? waiting = null)
   : this(limit, token, waiting, TimeProvider.System) { }
  internal WorkflowActiveDeadline(TimeSpan limit, CancellationToken token, Func<bool>? waiting, TimeProvider clock) {
   if (limit <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(limit));
+  _limit=limit;_clock=clock;_waiting=waiting;_previous=clock.GetTimestamp();
   _deadline = CancellationTokenSource.CreateLinkedTokenSource(token);
-  _monitor = Monitor(limit, waiting, clock);
+  _monitor = Monitor();
  }
- private async Task Monitor(TimeSpan limit, Func<bool>? waiting, TimeProvider clock) {
-  long previous = clock.GetTimestamp();
-  TimeSpan active = TimeSpan.Zero;
-  bool wasWaiting = false;
+ private TimeSpan Sample() {
+  lock(_sync) {
+   bool pending=_waiting?.Invoke()==true;
+   long now=_clock.GetTimestamp();
+   // Charge the preceding state; a late human reply never consumes the prior paused interval.
+   var elapsed=_clock.GetElapsedTime(_previous,now);
+   if(elapsed<TimeSpan.Zero)throw new InvalidDataException("Monotonic clock moved backwards.");
+   if(!_wasWaiting)_active+=elapsed;
+   _previous=now;_wasWaiting=pending;
+   return _active>=_limit ? TimeSpan.Zero : _limit-_active;
+  }
+ }
+ private async Task Monitor() {
   try {
    while (!_stop.IsCancellationRequested && !_deadline.IsCancellationRequested) {
-    bool pending = waiting?.Invoke() == true;
-    long now = clock.GetTimestamp();
-    // The preceding interval belongs to the preceding state. A reply after an overnight
-    // scheduler/sleep gap must not turn the entire human wait into elapsed test time.
-    if (!wasWaiting) active += clock.GetElapsedTime(previous, now);
-    previous = now; wasWaiting = pending;
-    if (active >= limit) { await _deadline.CancelAsync().ConfigureAwait(false); return; }
-    await Task.Delay(TimeSpan.FromMilliseconds(100), clock, _stop.Token).ConfigureAwait(false);
+    if(Sample()==TimeSpan.Zero){await _deadline.CancelAsync().ConfigureAwait(false);return;}
+    await Task.Delay(TimeSpan.FromMilliseconds(100), _clock, _stop.Token).ConfigureAwait(false);
    }
   } catch (OperationCanceledException) when (_stop.IsCancellationRequested) { }
   catch (Exception error) when (error is not OutOfMemoryException) {
-   _failure = error;
+   Interlocked.CompareExchange(ref _failure,error,null);
    await _deadline.CancelAsync().ConfigureAwait(false);
   }
  }
  public void ThrowIfFaulted() {
-  if (_failure != null) throw new InvalidDataException("Prepared readiness could not be validated; inspect the retained request.", _failure);
+  if (Volatile.Read(ref _failure) is {} failure) throw new InvalidDataException("Prepared readiness could not be validated; inspect the retained request.", failure);
  }
  public async ValueTask DisposeAsync() {
   await _stop.CancelAsync().ConfigureAwait(false);

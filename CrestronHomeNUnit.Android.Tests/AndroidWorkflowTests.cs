@@ -74,7 +74,7 @@ public sealed class AndroidWorkflowTests
 	[Test]
 	public void ManagedChildBindingsRoundTripWithoutSelectingAnotherDevice ()
 		{
-		var binding = new AndroidManagedDeviceBinding ("room", 19, 7, "Example Child", "CI Child", 3);
+		var binding = new AndroidManagedDeviceBinding ("room", 19, 7, "Example Child", "CI Child", "Office");
 		var context = Context () with { ManagedDevices = [binding] };
 		string file = Path.Combine (_directory, "context.json");
 		File.WriteAllText (file, JsonSerializer.Serialize (context));
@@ -104,7 +104,7 @@ public sealed class AndroidWorkflowTests
 	public void InvalidManagedChildBindingsRejectTheSessionBeforeUiAccess (string fault)
 		{
 		using var lease = AndroidSessionLease.Acquire (_lock, _owner);
-		var binding = new AndroidManagedDeviceBinding ("room", 19, 7, "Example Child", "CI Child", 3);
+		var binding = new AndroidManagedDeviceBinding ("room", 19, 7, "Example Child", "CI Child", "Office");
 		IReadOnlyList<AndroidManagedDeviceBinding> bindings = fault switch
 			{
 			"parent" => [binding with { ParentDriverId = 8 }],
@@ -112,7 +112,7 @@ public sealed class AndroidWorkflowTests
 			"alias" => [binding with { Alias = "../room" }],
 			"duplicate-alias" => [binding, binding with { Alias = "ROOM", DeviceId = 20 }],
 			"duplicate-id" => [binding, binding with { Alias = "second" }],
-			_ => [binding with { LocationId = 0 }]
+			_ => [binding with { RoomName = "" }]
 			};
 		Assert.Throws<InvalidDataException> (() => AndroidWorkflowSession.VerifyContext (Context () with { ManagedDevices = bindings }));
 		}
@@ -149,13 +149,13 @@ public sealed class AndroidWorkflowTests
 		}
 
 	[Test]
-	public async Task FailedReadOnlyReadinessReportsRestorationButExposesNoSession ()
+	public async Task FailedReadOnlyReadinessReportsUnconfirmedRestorationAndExposesNoSession ()
 		{
 		using var lease = AndroidSessionLease.Acquire (_lock, _owner);
 		var context = Context ();
 		context = context with { Profile = context.Profile with { ExpectedHomeText = "Wrong Home" } };
 		await Assert.CatchAsync (() => AndroidWorkflowSession.OpenAsync (context, new (new CaptureTransport (), "example.app"), CancellationToken.None));
-		Assert.That (AndroidWorkflowSession.Read<AndroidRunCompletion> (Path.Combine (_directory, "completion.json")).RestorationConfirmed, Is.True);
+		Assert.That (AndroidWorkflowSession.Read<AndroidRunCompletion> (Path.Combine (_directory, "completion.json")).RestorationConfirmed, Is.False);
 		Assert.That (Directory.GetFiles (_directory, "observation.json", SearchOption.AllDirectories), Is.Empty);
 		Assert.That (File.Exists (_lock), Is.True);
 		}
@@ -168,7 +168,7 @@ public sealed class AndroidWorkflowTests
 		context = context with { Profile = context.Profile with { Application = "com.crestron.phoenix.app" } };
 		var xml = "<hierarchy><node package=\"com.crestron.phoenix.app\" resource-id=\"com.crestron.phoenix.app:id/home_wholeHouse_name\" text=\"Example Home\" enabled=\"true\" bounds=\"[0,0][100,100]\"/><node package=\"com.crestron.phoenix.app\" resource-id=\"com.crestron.phoenix.app:id/customdevices_toolbarClose\" enabled=\"true\" bounds=\"[0,0][20,20]\"/></hierarchy>";
 		await Assert.ThrowsAsync<InvalidOperationException> (() => AndroidWorkflowSession.OpenAsync (context, new (new CaptureTransport (xml), context.Profile.Application), CancellationToken.None));
-		Assert.That (AndroidWorkflowSession.Read<AndroidRunCompletion> (Path.Combine (_directory, "completion.json")).RestorationConfirmed, Is.True);
+		Assert.That (AndroidWorkflowSession.Read<AndroidRunCompletion> (Path.Combine (_directory, "completion.json")).RestorationConfirmed, Is.False);
 		}
 
 	[Test]

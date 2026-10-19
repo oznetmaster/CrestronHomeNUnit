@@ -65,12 +65,12 @@ Example path fields to put into an otherwise complete private plan:
     "project": "${CHECKOUT}/source/MyDriver.ProcessorTests/MyDriver.ProcessorTests.csproj",
     "packagePath": "${CHECKOUT}/source/MyDriver.ProcessorTests/bin/Debug/net472/MyDriver.ProcessorTests.pkg",
     "instanceName": "Development tests",
-    "locationId": 12345
+    "roomName": "Equipment Room"
   }
 }
 ```
 
-This fragment is not a complete runnable plan. Supply your own processor, fingerprints, actual suite IDs/counts and room ID. For an existing instance, bind its exact expected device ID. Omit `actualDriver` for a library or a test-only run. Actual-driver update plans require both processor live suites and installed-driver checks.
+This fragment is not a complete runnable plan. Supply your own processor, fingerprints, actual suite IDs/counts and intended room name. For an existing instance, bind its exact expected device ID. Omit `actualDriver` for a library or a test-only run. Actual-driver update plans require both processor live suites and installed-driver checks.
 
 ## Add the workflow
 

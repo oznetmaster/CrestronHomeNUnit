@@ -43,7 +43,7 @@ public sealed class ReleasePackageTests
 			writer2.Write ("Structural identity fixture; never executed.");
 			}
 		_plan = new (Convert.ToHexString (SHA256.HashData (await File.ReadAllBytesAsync (_package))), DriverGuid, "1.2.3.0", _repo, await Git ("rev-parse", "HEAD"));
-		_actual = new (_project, _package, "Example", 1);
+		_actual = new (_project, _package, "Example", "Office");
 		}
 
 	[TearDown]
@@ -144,7 +144,7 @@ public sealed class ReleasePackageTests
 		var plan = new WorkflowPlan
 			{
 			Host = "unused.invalid", CertificateSha256 = "unused", SshFingerprint = "unused", SourceRoots = [_repo],
-			ActualDriver = _actual, TestPackage = new (_project, Path.Combine (_root, "Tests.pkg"), "Tests", 1),
+			ActualDriver = _actual, TestPackage = new (_project, Path.Combine (_root, "Tests.pkg"), "Tests", "Office"),
 			LocalTests = [new (_project, 1)], ProcessorSuites = [new ("unit", 1, [])], ReleaseCandidate = _plan
 			};
 		await using var client = new ConfigurationClient (new NoProcessorConnection ());

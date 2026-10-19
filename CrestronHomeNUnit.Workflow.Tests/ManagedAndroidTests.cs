@@ -12,7 +12,7 @@ namespace CrestronHomeNUnit.Workflow.Tests;
 [TestFixture]
 public sealed class ManagedAndroidTests
 	{
-	private static readonly AndroidManagedChildPlan CHILD = new ("room", "advertised-child", "CI Child", "Example Child", 3);
+	private static readonly AndroidManagedChildPlan CHILD = new ("room", "advertised-child", "CI Child", "Example Child", "Office");
 	private static readonly DriverInstanceReady ACTUAL = new (42, "Example Platform", "1.2.3.4", "Verified");
 	private static AndroidTestPlan Plan (params AndroidManagedChildPlan[] children) => new ("unused", "unused") { ManagedChildren = children };
 	private static Task Verify (CancellationToken token) { token.ThrowIfCancellationRequested (); return Task.CompletedTask; }
@@ -32,7 +32,7 @@ public sealed class ManagedAndroidTests
 			"duplicate-alias" => [CHILD, CHILD with { Alias = "ROOM", ManagedDeviceId = "another", Name = "Second" }],
 			"duplicate-child" => [CHILD, CHILD with { Alias = "second", Name = "Second" }],
 			"duplicate-room-name" => [CHILD, CHILD with { Alias = "second", ManagedDeviceId = "another" }],
-			"room" => [CHILD with { LocationId = 0 }],
+			"room" => [CHILD with { RoomName = "" }],
 			"name" => [CHILD with { Name = new ('x', 33) }],
 			_ => [CHILD with { Model = "" }]
 			};
@@ -60,14 +60,14 @@ public sealed class ManagedAndroidTests
 		var result = await WorkflowManagedAndroid.RunCoreAsync (Plan (CHILD), ACTUAL, Verify,
 			(bindings, _) =>
 				{
-				Assert.That (bindings.Single (), Is.EqualTo (new AndroidManagedDeviceBinding ("room", 99, 42, "Example Child", "CI Child", 3)));
+				Assert.That (bindings.Single (), Is.EqualTo (new AndroidManagedDeviceBinding ("room", 99, 42, "Example Child", "CI Child", "Office")));
 				return Task.FromResult (new AndroidTestOutcome (new (passed ? 1 : 0, passed ? 0 : 1, 0, true), restored));
 				},
 			async (targets, tests, token) =>
 				{
 				var target = targets.Single ();
-				Assert.That (target.Request, Is.EqualTo (new ManagedDeviceRequest (42, "Example Platform", "1.2.3.4", "advertised-child", "CI Child", "Example Child", 3)));
-				var bindings = new[] { new ManagedDeviceTestBinding (target.Alias, 99, target.Request) };
+				Assert.That (target.Request, Is.EqualTo (new NamedManagedDeviceRequest (42, "Example Platform", "1.2.3.4", "advertised-child", "CI Child", "Example Child", "Office")));
+				var bindings = new[] { new NamedManagedDeviceTestBinding (target.Alias, 99, target.Request) };
 				var outcome = await tests (bindings, token);
 				Assert.That (outcome, Is.EqualTo (new ManagedDeviceTestOutcome (passed, restored)));
 				return new (passed && restored, restored, restored, bindings);
@@ -82,7 +82,7 @@ public sealed class ManagedAndroidTests
 		{
 		var result = await WorkflowManagedAndroid.RunCoreAsync (Plan (CHILD), ACTUAL, Verify,
 			(_, _) => throw new AssertionException ("Pending configuration cannot run tests."),
-			(_, _, _) => Task.FromResult (new ManagedDeviceValidationResult (false, false, false, [])));
+			(_, _, _) => Task.FromResult (new NamedManagedDeviceValidationResult (false, false, false, [])));
 		Assert.That (result.Passed, Is.False);
 		Assert.That (result.SafeToRelease, Is.False);
 		Assert.That (result.Tests.Complete, Is.False);
@@ -105,7 +105,7 @@ public sealed class ManagedAndroidTests
 			(_, _) => Task.FromResult (new AndroidTestOutcome (new (1, 0, 0, true), true)),
 			async (targets, tests, token) =>
 				{
-				var bindings = new[] { new ManagedDeviceTestBinding ("room", 99, targets.Single ().Request) };
+				var bindings = new[] { new NamedManagedDeviceTestBinding ("room", 99, targets.Single ().Request) };
 				await tests (bindings, token);
 				return new (false, true, false, bindings);
 				});

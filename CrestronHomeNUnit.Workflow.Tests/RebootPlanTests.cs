@@ -14,7 +14,7 @@ public sealed class RebootPlanTests
 	public void ExistingPlansDoNotAuthorizeReboot ()
 		{
 		var plan = JsonSerializer.Deserialize<WorkflowPlan> ("""
-            {"Host":"example.invalid","CertificateSha256":"pin","SshFingerprint":"pin","SourceRoots":["source"],"LocalTests":[],"TestPackage":{"Project":"p","PackagePath":"p","InstanceName":"Tests","LocationId":1},"ProcessorSuites":[]}
+            {"Host":"example.invalid","CertificateSha256":"pin","SshFingerprint":"pin","SourceRoots":["source"],"LocalTests":[],"TestPackage":{"Project":"p","PackagePath":"p","InstanceName":"Tests","RoomName":"Office"},"ProcessorSuites":[]}
             """)!;
 		Assert.That (plan.AllowProcessorReboot, Is.False);
 		Assert.That (plan.TestPackage.RebootAfterInstall || plan.TestPackage.RebootAfterRemoval, Is.False);
@@ -60,14 +60,14 @@ public sealed class RebootPlanTests
 		Assert.That (Assert.Throws<ArgumentException> (plan.Validate)!.Message, Does.Contain ("Additional removal reboot scope"));
 		}
 
-	private static PackageBuildPlan Package () => new ("missing-project", "missing-output", "Tests", 1);
+	private static PackageBuildPlan Package () => new ("missing-project", "missing-output", "Tests", "Office");
 	[Test]
 	public void ReviewedSharedScopeSurvivesPlanSerialization ()
 		{
 		var plan = Plan () with
 			{
 			AllowProcessorReboot = true,
-			TestPackage = new (typeof (RebootPlanTests).Assembly.Location, Path.Combine (Path.GetTempPath (), "example.pkg"), "Tests", 1)
+			TestPackage = new (typeof (RebootPlanTests).Assembly.Location, Path.Combine (Path.GetTempPath (), "example.pkg"), "Tests", "Office")
 				{
 				RebootAfterRemoval = true,
 				AdditionalRemovalRebootDeviceIds = [18]

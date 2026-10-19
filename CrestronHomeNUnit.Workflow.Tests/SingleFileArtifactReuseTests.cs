@@ -24,7 +24,7 @@ public sealed class SingleFileArtifactReuseTests
 			using var timeout = new CancellationTokenSource (TimeSpan.FromMinutes (3));
 			var project = Path.Combine (directory!.FullName, "tools", "ArtifactReuseProbe", "ArtifactReuseProbe.csproj");
 			var exit = await WorkflowEvidence.ProcessAsync ("dotnet", ["publish", project, "-c", "Release", "-r", RuntimeInformation.RuntimeIdentifier,
-				"--self-contained", "false", "-p:PublishSingleFile=true", "-o", publish, "--verbosity", "quiet"], root, log, timeout.Token);
+				"--disable-build-servers", "-p:UseSharedCompilation=false", "--self-contained", "false", "-p:PublishSingleFile=true", "-o", publish, "--verbosity", "quiet"], root, log, timeout.Token);
 			Assert.That (exit, Is.Zero, await File.ReadAllTextAsync (log, timeout.Token));
 			var executable = Path.Combine (publish, OperatingSystem.IsWindows () ? "ArtifactReuseProbe.exe" : "ArtifactReuseProbe");
 			var runLog = Path.Combine (root, "run.log");

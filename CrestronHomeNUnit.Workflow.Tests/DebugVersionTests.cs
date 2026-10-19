@@ -26,7 +26,7 @@ public sealed class DebugVersionTests
 			var project = Path.Combine (directory.FullName, "Example.csproj");
 			var manifest = Path.Combine (directory.FullName, basename + ".json");
 			await File.WriteAllTextAsync (manifest, JsonSerializer.Serialize (new { GeneralInformation = new { Guid = Guid.NewGuid (), BaseModel = "Example", DriverVersion = "1.2.3.0" } }));
-			var plan = new PackageBuildPlan (project, Path.Combine (directory.FullName, "bin", basename + ".pkg"), "Test", 1)
+			var plan = new PackageBuildPlan (project, Path.Combine (directory.FullName, "bin", basename + ".pkg"), "Test", "Office")
 				{ ManifestPath = explicitPath ? manifest : null };
 			var resolved = WorkflowDebugVersion.ResolveManifest (plan);
 			Assert.That (resolved, Is.EqualTo (manifest));
@@ -50,7 +50,7 @@ public sealed class DebugVersionTests
 			File.WriteAllText (conventional, "original");
 			File.WriteAllText (renamed, "renamed");
 			var plan = new PackageBuildPlan (Path.Combine (directory.FullName, "Example.csproj"),
-				Path.Combine (directory.FullName, "bin", "Thermostat_Example_IP_V2.pkg"), "Test", 1);
+				Path.Combine (directory.FullName, "bin", "Thermostat_Example_IP_V2.pkg"), "Test", "Office");
 			Assert.Throws<InvalidDataException> (() => WorkflowDebugVersion.ResolveManifest (plan));
 			Assert.That (WorkflowDebugVersion.ResolveManifest (plan with { ManifestPath = renamed }), Is.EqualTo (renamed));
 			Assert.That (File.ReadAllText (conventional), Is.EqualTo ("original"));
@@ -69,7 +69,7 @@ public sealed class DebugVersionTests
 			{
 			File.WriteAllText (Path.Combine (directory.FullName, "settings.json"), "{}");
 			var project = Path.Combine (directory.FullName, "Example.csproj");
-			Assert.That (WorkflowDebugVersion.ResolveManifest (new (project, Path.Combine (directory.FullName, "Renamed.pkg"), "Test", 1)),
+			Assert.That (WorkflowDebugVersion.ResolveManifest (new (project, Path.Combine (directory.FullName, "Renamed.pkg"), "Test", "Office")),
 				Is.EqualTo (Path.ChangeExtension (project, ".json")));
 			}
 		finally { directory.Delete (true); }

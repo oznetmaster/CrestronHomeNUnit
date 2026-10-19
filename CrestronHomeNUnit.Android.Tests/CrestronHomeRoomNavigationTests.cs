@@ -30,7 +30,7 @@ public sealed class CrestronHomeRoomNavigationTests
 			"192.0.2.1", 7, Guid.NewGuid ().ToString (), "1.0.0.1", new ('A', 64), new ('B', 64),
 			new (Environment.ProcessPath!, "fake-serial", "com.crestron.phoenix.app", "Example Home", path), _directory);
 		_transport = new ();
-		_navigation = new (new (context, new (_transport, context.Profile.Application)), TimeSpan.FromMilliseconds (60));
+		_navigation = new (new (context, new (_transport, context.Profile.Application)), TimeSpan.FromSeconds (2));
 		}
 
 	[TearDown]
@@ -341,6 +341,43 @@ public sealed class CrestronHomeRoomNavigationTests
         await Assert.ThrowsAsync<InvalidDataException>(()=>_navigation.InspectRoomDetailsPagesAsync("details-failure","Example Room","Example Thermostat","Room Controls",(_,__)=>throw new InvalidDataException("Observation failed")));
         Assert.That(_transport.ControlTaps,Is.Zero);
         Assert.That(_navigation.HomeRestored,Is.True);
+    }
+
+
+    [TestCase(0)] [TestCase(1)] [TestCase(3)]
+    public async Task RevealOnlyUsesObservedGesturesWithoutOpeningOrControlling(int scrolls) {
+        _transport.TileViewport=scrolls; _transport.NativeDetails=true;
+        await _navigation.OpenRoomAsync("Example Room");
+        await _navigation.RevealRoomTileAsync("Example Thermostat");
+        Assert.That(_transport.Swipes,Is.EqualTo(scrolls)); Assert.That(_transport.ExtensionOpens,Is.Zero); Assert.That(_transport.ControlTaps,Is.Zero);
+        Assert.That(_transport.Page,Is.EqualTo("room"));
+        await _navigation.RestoreHomeAndCaptureAsync("revealed");Assert.That(_navigation.HomeRestored,Is.True);
+    }
+    [TestCase("stationary")] [TestCase("uncertain")] [TestCase("missing")] [TestCase("duplicate")] [TestCase("disabled")]
+    public async Task RevealOnlyFailureNeverTapsOrReplaysAndCallerRestores(string mode) {
+        _transport.TileViewport=mode=="missing"?100:1;_transport.NativeDetails=true;
+        _transport.StationaryScroll=mode=="stationary";_transport.ThrowAfterSwipe=mode=="uncertain";
+        _transport.TileCount=mode=="duplicate"?2:1;_transport.DisabledTile=mode=="disabled";
+        await _navigation.OpenRoomAsync("Example Room");
+        if(mode=="uncertain") await Assert.ThrowsAsync<IOException>(()=>_navigation.RevealRoomTileAsync("Example Thermostat"));
+        else await Assert.ThrowsAsync<InvalidOperationException>(()=>_navigation.RevealRoomTileAsync("Example Thermostat"));
+        Assert.That(_transport.Swipes,Is.EqualTo(mode=="missing"?12:1));Assert.That(_transport.ExtensionOpens,Is.Zero);Assert.That(_transport.ControlTaps,Is.Zero);
+        await _navigation.RestoreHomeAndCaptureAsync("failed-reveal");Assert.That(_navigation.HomeRestored,Is.True);
+    }
+    [Test] public async Task RevealOnlyRequiresAnAlreadyOpenedRoom() {
+        await Assert.ThrowsAsync<InvalidOperationException>(()=>_navigation.RevealRoomTileAsync("Example Thermostat"));
+        Assert.That(_transport.Inputs,Is.Empty);Assert.That(_transport.Swipes,Is.Zero);
+    }
+    [Test] public async Task RevealOnlyRejectsBackgroundRoomBehindExtension() {
+        await _navigation.OpenRoomAsync("Example Room");_transport.Page="extension";
+        await Assert.ThrowsAsync<InvalidOperationException>(()=>_navigation.RevealRoomTileAsync("Example Thermostat"));
+        Assert.That(_transport.Swipes,Is.Zero);Assert.That(_transport.ExtensionOpens,Is.Zero);_transport.Page="room";
+        await _navigation.RestoreHomeAndCaptureAsync("overlay-reveal");
+    }
+    [Test] public async Task RevealOnlyExplicitCancellationSendsNoGestureAndAllowsCleanup() {
+        _transport.TileViewport=1;await _navigation.OpenRoomAsync("Example Room");using var cancel=new CancellationTokenSource();cancel.Cancel();
+        await Assert.ThrowsAsync<OperationCanceledException>(()=>_navigation.RevealRoomTileAsync("Example Thermostat",cancel.Token));
+        Assert.That(_transport.Swipes,Is.Zero);await _navigation.RestoreHomeAndCaptureAsync("cancel-reveal");Assert.That(_navigation.HomeRestored,Is.True);
     }
 
 	private sealed class RoomTransport : IAndroidCommandTransport

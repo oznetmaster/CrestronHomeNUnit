@@ -272,7 +272,7 @@ public sealed class ArtifactReuseTests
 			SourceSha256 = sourceHash,
 			BuildInputsSha256 = inputs
 			});
-		var target = new PackageBuildPlan (project, Path.Combine (source, "bin", "Example.pkg"), "Example tests", 1);
+		var target = new PackageBuildPlan (project, Path.Combine (source, "bin", "Example.pkg"), "Example tests", "Office");
 		var plan = new WorkflowPlan
 			{
 			Host = "unused.invalid",

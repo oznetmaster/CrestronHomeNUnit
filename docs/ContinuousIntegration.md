@@ -89,7 +89,7 @@ The plan is deserialized into [WorkflowPlan](../CrestronHomeNUnit.Workflow/Workf
 | `certificateSha256`, `sshFingerprint` | Independently verified HTTPS/WebSocket certificate and SSH host-key fingerprints. |
 | `sourceRoots` | All source checkouts that determine the retained builds, including dirty edits and shared SDK sources. |
 | `localTests` | Project, optional filter and positive `minimumPassed` for each required local stage. |
-| `testPackage` | Build project, absolute output package path, unique instance name, room ID and optional expected device ID. |
+| `testPackage` | Build project, absolute output package path, unique instance name, `roomName` and optional expected device ID. |
 | `processorSuites` | Required suite IDs and positive minimum counts. Use package metadata/discovery, not assumed generic IDs. |
 | `liveSuites` | Required explicitly selected live suites, each with private input paths and a positive minimum. Empty for a test-only plan without live tests. |
 | `actualDriver` | Optional production driver build/instance target. Omit when only validating a library or test suite. |

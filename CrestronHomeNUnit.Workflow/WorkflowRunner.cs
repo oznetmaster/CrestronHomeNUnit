@@ -254,6 +254,9 @@ public static class WorkflowRunner
 			}
 		public async Task PrepareTestInstanceAsync (CancellationToken token)
 			{
+			await ProcessorTestRooms.RequireAsync (client, new[] { plan.TestPackage.RoomName }
+				.Concat (plan.ActualDriver == null ? [] : new[] { plan.ActualDriver.RoomName })
+				.Concat (plan.AndroidTests?.ManagedChildren.Select (child => child.RoomName) ?? []), token).ConfigureAwait (false);
 			if (plan.ActualDriver != null) _actualPath = await PrepareActualPackageAsync (token).ConfigureAwait (false);
 			_testPath = await Build (plan.TestPackage, true, token).ConfigureAwait (false);
 			if (_actualPath != null && DriverDeployment.Inspect (_actualPath).DriverId == DriverDeployment.Inspect (_testPath).DriverId)
@@ -270,6 +273,8 @@ public static class WorkflowRunner
 			if (_artifactInputs.TryGetValue (package, out var inputs) && inputs != await WorkflowArtifacts.InputsDigestAsync (
 				target.Project, plan.ArtifactReuse!.BuildInputFiles, deadline.Token, plan.SourceRoots).ConfigureAwait (false))
 				throw new InvalidOperationException ("Build inputs changed after package preparation; rebuild and rerun tests.");
+			await ProcessorTestRooms.RequireAsync (client, [target.RoomName], deadline.Token).ConfigureAwait (false);
+			if (target.ExpectedDeviceId is int expected) await ProcessorTestRooms.VerifyDeviceAsync (client, expected, target.RoomName, deadline.Token).ConfigureAwait (false);
 			var info = DriverDeployment.Inspect (package);
 			var catalogue = await client.GetDriversAsync (info.Model, deadline.Token).ConfigureAwait (false);
 			bool existing = catalogue.Any (d => string.Equals (d.Model?.Trim (), info.Model.Trim (), StringComparison.OrdinalIgnoreCase)
@@ -284,7 +289,7 @@ public static class WorkflowRunner
 			ActivationUncertain = true;
 			var imported = reused ?? await DriverDeployment.DeployAsync (client, _host, credential, plan.SshFingerprint, package, Timeout, deadline.Token).ConfigureAwait (false);
 			await File.WriteAllTextAsync (Path.Combine (results, prefix + "-import.json"), JsonSerializer.Serialize (imported), deadline.Token).ConfigureAwait (false);
-			var ready = await DriverInstanceLifecycle.EnsureAsync (client, imported.CatalogueId, target.InstanceName, target.LocationId, target.ExpectedDeviceId, Timeout, deadline.Token, RebootHandler (target)).ConfigureAwait (false);
+			var ready = await DriverInstanceLifecycle.EnsureInRoomAsync (client, imported.CatalogueId, target.InstanceName, target.RoomName, target.ExpectedDeviceId, Timeout, deadline.Token, RebootHandler (target)).ConfigureAwait (false);
 			await File.WriteAllTextAsync (Path.Combine (results, prefix + "-activation.json"), JsonSerializer.Serialize (ready), deadline.Token).ConfigureAwait (false);
 			ActivationUncertain = false;
 			return ready;

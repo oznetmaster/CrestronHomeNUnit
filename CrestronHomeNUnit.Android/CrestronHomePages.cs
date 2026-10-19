@@ -47,6 +47,11 @@ public static class CrestronHomePages
         throw new InvalidOperationException ("No observed interior gutter is available outside the connection fields; no input was sent.");
         }
 
+	/// <summary>A recognized app connection/startup screen is not a usable driver observation.</summary>
+	public static bool IsConnecting (AndroidHierarchy hierarchy) =>
+		hierarchy.Find (new (AndroidSelectorKind.Text, "Connecting to home...")).Length > 0 ||
+		hierarchy.Find (new (AndroidSelectorKind.Text, "Connecting to home…")).Length > 0;
+
 	private static void RequireNoConnectionBanner (AndroidHierarchy hierarchy)
 		{
 		// A cached page can remain visible while Home reconnects and disables controls.

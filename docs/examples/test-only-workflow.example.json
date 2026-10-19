@@ -9,7 +9,7 @@
     "project": "C:/CI/Source/CrestronHomeLibraryTests/ExampleLibrary.ProcessorTests/ExampleLibrary.ProcessorTests.csproj",
     "packagePath": "C:/CI/Source/CrestronHomeLibraryTests/ExampleLibrary.ProcessorTests/bin/Debug/net472/ExampleLibrary.ProcessorTests.pkg",
     "instanceName": "Example Library Tests",
-    "locationId": 1,
+    "roomName": "Equipment Room",
     "expectedDeviceId": null
   },
   "processorSuites": [{ "id": "unit", "minimumPassed": 1, "inputs": [] }],

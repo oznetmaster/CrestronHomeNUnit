@@ -68,7 +68,7 @@ public sealed record AndroidRunContext (int SchemaVersion, string RunId, string 
 			string.IsNullOrWhiteSpace (binding.Alias) || binding.Alias.Length > 64 ||
 			binding.Alias.Any (c => !char.IsAsciiLetterOrDigit (c) && c is not ('_' or '-')) ||
 			binding.DeviceId <= 0 || binding.DeviceId == InstalledDriverId || binding.ParentDriverId != InstalledDriverId ||
-			binding.LocationId <= 0 || string.IsNullOrWhiteSpace (binding.Model) || string.IsNullOrWhiteSpace (binding.Name)) ||
+			string.IsNullOrWhiteSpace (binding.RoomName) || string.IsNullOrWhiteSpace (binding.Model) || string.IsNullOrWhiteSpace (binding.Name)) ||
 			ManagedDevices.Select (binding => binding.Alias).Distinct (StringComparer.OrdinalIgnoreCase).Count () != ManagedDevices.Count ||
 			ManagedDevices.Select (binding => binding.DeviceId).Distinct ().Count () != ManagedDevices.Count)
 			throw new InvalidDataException ("Invalid or ambiguous managed-child workflow bindings.");
@@ -76,10 +76,13 @@ public sealed record AndroidRunContext (int SchemaVersion, string RunId, string 
 	}
 
 /// <summary>The actual identity of a child created for this run. Consumers must still verify its current processor state.</summary>
-public sealed record AndroidManagedDeviceBinding (string Alias, int DeviceId, int ParentDriverId, string Model, string Name, int LocationId);
+public sealed record AndroidManagedDeviceBinding (string Alias, int DeviceId, int ParentDriverId, string Model, string Name, string RoomName);
 public sealed record AndroidRunCompletion (int SchemaVersion, string RunId, string PackageSha256, bool RestorationConfirmed);
 /// <summary>Bounds of the successful hierarchy read, excluding later screenshot and evidence storage.</summary>
 public sealed record AndroidHierarchyObservation (DateTimeOffset StartedUtc, DateTimeOffset ObservedUtc);
+/// <summary>One actual read of a recognized unusable app connection screen; not a gateway state.</summary>
+public sealed record AndroidConnectionUnavailable (DateTimeOffset StartedUtc, DateTimeOffset ObservedUtc,
+	string HierarchyPath, string HierarchySha256);
 
 /// <summary>A workflow-owned session; ordinary desktop tests have no implicit Android connection.</summary>
 public sealed class AndroidWorkflowSession
@@ -93,6 +96,18 @@ public sealed class AndroidWorkflowSession
 		RespectNullableAnnotations = true
 		};
 	private bool _completed;
+	private int _connectionReady;
+	private readonly List<AndroidConnectionUnavailable> _unavailable = [];
+	/// <summary>Last guarded page observation was usable. This is observed state, not a continuous network guarantee.</summary>
+	public bool ConnectionReadyObserved => Volatile.Read (ref _connectionReady) != 0;
+	public IReadOnlyList<AndroidConnectionUnavailable> ConnectionUnavailableObservations
+		{ get { lock (_unavailable) return _unavailable.ToArray (); } }
+	/// <summary>Fail before an action cue if the concurrent observer is waiting on app startup/connection.</summary>
+	public void RequireConnectedObservation ()
+		{
+		VerifyActive ();
+		if (!ConnectionReadyObserved) throw new InvalidOperationException ("The app has no current usable guarded observation; no action may begin.");
+		}
 	public AndroidRunContext Context { get; }
 	public AndroidDevice Device { get; }
 	/// <summary>True only when opening this session verified its configured saved address and port,
@@ -139,18 +154,31 @@ public sealed class AndroidWorkflowSession
 				session.SavedEndpointVerifiedOnOpen = true;
 				return session;
 				}
-			var hierarchy = await session.Device.CaptureAsync (token).ConfigureAwait (false);
+			var hierarchy = (await session.ReadConnectedHierarchyAsync (token).ConfigureAwait (false)).Hierarchy;
 			if (context.Profile.Application == "com.crestron.phoenix.app")
 				CrestronHomePages.RequireHome (hierarchy, context.Profile.ExpectedHomeText);
 			else
 				_ = hierarchy.RequireUnique (new (AndroidSelectorKind.Text, context.Profile.ExpectedHomeText));
+			Volatile.Write (ref session._connectionReady, 1);
 			return session;
 			}
-		catch
+		catch (Exception error)
 			{
-			// A failed endpoint assertion can still have completed verified Home restoration.
-			// Uncertain navigation without that proof must retain its reservation.
-			session.Complete (restorationConfirmed: !navigationAttempted || openingNavigation?.HomeRestored == true);
+			// No input is a mutation fact, not proof that the configured Home was observed.
+			// Failed opted-in endpoint inspection can retain actual verified Home restoration.
+			bool observedRestoration = openingNavigation?.HomeRestored == true;
+			try
+				{
+				using var diagnostic = new FileStream (Path.Combine (context.EvidenceDirectory, "startup-failure.json"),
+					FileMode.CreateNew, FileAccess.Write, FileShare.Read);
+				JsonSerializer.Serialize (diagnostic, new { SchemaVersion = 1, context.RunId, context.PackageSha256,
+					NoNavigationAttempted = !navigationAttempted, ConfiguredHomeRestorationObserved = observedRestoration,
+					ExceptionType = error.GetType ().FullName });
+				diagnostic.Flush (flushToDisk: true);
+				}
+			catch (Exception retentionError) when (retentionError is IOException or UnauthorizedAccessException)
+				{ error.Data["StartupDiagnosticRetentionFailure"] = retentionError.GetType ().FullName; }
+			session.Complete (restorationConfirmed: observedRestoration);
 			throw;
 			}
 		}
@@ -179,6 +207,36 @@ public sealed class AndroidWorkflowSession
 		VerifyContext (Context);
 		}
 
+	// Common read barrier for session opening, navigation and evidence capture. Only this
+	// exact recognized startup state is waited out; wrong pages, ownership and I/O errors
+	// retain their ordinary failures. No inputs, app relaunch, or enclosing session deadline.
+	internal async Task<(AndroidHierarchy Hierarchy, DateTimeOffset StartedUtc, DateTimeOffset ObservedUtc)>
+		ReadConnectedHierarchyAsync (CancellationToken token)
+		{
+		while (true)
+			{
+			VerifyActive ();
+			token.ThrowIfCancellationRequested ();
+			var started = DateTimeOffset.UtcNow;
+			var hierarchy = await Device.CaptureAsync (token).ConfigureAwait (false);
+			var observed = DateTimeOffset.UtcNow;
+			if (Context.Profile.Application != "com.crestron.phoenix.app" || !CrestronHomePages.IsConnecting (hierarchy))
+				return (hierarchy, started, observed);
+			Volatile.Write (ref _connectionReady, 0);
+			var directory = Path.Combine (Context.EvidenceDirectory, "connection-unavailable");
+			Directory.CreateDirectory (directory);
+			var path = Path.Combine (directory, Guid.NewGuid ().ToString ("N") + ".xml");
+			var bytes = System.Text.Encoding.UTF8.GetBytes (hierarchy.MaskedXml);
+			using (var file = new FileStream (path, FileMode.CreateNew, FileAccess.Write, FileShare.Read))
+				{ await file.WriteAsync (bytes, token).ConfigureAwait (false); file.Flush (true); }
+			var gap = new AndroidConnectionUnavailable (started, observed, path, Convert.ToHexString (SHA256.HashData (bytes)));
+			lock (_unavailable) _unavailable.Add (gap);
+			using (var receipt = new FileStream (Path.ChangeExtension (path, ".json"), FileMode.CreateNew, FileAccess.Write, FileShare.Read))
+				{ JsonSerializer.Serialize (receipt, new { Context.RunId, Unavailable = gap, AppState = "Connecting", GatewayStateAssessed = false }); receipt.Flush (true); }
+			await Task.Delay (TimeSpan.FromMilliseconds (250), token).ConfigureAwait (false);
+			}
+		}
+
 	public async Task CaptureAsync (string checkId, Action<AndroidHierarchy> verify, CancellationToken token = default)
 		=> await CaptureCoreAsync (checkId, verify, null, token).ConfigureAwait (false);
 
@@ -201,15 +259,15 @@ public sealed class AndroidWorkflowSession
 		if (Directory.Exists (directory))
 			throw new IOException ("Android evidence already exists for this check; it cannot be replaced.");
 		Directory.CreateDirectory (directory);
+		var waitingStarted = DateTimeOffset.UtcNow;
+		int unavailableBefore = ConnectionUnavailableObservations.Count;
 		DateTimeOffset started, observed;
 		AndroidHierarchy hierarchy;
 		while (true)
 			{
 			VerifyActive ();
 			token.ThrowIfCancellationRequested ();
-			started = DateTimeOffset.UtcNow;
-			hierarchy = await Device.CaptureAsync (token).ConfigureAwait (false);
-			observed = DateTimeOffset.UtcNow;
+			(hierarchy, started, observed) = await ReadConnectedHierarchyAsync (token).ConfigureAwait (false);
 			if (matches == null || matches (hierarchy)) break;
 			await Task.Delay (TimeSpan.FromMilliseconds (500), token).ConfigureAwait (false);
 			}
@@ -218,11 +276,13 @@ public sealed class AndroidWorkflowSession
 		var screenshot = await Device.CaptureScreenshotAsync (token).ConfigureAwait (false);
 		await File.WriteAllBytesAsync (Path.Combine (directory, "screen.png"), screenshot, token).ConfigureAwait (false);
 		verify (hierarchy);
+		Volatile.Write (ref _connectionReady, 1);
 		VerifyContext (Context);
 		var record = new
 			{
 			SchemaVersion = 1, Context.RunId, Context.PackageSha256, Context.SourceSha256, Context.ReleaseSourceCommit, Context.InstalledDriverId,
-			Context.DriverGuid, Context.DriverVersion, CheckId = checkId, StartedUtc = started, HierarchyObservedUtc = observed, FinishedUtc = DateTimeOffset.UtcNow,
+			Context.DriverGuid, Context.DriverVersion, CheckId = checkId, WaitingStartedUtc = waitingStarted, StartedUtc = started, HierarchyObservedUtc = observed, FinishedUtc = DateTimeOffset.UtcNow,
+			ConnectionUnavailable = ConnectionUnavailableObservations.Skip (unavailableBefore).ToArray (),
 			HierarchySha256 = Convert.ToHexString (SHA256.HashData (await File.ReadAllBytesAsync (Path.Combine (directory, "hierarchy.xml"), token).ConfigureAwait (false))),
 			ScreenshotSha256 = Convert.ToHexString (SHA256.HashData (screenshot)), Outcome = "Passed"
 			};

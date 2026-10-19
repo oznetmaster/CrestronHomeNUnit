@@ -1,5 +1,17 @@
 # Crestron Home NUnit UI automation library
 
+## Connected app and one coordinated UI session (local correction, 18 October 2026)
+
+Every app scenario starts only after the app has finished its recognized connection/startup screen, the correct saved Home has been selected, and that scenario's actual usable page has been observed. Processor management GETs, native Online, a cached tile or unrelated `CONNECTED` text do not satisfy this app precondition. For a selected processor, retain the saved address/port inspection and the independent processor/candidate identity guards; a Home label alone is insufficient. Saved endpoint inspection remains configuration evidence, not independent active-route telemetry.
+
+Use one workflow-owned session for the selected compatible UI scenarios. The sample's namespace `SetUpFixture` already opens once and completes once. Consumers should likewise use one-time setup/cleanup, check usable page readiness before each scenario, and restore the original saved selection only after the whole selected UI sequence (including failures) has settled. Do not relaunch the app, reselect the Home or repeat saved-endpoint inspection separately for each case. No selected test is implied by a settings file, and a coordinated session is not permission to add physical scenarios.
+
+`AndroidWorkflowSession.OpenAsync`, opted-in selection's initial read, navigation page waits, and session evidence capture share `ReadConnectedHierarchyAsync`. It waits by reads only for the exact known `Connecting to home...` / `Connecting to home…` screen to clear. The expected Home/page predicate still has to pass afterward. Unknown dialogs, wrong Homes, changed ownership and I/O failures retain their rejection; no input or app restart is retried. Individual navigation/I/O bounds remain distinct from an attended physical/session deadline. Explicit cancellation always remains available.
+
+Every actual Connecting read is retained as masked XML plus a hashed `connection-unavailable` record. It means the app was not a usable observer at that read, not proof of a network drop, a gateway failure or a product defect. Passing captures retain the list of unavailable reads encountered while waiting and the separate successful hierarchy/screenshot bounds. Cancellation leaves unavailable records but no passing capture. `ConnectionReadyObserved` describes the last guarded observation, not continuous network monitoring; an action publisher must reject if its concurrent observer is currently waiting on app connection.
+
+Acceptance mapping: `AndroidConnectionReadinessTests` exercises opening and opted-in selection while Connecting, wrong Home/unknown overlay, explicit cancellation, ownership loss, two scenarios on one session, unavailable evidence and action-readiness rejection. Existing navigation suites retain saved-endpoint, unique selector, uncertain-input and independent restoration checks. These are offline synthetic transport checks; fresh live behavior of this local correction is not yet established. Low-level `AndroidDevice` callers still own their explicit page assertions and session lifecycle; the SDK cannot silently turn arbitrary raw transport code into a connected scenario.
+
 ## Saved-Home selection (unreleased)
 
 By default session opening only reads the current screen and requires the expected Home. A workflow that deliberately shares one emulator between processors can opt in with `AllowedStartingHomes` in each private Android profile:
@@ -224,13 +236,13 @@ An optional `managedChildren` list under `androidTests` commissions temporary ch
       "managedDeviceId": "advertised-child-id",
       "name": "CI Example Child",
       "model": "Example Child",
-      "locationId": 3
+      "roomName": "Equipment Room"
     }
   ]
 }
 ```
 
-Use the selected processor's advertised child identity and an existing Home room. These values are examples, not discovery rules. The parent ID/model/version come from the actual driver activated by this run. Aliases, managed child identities and room/name pairs must be distinct. A collision with an existing child name stops setup; the workflow never adopts a manually installed child.
+Use the selected processor's advertised child identity and an existing Home room name. Processor-facing support resolves every requested room before any child is created; workflow plans, fixture bindings and author-facing results never contain room IDs. Missing or ambiguous names fail closed. Native commissioning journals remain private processor diagnostics for safe cleanup. No resolved-ID plan or RoomBindings report is produced. These values are examples, not discovery rules. The parent ID/model/version come from the actual driver activated by this run. Aliases, managed child identities and room/name pairs must be distinct. A collision with an existing child name stops setup; the workflow never adopts a manually installed child.
 
 The processor and Android reservations remain held through setup, fixture execution, restoration and removal. Setup enters the child's initial configuration even when it already reports configured. A pending configuration prompt stops the run and retains a private journal; no values are guessed or applied automatically.
 
@@ -290,3 +302,132 @@ A native room tile can operate equipment when tapped. For its read-only detail p
 
 
 Workflow sessions use separate transport budgets: 55 seconds for a hierarchy read and 25 seconds for input commands. Page-readiness and caller cancellation still bound the overall operation. Read-only capture retries remain bounded; input commands are never replayed after an uncertain outcome. Recorded observations still validate a fresh hierarchy after recorder startup, before starting the input observer or response timer. These tooling budgets are not device response limits. Direct two-argument `AndroidDevice` construction keeps using its supplied transport for every operation; the additive three-argument overload allows a caller-owned hierarchy transport.
+## Extension inspection evidence paths
+
+`CrestronHomeNavigation.InspectHomeExtensionAsync(checkId, ...)` stores the verified
+extension-page capture under `<checkId>.controls` within the session evidence
+directory. Its guarded return to Home is captured separately under
+`<checkId>.home-restored`. Do not assume a directory named only `<checkId>` exists.
+Each successful capture retains `hierarchy.xml`, `screen.png` and `observation.json`.
+Keep their identity, timestamps and hashes together when referencing or copying them.
+
+Persist independent functional readings and their comparisons before optional evidence
+copying or report assembly. A later file-path or copying failure must retain that
+original observation and report the tooling failure separately. Preserve the failed
+test/recorder outcome; correcting the path does not retroactively turn it into a pass.
+Any supplemental assessment must be explicitly identified as a later review, refer to
+unchanged original evidence, and satisfy the existing timing and evidence contract.
+Do not substitute a new reading for a missing observation from the original interval.
+
+For offline-feedback checks, choose the reviewed page that actually exposes the required
+status and retain its visible transition. An unchanged Home tile, a decorative icon,
+network reachability or an internal readiness flag alone does not demonstrate visible
+offline feedback within a deadline. Where the governing test form specifically requires a Home or Room tile transition, a status message on an extension page cannot replace that tile evidence. Read the exact criterion before selecting the observation surface.
+
+## Preparing and monitoring a human-assisted test
+
+Before starting a new run, verify that the exact loaded workflow assembly supports
+all plan properties, including `InstalledDriverTestPlan.OperatorReadiness` when
+used. A launcher built against an older assembly can fail before the test starts.
+Record the launcher source and dependency versions separately; do not silently
+replace tools already pinned by a retained run or remove a readiness guard to
+make an incompatible launcher accept the plan.
+
+Every supplied source root must support the workflow's Git source-identity check.
+For a new isolated fixture, prepare its own Git metadata and track the intended
+source before invocation. Exclude generated build output and keep private inputs
+outside source. This establishes a digestable source tree; it does not establish
+that the fixture is a published release. Never modify repository ownership or
+bypass source verification to suppress a preparation error.
+
+Readiness may involve an indefinite human wait. Do not assume a processor login
+opened before that wait will remain valid afterwards. Fixture-owned observations
+should create and dispose a fresh authenticated client for each bounded phase,
+using the same reviewed target, saved credential and trust policy. Cleanup needs
+its own bounded scope and a usable client. Retain cleanup errors separately from
+the original test failure; a session-validation error does not authorize replaying
+an input or physical action.
+
+Launch unattended helpers without a visible console, but present the human
+readiness/action interface visibly in the intended user's session. Verify the
+actual pending request and window, rather than treating an existing listener
+process as proof that the user saw a prompt. Reuse the owned listener and never
+answer requests automatically. Readiness acknowledgement and the later physical
+action request are separate steps.
+
+When using a remote foreground launcher, retain and await its transport until the
+public API returns, then collect the actual process exit and original result.
+A successful launcher exit, an old checkpoint, or an absent process alone is not
+proof that the test completed successfully. Do not detach a child and assume its
+lifetime is independent of the remote session without a documented durable-worker
+contract.
+
+Use bounded periodic monitoring during endurance. During a short human-assisted
+test, keep completion monitoring active so a terminal result is promptly reviewed.
+A monitor may finish each check while the owned worker continues independently.
+On failure, reconcile the exact worker and reservations, inspect the original
+error, validate the narrow repair, and explicitly resume the same operator within
+the user's authorization. Preserve failed originals and passed evidence. A new
+physical attempt still requires fresh readiness and a separate human action
+prompt; neither an old response nor a monitoring wakeup is an action response.
+## Awaiting observations on a Home extension page (source preview)
+
+`CrestronHomeNavigation.ObserveHomeExtensionAsync(checkId, tileName, pageTitle,
+observe, token)` opens the uniquely identified tile on the verified Home and
+awaits a `Func<AndroidHierarchy, CancellationToken, Task>` callback while that
+extension page remains open. Use it for a cancellable read-only observation or
+human-assisted wait on an extension whose reviewed UI is shown on Home. It does
+not navigate through a room or operate a device control.
+
+The callback receives the guarded entry hierarchy and the caller's token. The
+entry capture is retained under `<checkId>.controls` before the callback starts;
+its successful receipt proves that capture, not the later callback outcome. For
+later states, retain fresh guarded observations with the public session capture
+APIs and unique check IDs. Supply a bounded token and a callback that observes
+cancellation; the method awaits the callback rather than detaching its work.
+Keep the session and its reservations active until the returned task completes.
+
+After callback completion, failure or cancellation, the existing bounded,
+navigation-only restoration runs with its own cleanup scope and retains
+`<checkId>.home-restored` proof. It never replays an uncertain input. If the
+original operation and restoration both fail, an `AggregateException` preserves
+the original error first and the cleanup error second; restoration remains
+unconfirmed. An unknown page is not dismissed automatically.
+
+`InspectHomeExtensionAsync` keeps its synchronous assertion and evidence order:
+the verifier runs before the `.controls` observation receipt is written, and the
+method then restores Home. The asynchronous method has a distinct name so an
+async callback cannot accidentally bind to the synchronous `Action` overload.
+This addition is a source preview and is not yet a published package.
+
+
+## Failed startup and observed restoration (local correction)
+
+A startup failure with no navigation attempted is not proof that the configured
+Home was observed or restored. AndroidWorkflowSession now retains startup-failure.json
+with separate NoNavigationAttempted and ConfiguredHomeRestorationObserved facts.
+Failed ordinary opening writes RestorationConfirmed=false. Failed opted-in saved
+endpoint inspection may still report true only when its navigation actually
+retained verified configured Home restoration. Successful opening behavior and
+SavedEndpointVerifiedOnOpen remain unchanged.
+
+Compatibility: a failed read-only opening that previously reported safe solely
+because it sent no input now retains ownership. Inspect actual state and use
+supported owner-scoped reconciliation; never reinterpret old immutable receipts
+or overwrite completion.json. No-input safety and restored-state evidence are
+distinct. Cross-Home fixtures must keep the original root session and separate
+nested selection evidence. A nested selected-Home completion must not stand in
+for actual original-Home restoration before public release.
+
+NUnit TearDown alone does not guarantee cleanup after failed SetUp. Catch setup
+failure explicitly and await independently bounded restoration before reporting
+the root completion. Do not replay uncertain input. The coordinator must allow
+the fixture active period plus all independent SDK/fixture cleanup; cancellation
+of WorkflowEvidence.ProcessAsync kills the child tree. An outer SSH-only change
+cannot cure a shorter coordinator deadline.
+
+Status: local source correction and offline validation; not pushed or published.
+
+## Windows project arguments (local correction)
+
+The shared Android workflow passes Path.GetFullPath(plan.Project) to both dotnet discovery and execution. On Windows this canonicalizes slash-UNC project paths to backslash UNC so MSBuild does not parse them as switches. SourceRoots, Git/source identity, ordinary-path checks, test selection and cleanup remain unchanged. Keep the maintained source project in place and worker build outputs separate. A discovery argument failure is not a failed UI assertion; retain its process log and reservations for exact-owner reconciliation. This change is local and not published.

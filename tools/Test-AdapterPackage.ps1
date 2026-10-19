@@ -82,16 +82,18 @@ public sealed class AndroidHelpers
         Assert.That(typeof(CrestronHomeExtensionNavigation).GetMethod(nameof(CrestronHomeExtensionNavigation.InspectSelectionAsync)), Is.Not.Null);
         var childPlan = new CrestronHomeNUnit.Workflow.AndroidTestPlan("unused", "unused")
         {
-            ManagedChildren = new[] { new CrestronHomeNUnit.Workflow.AndroidManagedChildPlan("room", "child-id", "CI Child", "Example Child", 3) }
+            ManagedChildren = new[] { new CrestronHomeNUnit.Workflow.AndroidManagedChildPlan("room", "child-id", "CI Child", "Example Child", "Office") }
         };
         Assert.That(childPlan.ManagedChildren[0].Alias, Is.EqualTo("room"));
+        Assert.That(childPlan.ManagedChildren[0].RoomName, Is.EqualTo("Office"));
         var context = new AndroidRunContext(1, "package-test", "unused", 1, 1, "192.0.2.1", 7,
             "11111111-1111-1111-1111-111111111111", "1.0.0.1", new string('a', 64), new string('b', 64),
             new AndroidSessionProfile("unused", "unused", "example.app", "Example Home", "unused"), "unused")
         {
-            ManagedDevices = new[] { new AndroidManagedDeviceBinding("room", 19, 7, "Example Child", "CI Child", 3) }
+            ManagedDevices = new[] { new AndroidManagedDeviceBinding("room", 19, 7, "Example Child", "CI Child", "Office") }
         };
         Assert.That(context.RequireManagedDevice("room").DeviceId, Is.EqualTo(19));
+        Assert.That(context.RequireManagedDevice("room").RoomName, Is.EqualTo("Office"));
         Assert.Throws<System.IO.InvalidDataException>(() => context.RequireManagedDevice("missing"));
     }
 }

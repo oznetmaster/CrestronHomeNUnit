@@ -126,7 +126,7 @@ public sealed class PackageCleanupTests
 		{
 		Host = "original", CertificateSha256 = "pinned-certificate", SshFingerprint = "pinned-ssh",
 		SourceRoots = ["source"], LocalTests = [new ("project", 1)],
-		TestPackage = new ("project", "package.pkg", "tests", 1), ProcessorSuites = [new ("unit", 1, [])]
+		TestPackage = new ("project", "package.pkg", "tests", "Office"), ProcessorSuites = [new ("unit", 1, [])]
 		};
 	[Test]
 	public void PackageCleanupRequiresInstanceRemoval ()

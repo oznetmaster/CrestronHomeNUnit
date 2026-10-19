@@ -78,12 +78,53 @@ public sealed class AndroidStageTests
 					await File.WriteAllTextAsync (Path.Combine (output, "TestResult.trx"),
 						"<TestRun><ResultSummary outcome=\"Completed\"><Counters total=\"1\" passed=\"1\" failed=\"0\" /></ResultSummary><Results><UnitTestResult testId=\"1\" executionId=\"unique\" outcome=\"Passed\" /></Results><TestDefinitions><UnitTest id=\"1\" name=\"Home\"><TestMethod className=\"Example\" adapterTypeName=\"executor://nunit3testexecutor/\" /></UnitTest></TestDefinitions></TestRun>", token);
 					return exit;
-				}, releaseSourceCommit: new ('d', 40), managedDevices: [new ("child", 19, 7, "Example Child", "CI Child", 3)]);
+				}, releaseSourceCommit: new ('d', 40), managedDevices: [new ("child", 19, 7, "Example Child", "CI Child", "Office")]);
 		Assert.That (outcome.Tests.MeetsGate, Is.EqualTo (passes));
 		Assert.That (outcome.RestorationConfirmed, Is.EqualTo (restored));
 		Assert.That (File.Exists (_profile.LockPath), Is.True, "Only the coordinator may release after all workflow cleanup.");
 		}
 
+	[TestCase ("slash-unc")]
+	[TestCase ("backslash-unc")]
+	[TestCase ("ordinary-windows")]
+	public async Task DotnetProjectArgumentIsCanonicalForDiscoveryAndExecution (string form)
+		{
+		if (!OperatingSystem.IsWindows ()) Assert.Ignore ("Windows UNC/MSBuild argument contract.");
+		string project = form switch
+			{
+			"slash-unc" => "//example.invalid/share/UiTests.csproj",
+			"backslash-unc" => @"\\example.invalid\share\UiTests.csproj",
+			_ => _project.Replace ('\\', '/')
+			};
+		using var lease = AndroidSessionLease.Acquire (_profile.LockPath, _owner);
+		string output = Path.Combine (_root, "canonical-arguments");
+		var projectArguments = new List<string> ();
+		var outcome = await WorkflowAndroid.RunAsync (new (project, "unused"), _profile, _owner,
+			"192.0.2.1", 7, _package, new ('B', 64), output, CancellationToken.None,
+			async (_, arguments, _, _, token, _) =>
+				{
+					var actual = arguments.ToArray ();
+					Assert.That (actual[0], Is.EqualTo ("test"));
+					Assert.That (actual[1], Is.EqualTo (Path.GetFullPath (project)));
+					Assert.That (actual[1], Does.Not.StartWith ("//"), "MSBuild treats slash-UNC as a switch.");
+					projectArguments.Add (actual[1]);
+					if (actual.Contains ("--list-tests"))
+						{
+						var dump = Path.Combine (output, "assembly", "Dump"); Directory.CreateDirectory (dump);
+						await File.WriteAllTextAsync (Path.Combine (dump, "D_Example.dll.dump"),
+							"<NUnitXml><test-run runstate='Runnable' testcasecount='1'><test-case id='1' fullname='Example.Home' runstate='Runnable' /></test-run></NUnitXml>", token);
+						return 0;
+						}
+					await File.WriteAllTextAsync (Path.Combine (output, "TestResult.trx"),
+						"<TestRun><ResultSummary outcome='Completed'><Counters total='1' passed='1' failed='0'/></ResultSummary><Results><UnitTestResult testId='1' executionId='unique' outcome='Passed'/></Results><TestDefinitions><UnitTest id='1' name='Home'><TestMethod className='Example' adapterTypeName='executor://nunit3testexecutor/'/></UnitTest></TestDefinitions></TestRun>", token);
+					return 0;
+				});
+		Assert.That (projectArguments, Has.Count.EqualTo (2));
+		Assert.That (projectArguments[0], Is.EqualTo (projectArguments[1]));
+		Assert.That (outcome.Tests.MeetsGate, Is.True);
+		Assert.That (outcome.RestorationConfirmed, Is.False, "Synthetic process boundary did not observe Home.");
+		Assert.That (File.Exists (_profile.LockPath), Is.True);
+		}
 	[Test]
 	public void EmptyManagedBindingsKeepTheLegacyContextWireContract ()
 		{
@@ -94,7 +135,7 @@ public sealed class AndroidStageTests
 			"Old UI fixture packages reject this unknown field, even when it is empty.");
 		using var managed = JsonDocument.Parse (WorkflowAndroid.SerializeContext (context with
 			{
-			ManagedDevices = [new ("room", 19, 7, "Example Child", "CI Child", 3)]
+			ManagedDevices = [new ("room", 19, 7, "Example Child", "CI Child", "Office")]
 			}));
 		Assert.That (managed.RootElement.GetProperty ("ManagedDevices")[0].GetProperty ("DeviceId").GetInt32 (), Is.EqualTo (19));
 		}
@@ -285,4 +326,94 @@ public sealed class AndroidStageTests
 			Assert.That ((await Execute ()).Tests.MeetsGate, Is.False);
 		Assert.That (executions, Is.EqualTo (fault == "unknown" ? 0 : 1));
 		}
-	}
+		private sealed class AdmissionClock : TimeProvider
+		{
+		private long _ticks;
+		public override long TimestampFrequency => TimeSpan.TicksPerSecond;
+		public override long GetTimestamp () => Interlocked.Read (ref _ticks);
+		public void Advance (TimeSpan value) => Interlocked.Add (ref _ticks, value.Ticks);
+		}
+
+	[TestCase (0, 0, true)]
+	[TestCase (10, 20, true)]
+	[TestCase (11, 20, false)]
+	public async Task ReserveAdmissionOccursAfterPreparationAndBeforeExecution (int reserve, int preparationSeconds, bool execute)
+		{
+		using var lease = AndroidSessionLease.Acquire (_profile.LockPath, _owner);
+		var clock = new AdmissionClock ();
+		await using var deadline = new WorkflowActiveDeadline (TimeSpan.FromSeconds (30), default, null, clock);
+		string output = Path.Combine (_root, "admission");
+		int discovery = 0, executions = 0;
+		var plan = new AndroidTestPlan (_project, "unused") { RequiredTests = ["Example.Home"], ExecutionReserveSeconds = reserve };
+		async Task<int> Child (string executable, IEnumerable<string> arguments, string directory, string log,
+			CancellationToken token, IReadOnlyDictionary<string, string>? environment)
+			{
+			if (arguments.Contains ("--list-tests"))
+				{
+				discovery++;
+				string dump = Path.Combine (output, "assembly", "Dump"); Directory.CreateDirectory (dump);
+				await File.WriteAllTextAsync (Path.Combine (dump, "D_Example.dll.dump"),
+					"<NUnitXml><test-run runstate='Runnable' testcasecount='1'><test-case id='1' fullname='Example.Home' runstate='Runnable' /></test-run></NUnitXml>", token);
+				clock.Advance (TimeSpan.FromSeconds (preparationSeconds));
+				return 0;
+				}
+			executions++;
+			Assert.That (File.Exists (Path.Combine (output, "producer-pin.json")), Is.True);
+			Assert.That (arguments, Does.Contain ("--settings").And.Contain ("--no-build"));
+			var context = AndroidWorkflowSession.Read<AndroidRunContext> (environment![AndroidWorkflowSession.CONTEXT_VARIABLE]);
+			await File.WriteAllTextAsync (Path.Combine (output, "completion.json"), JsonSerializer.Serialize
+				(new AndroidRunCompletion (1, context.RunId, context.PackageSha256, true)), token);
+			await File.WriteAllTextAsync (Path.Combine (output, "TestResult.trx"),
+				"<TestRun><ResultSummary outcome='Completed'><Counters total='1' passed='1' failed='0'/></ResultSummary><Results><UnitTestResult testId='1' executionId='unique' outcome='Passed'/></Results><TestDefinitions><UnitTest id='1' name='Home'><TestMethod className='Example' adapterTypeName='executor://nunit3testexecutor/'/></UnitTest></TestDefinitions></TestRun>", token);
+			return 0;
+			}
+		Task<AndroidTestOutcome> Run () => WorkflowAndroid.RunAsync (plan, _profile, _owner, "192.0.2.1", 7, _package,
+			new ('B', 64), output, deadline.Token, Child, activeDeadline: reserve == 0 ? null : deadline);
+		if (execute) Assert.That ((await Run ()).Passed, Is.True);
+		else await Assert.ThrowsAsync<InvalidDataException> (Run);
+		Assert.That (discovery, Is.EqualTo (1));
+		Assert.That (executions, Is.EqualTo (execute ? 1 : 0));
+		Assert.That (File.Exists (Path.Combine (output, "producer-manifest.json")), Is.True);
+		Assert.That (File.Exists (Path.Combine (output, "selection.json")), Is.True);
+		Assert.That (File.Exists (Path.Combine (output, "execution-admission.json")), Is.EqualTo (reserve > 0));
+		Assert.That (File.Exists (_profile.LockPath), Is.True);
+		}
+
+	[TestCase (-1)]
+	[TestCase (86401)]
+	[TestCase (10)]
+	public async Task InvalidOrUnboundReserveCannotEvenStartDiscovery (int reserve)
+		{
+		using var lease = AndroidSessionLease.Acquire (_profile.LockPath, _owner);
+		int calls = 0;
+		await Assert.ThrowsAsync<ArgumentException> (() => WorkflowAndroid.RunAsync (
+			new (_project, "unused") { ExecutionReserveSeconds = reserve }, _profile, _owner, "192.0.2.1", 7,
+			_package, new ('B', 64), Path.Combine (_root, "bad-admission"), CancellationToken.None,
+			(_, _, _, _, _, _) => { calls++; return Task.FromResult (0); }));
+		Assert.That (calls, Is.Zero);
+		}
+	[Test]
+	public async Task CancellationAtPreparedAdmissionPreventsExecution ()
+		{
+		using var lease = AndroidSessionLease.Acquire (_profile.LockPath, _owner);
+		using var cancellation = new CancellationTokenSource ();
+		string output = Path.Combine (_root, "canceled-admission");
+		await using var deadline = new WorkflowActiveDeadline (TimeSpan.FromSeconds (30), cancellation.Token,
+			() => { if (File.Exists (Path.Combine (output, "producer-pin.json"))) cancellation.Cancel (); return false; });
+		int executions = 0;
+		await Assert.CatchAsync<OperationCanceledException> (() => WorkflowAndroid.RunAsync (
+			new (_project, "unused") { ExecutionReserveSeconds = 10 }, _profile, _owner, "192.0.2.1", 7,
+			_package, new ('B', 64), output, deadline.Token,
+			async (_, arguments, _, _, token, _) =>
+				{
+				if (!arguments.Contains ("--list-tests")) { executions++; return 0; }
+				string dump = Path.Combine (output, "assembly", "Dump"); Directory.CreateDirectory (dump);
+				await File.WriteAllTextAsync (Path.Combine (dump, "D_Example.dll.dump"),
+					"<NUnitXml><test-run runstate='Runnable' testcasecount='1'><test-case id='1' fullname='Example.Home' runstate='Runnable' /></test-run></NUnitXml>", token);
+				return 0;
+				}, activeDeadline: deadline));
+		Assert.That (File.Exists (Path.Combine (output, "producer-pin.json")), Is.True);
+		Assert.That (executions, Is.Zero);
+		Assert.That (File.Exists (Path.Combine (output, "completion.json")), Is.False);
+		}
+}

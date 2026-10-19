@@ -121,7 +121,7 @@ internal sealed class WorkflowPackageCleanup (HashSet<string> protectedPaths, st
 			 || afterManifest.RootElement.EnumerateArray ().Any (r => r.GetProperty ("LocalPath").GetString () == candidate.Path))
 			throw new IOException ("Stored package removal could not be confirmed.");
 		var after = await client.GetDevicesAsync (token).ConfigureAwait (false);
-		if (before.Any (d => !after.Any (a => a.Id == d.Id && a.Model == d.Model && a.LocationId == d.LocationId)))
+		if (!ProcessorTestRooms.AssignmentsPreserved (before, after))
 			throw new IOException ("Installed device identities changed during cleanup.");
 		bool cached = (await client.GetDriversAsync (package.Model, token).ConfigureAwait (false)).Any (d =>
 			 string.Equals (d.Model, package.Model, StringComparison.OrdinalIgnoreCase) && VersionEqual (d.Version, package.Version));

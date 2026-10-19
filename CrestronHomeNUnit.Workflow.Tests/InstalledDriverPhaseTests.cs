@@ -11,7 +11,7 @@ namespace CrestronHomeNUnit.Workflow.Tests;
 
 public sealed class InstalledDriverPhaseTests
 	{
-	private static readonly InstalledDriverTestTarget Target = new (42, -6, "Example", "Example Platform", 3,
+	private static readonly InstalledDriverTestTarget Target = new (42, -6, "Example", "Example Platform", "Office",
 		"1.2.3.0", "example.platform.ip.developer", "Developer", "tcpClient");
 	private static readonly DriverPackageInfo Package = new ("18f59652-571f-4349-8ca5-7b5033229e8d", "Example Platform", "Example", "1.002.0003.0000");
 	private static DeviceInfo Device () => new ()
@@ -35,7 +35,6 @@ public sealed class InstalledDriverPhaseTests
 	[TestCase ("parent")]
 	[TestCase ("name")]
 	[TestCase ("model")]
-	[TestCase ("room")]
 	[TestCase ("version")]
 	[TestCase ("loading")]
 	[TestCase ("developer")]
@@ -53,7 +52,6 @@ public sealed class InstalledDriverPhaseTests
 			case "parent": device = device with { ParentDeviceId = 99 }; break;
 			case "name": device = device with { Name = "Other" }; break;
 			case "model": device = device with { Model = "Other" }; break;
-			case "room": device = device with { LocationId = 4 }; break;
 			case "version": device.PropertyValues["cp.driverInformation:version"] = JsonSerializer.SerializeToElement ("1.2.3.1"); break;
 			case "loading": device.PropertyValues["cp.driverConfiguration:driverLoadingStatus"] = JsonSerializer.SerializeToElement ("Unloaded"); break;
 			case "developer": device.PropertyValues.Remove ("cp.driverInformation:developer"); break;

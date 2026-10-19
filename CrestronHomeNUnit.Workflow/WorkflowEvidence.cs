@@ -59,21 +59,44 @@ public static class WorkflowEvidence
 		foreach (var argument in arguments)
 			start.ArgumentList.Add (argument);
 		using var process = Process.Start (start) ?? throw new IOException ("Could not start build/test process.");
-		var output = process.StandardOutput.ReadToEndAsync ();
-		var error = process.StandardError.ReadToEndAsync ();
-		try
-			{
-			await process.WaitForExitAsync (token).ConfigureAwait (false);
-			}
-		finally
-			{
-			if (!process.HasExited)
-				{
-				process.Kill (entireProcessTree: true);
-				await process.WaitForExitAsync ().ConfigureAwait (false);
-				}
-			await File.WriteAllTextAsync (log, await output.ConfigureAwait (false) + await error.ConfigureAwait (false)).ConfigureAwait (false);
-			}
+        using var captureBudget = new CancellationTokenSource();
+        var output = new ProcessOutputCapture();
+        var error = new ProcessOutputCapture();
+        var outputTask = output.ReadAsync(process.StandardOutput, captureBudget.Token);
+        var errorTask = error.ReadAsync(process.StandardError, captureBudget.Token);
+        Exception? primary = null;
+        Exception? cleanup = null;
+        bool streamsComplete = false;
+        try
+            {
+            await process.WaitForExitAsync(token).ConfigureAwait(false);
+            }
+        catch (Exception failure) { primary = failure; }
+        try
+            {
+            if (!process.HasExited)
+                {
+                process.Kill(entireProcessTree: true);
+                await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+                }
+            }
+        catch (Exception failure) { cleanup = failure; }
+        // A compiler/server descendant can inherit stdout after the direct child exits.
+        // Never wait forever for its EOF, including on the cancellation cleanup path.
+        captureBudget.CancelAfter(TimeSpan.FromSeconds(5));
+        var captures = await Task.WhenAll(outputTask, errorTask).ConfigureAwait(false);
+        streamsComplete = captures.All(complete => complete);
+        await File.WriteAllTextAsync(log, output.Text + error.Text).ConfigureAwait(false);
+        await File.WriteAllTextAsync(log + ".process.json", JsonSerializer.Serialize(new
+            {
+            processId = process.Id, exitCode = process.HasExited ? (int?)process.ExitCode : null,
+            terminationConfirmed = process.HasExited, streamsComplete,
+            cancellationRequested = token.IsCancellationRequested,
+            primaryErrorType = primary?.GetType().Name, cleanupErrorType = cleanup?.GetType().Name
+            })).ConfigureAwait(false);
+        if (primary != null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(primary).Throw();
+        if (cleanup != null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(cleanup).Throw();
+        if (!streamsComplete) throw new IOException("Child output did not close within the cleanup budget; partial log and process receipt retained.");
 		return process.ExitCode;
 		}
 

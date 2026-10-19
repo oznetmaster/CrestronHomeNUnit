@@ -1,5 +1,11 @@
 # Crestron Home workflow test adapter
 
+Version 3.0.0 requires named processor rooms (`RoomName`) in workflow plans and
+managed app-fixture bindings. Numeric-only selectors are rejected; recompile
+consumers and migrate their private plans before running. Processor-facing test
+support performs native lookup, not CI. See the
+[room-name migration guide](https://github.com/oznetmaster/CrestronHomeNUnit/blob/main/docs/RoomNameMigration.md).
+
 Version 2.4.0 also bundles `CrestronHomeNUnit.Mac` and its XML API
 documentation. Use it from a separate .NET 10 NUnit 5 project against an explicitly
 owned Appium Mac2 session. It is not available in 2.3.0. Read the

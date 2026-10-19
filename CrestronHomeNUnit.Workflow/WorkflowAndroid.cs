@@ -24,8 +24,11 @@ internal delegate Task<int> AndroidTestProcess (string executable, IEnumerable<s
 internal static class WorkflowAndroid
 	{
 	public static async Task<AndroidTestOutcome> RunAsync (AndroidTestPlan plan, AndroidSessionProfile profile, string owner,
-		string host, int deviceId, string package, string source, string directory, CancellationToken token, AndroidTestProcess? runProcess = null, string? releaseSourceCommit = null, IReadOnlyList<AndroidManagedDeviceBinding>? managedDevices = null, InstalledOperatorReadiness? operatorReadiness = null)
+		string host, int deviceId, string package, string source, string directory, CancellationToken token, AndroidTestProcess? runProcess = null, string? releaseSourceCommit = null, IReadOnlyList<AndroidManagedDeviceBinding>? managedDevices = null, InstalledOperatorReadiness? operatorReadiness = null, WorkflowActiveDeadline? activeDeadline = null)
 		{
+		plan.ValidateExecutionReserve ();
+		if (plan.ExecutionReserveSeconds > 0 && activeDeadline == null)
+			throw new ArgumentException ("Declared Android execution reserve requires the coordinator monotonic active deadline.");
 		var requiredTests = plan.RequiredTests?.ToArray ();
 		AndroidTestSelection.Validate (requiredTests);
 		WorkflowEvidence.PrepareLocalResults (directory);
@@ -43,7 +46,7 @@ internal static class WorkflowAndroid
 		var contextPath = Path.Combine (directory, "context.json");
 		await File.WriteAllTextAsync (contextPath, SerializeContext (context), token).ConfigureAwait (false);
 		var assemblyDirectory = Path.Combine (directory, "assembly");
-		var common = new[] { "test", plan.Project, "--configuration", "Debug", "--framework", "net10.0", "--output", assemblyDirectory,
+		var common = new[] { "test", Path.GetFullPath (plan.Project), "--configuration", "Debug", "--framework", "net10.0", "--output", assemblyDirectory,
 			"-p:DeployAfterBuild=false", "-p:BuildForTests=true" };
 		runProcess ??= WorkflowEvidence.ProcessAsync;
 		int discoveryExit = await runProcess ("dotnet", common.Concat (["--list-tests", "--", "NUnit.DumpXmlTestDiscovery=true"]),
@@ -89,6 +92,18 @@ internal static class WorkflowAndroid
 			"--logger", "trx;LogFilePrefix=TestResult", "--results-directory", directory });
 		if (selection != null)
 			arguments = arguments.Concat (["--settings", selection.SettingsPath]);
+		token.ThrowIfCancellationRequested ();
+		if (plan.ExecutionReserveSeconds > 0)
+			{
+			var required = TimeSpan.FromSeconds (plan.ExecutionReserveSeconds);
+			var remaining = activeDeadline!.Remaining;
+			await File.WriteAllTextAsync (Path.Combine (directory, "execution-admission.json"), JsonSerializer.Serialize
+				(new { SchemaVersion = 1, context.RunId, RequiredSeconds = plan.ExecutionReserveSeconds,
+					RemainingSecondsAtRecord = remaining.TotalSeconds, Monotonic = true,
+					Meaning = "Allowance sample, not test execution or restoration proof." }), token).ConfigureAwait (false);
+			// Re-sample after retaining the record: evidence storage must not consume the declared reserve unnoticed.
+			activeDeadline.RequireRemaining (required);
+			}
 		int exit = await runProcess ("dotnet", arguments, Path.GetDirectoryName (plan.Project)!, Path.Combine (directory, "Tests.log"), token,
 			new Dictionary<string, string> { [AndroidWorkflowSession.CONTEXT_VARIABLE] = contextPath,
 				[InstalledOperatorReadiness.EnvironmentVariable] = operatorReadiness == null ? "" : JsonSerializer.Serialize(operatorReadiness) }).ConfigureAwait (false);

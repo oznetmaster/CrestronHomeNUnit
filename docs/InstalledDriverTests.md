@@ -6,6 +6,8 @@ An installed-driver plan may set `OperatorReadiness` with an absolute private `D
 
 While that exact readiness request remains unanswered, the active-work timeout pauses indefinitely. Cancellation and malformed-request detection remain effective. The test host and processor/emulator reservations stay held to protect the prepared screen; this mode trades resource availability for immediate handoff after Ready. It is opt-in. Existing plans keep their normal bounded timeout.
 
+Every enclosing process and transport must preserve this lifetime contract. A fixed wall-clock SSH command timeout, job execution limit or parent process deadline includes the human wait and can terminate the test after Ready even when the runner correctly pauses its own active-work timer. For prepared-readiness execution, remove that enclosing wall-clock command limit and let the workflow own its bounded active-work deadline, cancellation and cleanup. For example, SSH.NET callers set `SshCommand.CommandTimeout = System.Threading.Timeout.InfiniteTimeSpan` for this opt-in invocation; ordinary commands retain their finite timeout. This does not make the transport durable against disconnection or host failure. If the enclosing process ends, inspect original results and reconcile owned resources; never replay physical actions automatically. Increasing a fixed timeout does not satisfy the unlimited-wait contract.
+
 After Ready, refresh event baselines before arming observation and publishing the action request. Do not repeat compilation or navigation. A reply alone never proves a device event. The runner requires the retained readiness acknowledgement as well as passing tests, restoration, candidate verification and reservation release. A interrupted fixture is not automatically replayed, even though an unanswered readiness record itself remains durable.
 
 Use **Crestron Home NUnit 1.12.1** and **CrestronHomeDevTools 1.13.1** or later. The adapter declares the DevTools dependency; the Windows CLI download includes it. The initial 1.12.0 implementation could reject a valid installed candidate because the payload checker treated its full configuration catalogue ID as a storage-folder name. The corrected checker resolves the unversioned driver key and separate version directory while retaining candidate-version and file-integrity checks.
@@ -37,7 +39,7 @@ An example private plan (replace all example identities and paths):
     "parentDeviceId": -6,
     "name": "Example",
     "model": "Example Platform",
-    "locationId": 3,
+    "roomName": "Equipment Room",
     "version": "1.002.0003.0000",
     "catalogueId": "example.platform.tcpclient.developer",
     "developer": "Developer",
@@ -81,3 +83,89 @@ redacted. A failure before a fixture starts is not replaced by a missing operato
 readiness acknowledgement. Successful prepared fixtures still require that
 acknowledgement. Failure detail does not authorize retrying physical operations;
 inspect the phase journal and reservation state first.
+
+## Calculate the enclosing transport budget
+
+Use `WorkflowTransportBudget(preflight, activeWork, evidence, verification, cleanup, margin, preparedHumanReadiness)` to compute `Timeout`, then `ValidateEnclosingTimeout` before launching the remote command. Phase values are explicit operational bounds, not new test criteria. Ordinary execution requires a finite envelope covering every phase; a prepared no-expiry human readiness run requires an indefinite enclosing timeout with cancellation and active-work limits intact. Zero cleanup or margin is rejected. Do not silently reuse the active test timeout as the outer SSH timeout.
+
+For post-update setup, the DevTools `DriverReadinessWait.WaitAsync` helper retains each original readiness observation before evaluating convergence. Verify unchanged settings and payload after readiness; a completed swap followed by transient startup is not permission to swap again. Create fresh scoped clients after human waits/interruption and for independent cleanup.
+
+### Child output and cancellation
+
+`WorkflowEvidence.ProcessAsync` retains original combined output and a sibling `.process.json` receipt containing the child exit, termination confirmation, output completeness and separate primary/cleanup error categories. Child termination and output draining have bounded cleanup waits. A descendant holding an inherited pipe cannot block forever after the direct process exits. Partial output is retained and fails the operation; inspect it before any retry. For nested packaging tests, disable build-server reuse so a successful publish does not leave servers holding output handles.
+
+
+## Failed startup and observed restoration (local correction)
+
+A startup failure with no navigation attempted is not proof that the configured
+Home was observed or restored. AndroidWorkflowSession now retains startup-failure.json
+with separate NoNavigationAttempted and ConfiguredHomeRestorationObserved facts.
+Failed ordinary opening writes RestorationConfirmed=false. Failed opted-in saved
+endpoint inspection may still report true only when its navigation actually
+retained verified configured Home restoration. Successful opening behavior and
+SavedEndpointVerifiedOnOpen remain unchanged.
+
+Compatibility: a failed read-only opening that previously reported safe solely
+because it sent no input now retains ownership. Inspect actual state and use
+supported owner-scoped reconciliation; never reinterpret old immutable receipts
+or overwrite completion.json. No-input safety and restored-state evidence are
+distinct. Cross-Home fixtures must keep the original root session and separate
+nested selection evidence. A nested selected-Home completion must not stand in
+for actual original-Home restoration before public release.
+
+NUnit TearDown alone does not guarantee cleanup after failed SetUp. Catch setup
+failure explicitly and await independently bounded restoration before reporting
+the root completion. Do not replay uncertain input. The coordinator must allow
+the fixture active period plus all independent SDK/fixture cleanup; cancellation
+of WorkflowEvidence.ProcessAsync kills the child tree. An outer SSH-only change
+cannot cure a shorter coordinator deadline.
+
+Status: local source correction and offline validation; not pushed or published.
+
+## Admit the Android child within the remaining active budget
+
+For installed-driver Android execution, set AndroidTestPlan.ExecutionReserveSeconds
+to the reviewed minimum allowance for the child and its independent fixture/SDK
+cleanup. The coordinator checks this reserve at the execution boundary, after
+build/discovery, selection and retained producer preparation. It uses the same
+monotonic WorkflowActiveDeadline.Remaining allowance; it does not reset or extend
+the deadline. Evidence writes are followed by a fresh admission check, so a
+stored allowance sample alone is not permission to execute. Insufficient reserve,
+cancellation or invalid readiness prevents the execution child from starting.
+
+The default is zero, preserving legacy behavior. Explicit reserves are currently
+supported by InstalledDriverTestPlan; generic WorkflowPlan execution rejects a
+positive reserve before acquisition because it has no equivalent deadline binding.
+A declared reserve must be positive, no greater than one day, and fit within the
+installed plan's total active timeout. This is an operational admission guard,
+not a new response-time criterion or a guarantee that a fixture will finish.
+
+Keep verification, control/session release, termination/output-drain bounds and
+transport margins in the enclosing ledger as well. Include every independent
+nested SDK finally and original-Home restoration; a nested selected-Home
+completion does not establish restoration of the original Home. Only a validated
+pending prepared-readiness request retains the existing pause semantics. Cleanup
+or arbitrary waits cannot pause the timer. A watchdog expiry is not cleanup proof.
+
+
+## Attended physical interaction or observation: no elapsed session deadline
+
+Set `AttendedPhysicalObservation=true`, `TimeoutSeconds=0`, select exactly one
+explicit test and leave `ExecutionReserveSeconds=0`. This explicit mode uses no
+elapsed timer or readiness-pause monitor; caller cancellation remains active.
+Legacy plans keep their finite defaults and continue rejecting zero timeouts.
+An unlimited lifetime exposes no finite Remaining allowance and rejects finite
+reserve admission. It is not a large finite timeout or a timestamp adjustment.
+
+Every enclosing fixture/human restoration, adapter, worker, SSH and controller
+must also have no elapsed session watchdog; an arbitrarily large duration
+is not unlimited. Use the transport's supported unlimited mode and an explicit
+cancellation handoff that reaches the public caller token. Per-operation ADB/HTTP/SFTP failure bounds remain
+separate from the attended session. Explicit cancellation or actual errors
+must retain primary/nested diagnostics and uncertain ownership/restoration;
+closing an SSH/controller process does not prove a remote worker stopped.
+
+This does not grant physical-action authority or create readiness. Retain the
+exact actual human question/reply/provenance and the required baseline/current
+state/restoration observations; never answer automatically or replay uncertain
+inputs. Release actual unused task-owned resources only after fresh proof.

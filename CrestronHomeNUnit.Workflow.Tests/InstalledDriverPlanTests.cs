@@ -31,7 +31,7 @@ public sealed class InstalledDriverPlanTests
 		_plan = new ()
 			{
 			Host = "192.0.2.1", CertificateSha256 = new ('a', 64), SshFingerprint = "synthetic-only", PackagePath = package, PackageSha256 = new ('b', 64),
-			SourceRoots = [_root], Target = new (42, -6, "Example", "Example Platform", 3, "1.2.3.0", "example.platform.ip.developer", "Developer", "tcpClient"),
+			SourceRoots = [_root], Target = new (42, -6, "Example", "Example Platform", "Office", "1.2.3.0", "example.platform.ip.developer", "Developer", "tcpClient"),
 			AndroidTests = new (project, profile)
 			};
 		}
@@ -61,7 +61,7 @@ public sealed class InstalledDriverPlanTests
 			"certificate" => _plan with { CertificateSha256 = "" },
 			"ssh" => _plan with { SshFingerprint = "" },
 			"version" => _plan with { Target = _plan.Target with { Version = "1.2.3" } },
-			"room" => _plan with { Target = _plan.Target with { LocationId = 0 } },
+			"room" => _plan with { Target = _plan.Target with { RoomName = "" } },
 			"device" => _plan with { Target = _plan.Target with { DeviceId = 0 } },
 			"catalogue" => _plan with { Target = _plan.Target with { CatalogueId = "../other" } },
 			"source" => _plan with { SourceRoots = [] },
@@ -127,4 +127,22 @@ public sealed class InstalledDriverPlanTests
 		Assert.That (File.Exists (Path.Combine (results, "InstalledDriverTests.json")), Is.EqualTo (!deploymentInput), diagnostics);
 		Assert.That (File.Exists (Path.Combine (_root, "android.lock")), Is.False);
 		}
-	}
+
+    private InstalledDriverTestPlan Attended()=>_plan with {AttendedPhysicalObservation=true,TimeoutSeconds=0,
+        AndroidTests=_plan.AndroidTests with {RequiredTests=["Synthetic.AttendedPhysical"],ExecutionReserveSeconds=0}};
+    [Test] public void ExplicitAttendedPlanHasNoElapsedLimit()=>Assert.DoesNotThrow(Attended().Validate);
+    [TestCase("finite")][TestCase("legacy-zero")][TestCase("unselected")][TestCase("multiple")][TestCase("reserve")]
+    public void AttendedDeclarationCannotSilentlyWeakenLegacyOrSelection(string mutation){
+        var p=Attended();p=mutation switch {"finite"=>p with{TimeoutSeconds=900},"legacy-zero"=>p with{AttendedPhysicalObservation=false},
+            "unselected"=>p with{AndroidTests=p.AndroidTests with{RequiredTests=null}},
+            "multiple"=>p with{AndroidTests=p.AndroidTests with{RequiredTests=["A","B"]}},
+            _=>p with{AndroidTests=p.AndroidTests with{ExecutionReserveSeconds=1}}};
+        Assert.Throws<ArgumentException>(p.Validate);
+    }
+    [Test] public async Task AttendedPublicPreparationKeepsCandidateGuardBeforeAnyReservation(){
+        var results=Path.Combine(_root,"attended-results");
+        var failure=await Assert.ThrowsAsync<InvalidDataException>(()=>InstalledDriverTests.RunAsync(Attended(),new NetworkCredential("unused","unused"),results));
+        Assert.That(failure!.Message,Does.Contain("trusted package receipt"));Assert.That(File.Exists(Path.Combine(results,"Phases.jsonl")),Is.False);
+        Assert.That(File.Exists(Path.Combine(_root,"android.lock")),Is.False);
+    }
+}
