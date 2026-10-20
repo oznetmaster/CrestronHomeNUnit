@@ -21,6 +21,68 @@ public sealed class AndroidNavigationTests
 		"<node package='example.app' resource-id='example.app:id/row'>" +
 		"<node package='example.app' text='" + label + "' password='false' />" + child + "</node>";
 
+
+	private static string NestedLabelRow (string label, string child = Node) =>
+		LabelRow (label, child).Replace ("<node package='example.app' text='" + label + "' password='false' />",
+			"<node package='example.app' resource-id='example.app:id/titleSubtitle'><node package='example.app' text='" + label + "' password='false' /></node>");
+
+	[TestCase ("Energy", "60")]
+	[TestCase ("Impact", "160")]
+	public async Task NestedSiblingLabel_SelectsTheArrowInTheNamedRow (string label, string expectedX)
+		{
+		var transport = new FakeTransport (Document (NestedLabelRow ("Energy") + NestedLabelRow ("Impact", Node.Replace ("[10,20][110,80]", "[110,20][210,80]"))));
+		var selector = Selector with { SiblingDescendantText = label, AncestorResourceId = "example.app:id/row" };
+		await new AndroidDevice (transport, Application).TapAsync (selector, h => h.RequireUnique (selector));
+		Assert.That (transport.Commands.Last (), Is.EqualTo (new[] { "shell", "input", "tap", expectedX, "50" }));
+		Assert.That (transport.Commands.Count (c => c.Contains ("input")), Is.EqualTo (1));
+		}
+
+	[TestCase ("missing")]
+	[TestCase ("duplicate-row")]
+	[TestCase ("duplicate-label")]
+	[TestCase ("foreign-label")]
+	[TestCase ("foreign-container")]
+	[TestCase ("foreign-parent")]
+	[TestCase ("password-label")]
+	[TestCase ("password-container")]
+	[TestCase ("immediate-label")]
+	[TestCase ("wrong-ancestor")]
+	[TestCase ("blank-label")]
+	public async Task UnsafeNestedSiblingLabel_SendsNoInput (string defect)
+		{
+		string label = "<node package='example.app' text='Energy' password='false' />";
+		string row = NestedLabelRow ("Energy");
+		row = defect switch
+			{
+			"missing" => row.Replace (label, ""),
+			"duplicate-row" => row + row,
+			"duplicate-label" => row.Replace (label, label + label),
+			"foreign-label" => row.Replace (label, label.Replace ("example.app", "other.app")),
+			"foreign-container" => row.Replace ("package='example.app' resource-id='example.app:id/titleSubtitle'", "package='other.app' resource-id='example.app:id/titleSubtitle'"),
+			"foreign-parent" => row.Replace ("package='example.app' resource-id='example.app:id/row'", "package='other.app' resource-id='example.app:id/row'"),
+			"password-label" => row.Replace (label, label.Replace ("password='false'", "password='true'")),
+			"password-container" => row.Replace ("resource-id='example.app:id/titleSubtitle'", "resource-id='example.app:id/titleSubtitle' password='true'"),
+			"immediate-label" => LabelRow ("Energy"),
+			_ => row
+			};
+		var selector = Selector with { SiblingDescendantText = defect == "blank-label" ? " " : "Energy", AncestorResourceId = defect == "wrong-ancestor" ? "missing" : null };
+		var transport = new FakeTransport (Document (row));
+		await Assert.CatchAsync<Exception> (() => new AndroidDevice (transport, Application).TapAsync (selector, _ => { }));
+		Assert.That (transport.Commands.Any (c => c.Contains ("input")), Is.False);
+		}
+
+	[Test]
+	public async Task NestedSiblingLabel_PreservesPageGuardAndDoesNotReplayUncertainInput ()
+		{
+		var transport = new FakeTransport (Document (NestedLabelRow ("Energy"))) { FailInput = true };
+		var device = new AndroidDevice (transport, Application);
+		var selector = Selector with { SiblingDescendantText = "Energy" };
+		await Assert.ThrowsAsync<InvalidOperationException> (() => device.TapAsync (selector, _ => throw new InvalidOperationException ("Wrong page")));
+		Assert.That (transport.Commands.Any (c => c.Contains ("input")), Is.False);
+		await Assert.ThrowsAsync<TimeoutException> (() => device.TapAsync (selector, _ => { }));
+		Assert.That (transport.Commands.Count (c => c.Contains ("input")), Is.EqualTo (1));
+		}
+
 	[Test]
 	public async Task SiblingLabel_SelectsOnlyTheNamedRowAmongRepeatedButtons ()
 		{
