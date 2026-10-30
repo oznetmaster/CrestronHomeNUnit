@@ -1,0 +1,54 @@
+name: Reuse completed release validation
+description: Verify recent CI results or record independent desktop and processor release attestations.
+inputs:
+  required-checks:
+    description: JSON required-check contexts and app IDs; preserve the repository policy.
+    required: false
+    default: ''
+  hosted-workflows:
+    description: JSON workflow filenames required for hosted validation.
+    required: false
+    default: ''
+  skip-hardware-checks:
+    description: Explicit manual processor-validation override.
+    required: false
+    default: 'false'
+  hardware-skip-reason:
+    description: Tested source, time, results and cleanup evidence, or unavailable-hardware reason.
+    required: false
+    default: ''
+  skip-desktop-checks:
+    description: Explicit manual desktop-validation override.
+    required: false
+    default: 'false'
+  desktop-skip-reason:
+    description: Tested source, time, frameworks, pass counts and report location.
+    required: false
+    default: ''
+  validation-commit:
+    description: Reuse successful CI completed within 24 hours for a release-only ancestor.
+    required: false
+    default: ''
+  policy-tests-only:
+    description: Test the policy without checking or overriding release gates.
+    required: false
+    default: 'false'
+runs:
+  using: composite
+  steps:
+    - name: Test release-validation policy
+      shell: pwsh
+      run: '& "$env:GITHUB_ACTION_PATH/Test-RequiredReleaseChecks.ps1"'
+    - name: Verify completed validation
+      if: inputs.policy-tests-only != 'true'
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ github.token }}
+        REQUIRED_RELEASE_CHECKS: ${{ inputs.required-checks }}
+        REQUIRED_HOSTED_WORKFLOWS: ${{ inputs.hosted-workflows }}
+        RELEASE_SKIP_HARDWARE_CHECKS: ${{ inputs.skip-hardware-checks }}
+        RELEASE_HARDWARE_SKIP_REASON: ${{ inputs.hardware-skip-reason }}
+        RELEASE_SKIP_DESKTOP_CHECKS: ${{ inputs.skip-desktop-checks }}
+        RELEASE_DESKTOP_SKIP_REASON: ${{ inputs.desktop-skip-reason }}
+        RELEASE_VALIDATION_COMMIT: ${{ inputs.validation-commit }}
+      run: '& "$env:GITHUB_ACTION_PATH/Wait-RequiredReleaseChecks.ps1"'
