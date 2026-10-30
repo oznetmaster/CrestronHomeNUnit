@@ -20,8 +20,9 @@ permissions:
   id-token: write
 
 concurrency:
-  group: release
+  group: public-release
   cancel-in-progress: false
+  queue: max
 
 jobs:
   release:
