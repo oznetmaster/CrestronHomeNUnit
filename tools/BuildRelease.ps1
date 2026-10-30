@@ -3,9 +3,12 @@
 
 param(
     [Parameter(Mandatory)][string] $Version,
-    [Parameter(Mandatory)][string] $ManifestUtilExe
+    [Parameter(Mandatory)][string] $ManifestUtilExe,
+    [switch]$SkipDesktopTests,
+    [string]$DesktopValidationEvidence
 )
 $ErrorActionPreference = 'Stop'
+if ($SkipDesktopTests -and ([string]::IsNullOrWhiteSpace($DesktopValidationEvidence) -or $DesktopValidationEvidence.Length -gt 500 -or $DesktopValidationEvidence -match '[\x00-\x1f\x7f]')) { throw 'Desktop reuse requires nonempty single-line reviewed source/time/result evidence, at most 500 characters.' }
 $root = Split-Path $PSScriptRoot -Parent
 Push-Location $root
 try {
@@ -14,20 +17,24 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Solution build failed.' }
     dotnet build CrestronHomeNUnit.Driver/CrestronHomeNUnit.Driver.csproj -c Release "-p:ReleaseVersion=$Version" "-p:ManifestUtilExe=$ManifestUtilExe" "-p:LocalCrestronSdkLibDir=$(Split-Path $ManifestUtilExe -Parent)" -p:DeployAfterBuild=false
     if ($LASTEXITCODE -ne 0) { throw 'Processor package build failed.' }
-    & ./CrestronHomeNUnit.TransportValidation/bin/Release/net10.0-windows/CrestronHomeNUnit.TransportValidation.exe
-    if ($LASTEXITCODE -ne 0) { throw 'Runner regression validation failed.' }
-    dotnet test CrestronHomeNUnit.Client.Tests/CrestronHomeNUnit.Client.Tests.csproj -c Release --no-build
-    if ($LASTEXITCODE -ne 0) { throw 'CLI client regression tests failed.' }
-    dotnet test CrestronHomeNUnit.Workflow.Tests/CrestronHomeNUnit.Workflow.Tests.csproj -c Release --no-build
-    if ($LASTEXITCODE -ne 0) { throw 'Workflow regression tests failed.' }
-    dotnet test CrestronHomeNUnit.TestAdapter.Tests/CrestronHomeNUnit.TestAdapter.Tests.csproj -c Release --no-build
-    if ($LASTEXITCODE -ne 0) { throw 'Test adapter regression tests failed.' }
-    dotnet test CrestronHomeNUnit.Android.Tests/CrestronHomeNUnit.Android.Tests.csproj -c Release --no-build
-    if ($LASTEXITCODE -ne 0) { throw 'Android toolkit regression tests failed.' }
-    dotnet test CrestronHomeNUnit.Mac.Tests/CrestronHomeNUnit.Mac.Tests.csproj -c Release --no-build
-    if ($LASTEXITCODE -ne 0) { throw 'Mac toolkit regression tests failed.' }
-    dotnet test CrestronHomeNUnit.Transport.Tests/CrestronHomeNUnit.Transport.Tests.csproj -c Release --no-build
-    if ($LASTEXITCODE -ne 0) { throw 'Network timing regression tests failed.' }
+    if (!$SkipDesktopTests) {
+        & ./CrestronHomeNUnit.TransportValidation/bin/Release/net10.0-windows/CrestronHomeNUnit.TransportValidation.exe
+        if ($LASTEXITCODE -ne 0) { throw 'Runner regression validation failed.' }
+        dotnet test CrestronHomeNUnit.Client.Tests/CrestronHomeNUnit.Client.Tests.csproj -c Release --no-build
+        if ($LASTEXITCODE -ne 0) { throw 'CLI client regression tests failed.' }
+        dotnet test CrestronHomeNUnit.Workflow.Tests/CrestronHomeNUnit.Workflow.Tests.csproj -c Release --no-build
+        if ($LASTEXITCODE -ne 0) { throw 'Workflow regression tests failed.' }
+        dotnet test CrestronHomeNUnit.TestAdapter.Tests/CrestronHomeNUnit.TestAdapter.Tests.csproj -c Release --no-build
+        if ($LASTEXITCODE -ne 0) { throw 'Test adapter regression tests failed.' }
+        dotnet test CrestronHomeNUnit.Android.Tests/CrestronHomeNUnit.Android.Tests.csproj -c Release --no-build
+        if ($LASTEXITCODE -ne 0) { throw 'Android toolkit regression tests failed.' }
+        dotnet test CrestronHomeNUnit.Mac.Tests/CrestronHomeNUnit.Mac.Tests.csproj -c Release --no-build
+        if ($LASTEXITCODE -ne 0) { throw 'Mac toolkit regression tests failed.' }
+        dotnet test CrestronHomeNUnit.Transport.Tests/CrestronHomeNUnit.Transport.Tests.csproj -c Release --no-build
+        if ($LASTEXITCODE -ne 0) { throw 'Network timing regression tests failed.' }
+    } else {
+        Write-Output "Reusing reviewed desktop validation: $DesktopValidationEvidence. This build does not establish a new desktop-test pass."
+    }
     $package = Join-Path $root 'CrestronHomeNUnit.Driver/bin/Release/net472/CrestronHomeNUnit.Driver.pkg'
     # The NUnit 5 candidate has passed repeated execution; keep that regression gate
     # in the release workflow rather than relying only on a first-run result.
