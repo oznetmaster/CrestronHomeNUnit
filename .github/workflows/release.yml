@@ -104,7 +104,8 @@ jobs:
           if ($existing -match ('(?m)^## \[?' + [regex]::Escape($env:RELEASE_VERSION) + '(?:\]|\s|$)')) { throw 'Changelog already contains this version.' }
           $firstBreak = $existing.IndexOf("`n")
           if ($firstBreak -lt 0) { throw 'Invalid changelog header.' }
-          $entry = "## $env:RELEASE_VERSION - $([DateTime]::UtcNow.ToString('yyyy-MM-dd'))`n`n$body`n`n"
+          $releaseUrl = "https://github.com/$env:GITHUB_REPOSITORY/releases/tag/v$env:RELEASE_VERSION"
+          $entry = "## [$env:RELEASE_VERSION]($releaseUrl) - $([DateTime]::UtcNow.ToString('yyyy-MM-dd'))`n`n$body`n`n"
           [IO.File]::WriteAllText($changelog, $existing.Substring(0, $firstBreak + 1) + "`n" + $entry + $existing.Substring($firstBreak + 1).TrimStart())
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
