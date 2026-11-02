@@ -1,0 +1,1 @@
+./tools/Test-DiscoveredCoverage.ps1 -Stage Desktop -Project CrestronHomeNUnit.Android.Tests/CrestronHomeNUnit.Android.Tests.csproj -Framework net10.0 -Configuration Release -ResultsDirectory artifacts/android -RequiredCategories @()

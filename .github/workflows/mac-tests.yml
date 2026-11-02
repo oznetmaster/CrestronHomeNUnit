@@ -18,9 +18,13 @@ jobs:
         with:
           dotnet-version: 10.0.401
       - name: Test helpers without app or hardware
-        run: dotnet test CrestronHomeNUnit.Mac.Tests/CrestronHomeNUnit.Mac.Tests.csproj -c Release --logger trx --results-directory artifacts/mac
+        uses: oznetmaster/BuildAutomation@ae6f311e530a18dc705971dcc655fc97de03e368
+        with:
+          task: mac-tests-offline-test-helpers-without-app-or-hardware
       - name: Discover sample without opening a UI session
-        run: dotnet test samples/MacUiTests/MacUiTests.csproj -c Release -p:UseSourceMac=true --list-tests
+        uses: oznetmaster/BuildAutomation@ae6f311e530a18dc705971dcc655fc97de03e368
+        with:
+          task: mac-tests-offline-discover-sample-without-opening-a-ui-session
       - uses: actions/upload-artifact@v4
         if: always()
         with:

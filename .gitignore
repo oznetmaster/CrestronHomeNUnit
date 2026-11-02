@@ -3,3 +3,7 @@
 **/obj/
 **/TestResult.xml
 artifacts/
+
+# Shared Cake build downloads and invocation receipts
+/artifacts/build-components/
+/artifacts/build-automation/

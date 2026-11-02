@@ -15,10 +15,13 @@ jobs:
         with:
           dotnet-version: 10.0.401
       - name: Test Android primitives without emulator or hardware
-        shell: pwsh
-        run: ./tools/Test-DiscoveredCoverage.ps1 -Stage Desktop -Project CrestronHomeNUnit.Android.Tests/CrestronHomeNUnit.Android.Tests.csproj -Framework net10.0 -Configuration Release -ResultsDirectory artifacts/android -RequiredCategories @()
+        uses: oznetmaster/BuildAutomation@ae6f311e530a18dc705971dcc655fc97de03e368
+        with:
+          task: android-tests-offline-tests-test-android-primitives-without-emulator-or-hardware
       - name: Discover opt-in UI sample without opening Android
-        run: dotnet test samples/AndroidWorkflowTests/AndroidWorkflowTests.csproj -c Release -p:UseSourceAndroid=true --list-tests
+        uses: oznetmaster/BuildAutomation@ae6f311e530a18dc705971dcc655fc97de03e368
+        with:
+          task: android-tests-offline-tests-discover-opt-in-ui-sample-without-opening-android
       - uses: actions/upload-artifact@v4
         if: always()
         with:

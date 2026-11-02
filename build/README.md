@@ -1,0 +1,33 @@
+# Build and test
+
+This repository uses [the shared Cake build component](https://github.com/oznetmaster/BuildAutomation/tree/ae6f311e530a18dc705971dcc655fc97de03e368) pinned in `component.json`. It is build tooling only; product dependencies and versions are unchanged.
+
+The CI workflow retains its jobs, framework matrix, filters, prerequisites and artifact upload rules. Repository-owned recipes preserve the build/test/package commands. Publication, validation reuse, approvals, runner selection and hardware reservations remain in GitHub Actions.
+
+Run the same task locally with .NET 10, Git and PowerShell:
+
+```powershell
+./build/Invoke.ps1 -Task TASK_NAME
+```
+
+For a matrix task, set its `BUILD_INPUT_*` environment values as shown in the workflow before invoking it. These are project/framework selections, not credentials. The first local invocation downloads the immutable component into ignored `artifacts/build-components/`.
+
+Available tasks:
+
+- `tests-desktop-coverage-checker-regressions`
+- `tests-desktop-packaged-metadata-regressions`
+- `tests-desktop-build-solution-without-deployment`
+- `tests-desktop-runner-and-transport-regressions`
+- `tests-desktop-transport-timing-regressions`
+- `tests-desktop-cli-client-regressions`
+- `tests-desktop-workflow-regressions`
+- `tests-desktop-test-explorer-adapter-regressions`
+- `tests-desktop-offline-workflow-discovery`
+- `tests-desktop-pack-and-verify-adapter-installation`
+- `tests-desktop-cli-help`
+- `android-tests-offline-tests-test-android-primitives-without-emulator-or-hardware`
+- `android-tests-offline-tests-discover-opt-in-ui-sample-without-opening-android`
+- `mac-tests-offline-test-helpers-without-app-or-hardware`
+- `mac-tests-offline-discover-sample-without-opening-a-ui-session`
+
+The shared component rejects missing/stale/empty/failed declared TRX results and writes one receipt per invocation beneath `artifacts/build-automation/`. It does not publish packages or invoke live hardware tests. Existing specialized scripts remain authoritative.
