@@ -23,13 +23,20 @@ foreach ($inputPath in $inputs) {
 # their original assembly. /allowdup must not combine unrelated types that happen
 # to have the same name. Rewrite disposable inputs, retaining the original files.
 Add-Type -Path (Join-Path $ToolDirectory 'Mono.Cecil.dll')
+# Resolve enum-valued attributes in other merge inputs independently of the caller's directory.
+$resolver = [Mono.Cecil.DefaultAssemblyResolver]::new()
+foreach ($directoryPath in @($LibDir, $SdkLibDir, $FxRefDir, $FxRuntimeDir) + @($inputs | ForEach-Object { Split-Path -Parent $_ }) | Select-Object -Unique) {
+    if ($directoryPath -and (Test-Path -LiteralPath $directoryPath)) { $resolver.AddSearchDirectory($directoryPath) }
+}
+$readerParameters = [Mono.Cecil.ReaderParameters]::new()
+$readerParameters.AssemblyResolver = $resolver
 $preparedDirectory = Join-Path ([IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($OutputPath))) 'inputs'
 [IO.Directory]::CreateDirectory($preparedDirectory) | Out-Null
 $preparedInputs = @()
 $resourceHelperCount = 0
 $anonymousTypeShapes = @{}
 foreach ($inputPath in $inputs) {
-    $inputAssembly = [Mono.Cecil.AssemblyDefinition]::ReadAssembly($inputPath)
+    $inputAssembly = [Mono.Cecil.AssemblyDefinition]::ReadAssembly($inputPath, $readerParameters)
     try {
         $module = $inputAssembly.MainModule
         $renames = @{}
@@ -84,4 +91,4 @@ try {
         }
     }
 }
-finally { $mergedAssembly.Dispose() }
+finally { $mergedAssembly.Dispose(); $resolver.Dispose() }

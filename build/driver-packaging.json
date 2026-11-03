@@ -1,13 +1,14 @@
 {
   "schema": 1,
   "repository": "https://github.com/oznetmaster/BuildAutomation.git",
-  "commit": "c6fd6f5cee2c199b5ea28d08a55b73d756df916d",
+  "commit": "280338de89a858ee3aa5571516e7ca9b5146a196",
   "directory": "DriverPackaging",
   "files": {
-    "ILRepackMerge.ps1": "ed1d781bafeb20ee93dc8094897556d56b6fcf2f4644f9e7303ca9d0d63e9ca9",
+    "ILRepackMerge.ps1": "c14fb81db7ee96972ab87562ca88d004d0c7f9a04401dfd2ce146091c70bdece",
     "PatchMergedAssembly.ps1": "66a5e55d273a2ee578f6150cba28488a9caaad324e22b350b3625f169c2bfaf6",
     "Test-DriverPackaging.ps1": "6c888d09206bec86dd43a0ae579af66be3047f15ccb94e4083b8cce9b2e264e1",
-    "LICENSE": "254ba2c413da497077d4b7c8b4a38070d9bab0818d40ec8a4d73b456a4ae6818",
-    "README.md": "7135768938fd6d21ba1323e933b0e9babdafa66e8336a38381ac83f912ba6368"
+    "Test-MergeAssemblyResolver.ps1": "324b49b6995ff746ec2e08faa140328e643ff40e7ea6085eaa36b8efef9e6160",
+    "README.md": "536d1755cda9768d44075230c1e6be32af89e77ddba245e959eccd85003581a2",
+    "LICENSE": "254ba2c413da497077d4b7c8b4a38070d9bab0818d40ec8a4d73b456a4ae6818"
   }
 }
