@@ -4,3 +4,4 @@ NUnit5/licenses/** -text -whitespace
 vendor/nunit/** -text -whitespace
 build/shared/test-coverage/** text eol=lf
 build/shared/nuget-artifacts/** text eol=lf
+build/shared/driver-packaging/** text eol=lf
