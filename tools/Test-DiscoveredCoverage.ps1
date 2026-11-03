@@ -20,14 +20,10 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
+. "$PSScriptRoot/../build/shared/test-coverage/Coverage.ps1"
 
-function Assert-SameTests($Expected, $Actual, [string]$Context) {
-    $left = @($Expected | Sort-Object -CaseSensitive)
-    $right = @($Actual | Sort-Object -CaseSensitive)
-    if (!$left.Count -or $left.Count -ne $right.Count) { throw "$Context has empty or missing test results." }
-    for ($index = 0; $index -lt $left.Count; $index++) {
-        if ($left[$index] -cne $right[$index]) { throw "$Context test identities differ: $($left[$index]) / $($right[$index])" }
-    }
+function Assert-SameTests($Expected,$Actual,[string]$Context) {
+    Assert-CoverageTestNames $Expected $Actual $Context
 }
 function Normalize-TestName([string]$Name) {
     $result=[Text.StringBuilder]::new()
@@ -51,32 +47,15 @@ function Normalize-TestName([string]$Name) {
     }
     return $result.ToString()
 }
-function Read-TestTree([string]$Path, [switch]$AdapterDump) {
-    $text = [IO.File]::ReadAllText($Path)
-    if ($AdapterDump) {
-        # The adapter's diagnostic wrapper is not XML; its NUnit test-run element is.
-        $matches = [regex]::Matches($text, '(?s)<test-run\b.*?</test-run>')
-        if ($matches.Count -ne 1) { throw "Expected one discovery tree in $Path" }
-        $text = $matches[0].Value
-    }
-    $xml = [Xml.XmlDocument]::new()
-    $xml.XmlResolver = $null
-    $xml.LoadXml($text)
-    if ($xml.SelectNodes("//*[@runstate='NotRunnable']").Count) { throw "Invalid tests in $Path" }
-    $cases = @($xml.SelectNodes('//test-case'))
-    if (!$cases.Count) { throw "Empty suite in $Path" }
-    foreach ($case in $cases) {
-        $categories = @($case.SelectNodes("ancestor-or-self::*/properties/property[@name='Category']") | ForEach-Object { $_.GetAttribute('value') })
-        [pscustomobject]@{ Name=(Normalize-TestName $case.GetAttribute('fullname')); Live=('Live' -in $categories); LiveControl=('LiveControl' -in $categories); Processor=('Processor' -in $categories); Result=$case.GetAttribute('result'); Label=$case.GetAttribute('label'); Reason=$case.SelectSingleNode('reason/message') }
-    }
+function Read-TestTree([string]$Path,[switch]$AdapterDump) {
+    Read-CoverageTestTree -Path $Path -AdapterDump:$AdapterDump -ExtraCategories @('LiveControl') -NormalizeName {param($Name) Normalize-TestName $Name}
 }
-function Assert-TestOutcome($Case, [bool]$AllowSkip) {
-    if ($Case.Result -eq 'Passed') { return }
-    if ($AllowSkip -and $Case.Processor -and $Case.Result -in @('Skipped','NotExecuted') -and
-        $null -ne $Case.Reason -and ($Case.Reason.InnerText.Contains('Requires the SDK desktop harness or the processor runtime.') -or
-        $Case.Reason.InnerText.Contains('Requires the SDK desktop harness or processor runtime.') -or
-        $Case.Reason.InnerText.Contains('Requires the Crestron processor runtime; run the Processor Lifecycle suite on the processor.'))) { return }
-    throw "Unexpected result for $($Case.Name): $($Case.Result)"
+function Assert-TestOutcome($Case,[bool]$AllowSkip) {
+    Assert-CoverageTestOutcome -Case $Case -AllowSkip $AllowSkip -AllowedSkipReasons @(
+        'Requires the SDK desktop harness or the processor runtime.',
+        'Requires the SDK desktop harness or processor runtime.',
+        'Requires the Crestron processor runtime; run the Processor Lifecycle suite on the processor.'
+    )
 }
 function Find-DiscoveredCase($Inventory, [string]$Identity) {
     $matches = @($Inventory | Where-Object Name -CEQ $Identity)
